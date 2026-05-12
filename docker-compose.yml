@@ -12,10 +12,9 @@ services:
     volumes:
       - mongo_data:/data/db
     # Mongo is reachable from the backend container as "mongo:27017"
-    # We do NOT expose it on the host by default (more secure).
-    # Uncomment the next two lines if you want to connect with Compass:
-    # ports:
-    #   - "27017:27017"
+    # We also publish it on the host so MongoDB Compass can connect.
+    ports:
+      - "27017:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
