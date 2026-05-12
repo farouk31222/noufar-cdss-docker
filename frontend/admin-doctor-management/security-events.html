@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR Admin | Security Events</title>
+    <meta
+      name="description"
+      content="Admin security events registry for audit logs, authentication activity, protected downloads, and operational traceability."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="../assets/noufar-logo.png" />
+    <link rel="stylesheet" href="admin-styles.css" />
+  </head>
+  <body data-page="security-events">
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <a class="sidebar-brand" href="index.html">
+          <img src="../assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+          <div class="sidebar-brand-copy">
+            <strong>NOUFAR Admin</strong>
+            <span>Doctor management console</span>
+          </div>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <div class="sidebar-nav-group sidebar-nav-group-main">
+            <span class="sidebar-nav-label">Workspace</span>
+            <a class="sidebar-link" href="index.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h7V4H4v8Zm9 8h7v-6h-7v6Zm0-16v8h7V4h-7ZM4 20h7v-6H4v6Z" /></svg>
+              <span>Overview</span>
+            </a>
+            <a class="sidebar-link" href="doctors.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Zm-6.5 8a6.5 6.5 0 0 1 13 0" /></svg>
+              <span>Doctors</span>
+            </a>
+            <a class="sidebar-link" href="support-center.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5m-7 6 2.2-2H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" /></svg>
+              <span>Support Center</span>
+            </a>
+            <a class="sidebar-link active" href="security-events.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.9 8.8 7 10 4.1-1.2 7-5.5 7-10V6l-7-3Zm0 5v4m0 4h.01" /></svg>
+              <span>Security Events</span>
+            </a>
+            <a class="sidebar-link" href="system.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6.5 16V9m5 7V5m5 11v-6M4 8l4-3 4 3 4-3 4 3" /></svg>
+              <span>System</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <section class="admin-workspace">
+        <header class="topbar">
+          <button class="topbar-toggle" type="button" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+
+          <div class="topbar-title-block">
+            <span class="eyebrow">Security monitoring</span>
+            <h1>Security Events</h1>
+          </div>
+
+          <label class="topbar-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" /></svg>
+            <input id="security-events-search" type="search" placeholder="Search action, actor, target, or event ID..." />
+          </label>
+
+          <div class="topbar-actions">
+            <a class="icon-button notification-trigger" href="#" aria-label="Doctor registration notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a4 4 0 0 0-4 4v2.3c0 .7-.2 1.39-.58 1.97L6 13.5h12l-1.42-2.23A3.7 3.7 0 0 1 16 9.3V7a4 4 0 0 0-4-4Zm-2 14a2 2 0 0 0 4 0" /></svg>
+              <span class="notification-dot" hidden></span>
+            </a>
+            <a class="icon-button profile-trigger" href="login.html?logout=1" aria-label="Admin profile">
+              <img class="topbar-profile-avatar topbar-profile-image" src="../assets/Admin%20profileee.png" alt="Admin profile" />
+            </a>
+          </div>
+        </header>
+
+        <main class="admin-main admin-main-clean">
+          <section class="page-header-card page-header-card-simple">
+            <div class="page-header-copy">
+              <span class="hero-kicker">Audit and traceability</span>
+              <h2>Security events</h2>
+              <p>Review authentication, export, download, and protected account events from one operational audit console built for fast admin review.</p>
+            </div>
+            <div class="page-header-actions">
+              <button class="btn btn-secondary security-events-export-btn" type="button" id="security-events-export">
+                <img src="assets/file.png" alt="" aria-hidden="true" />
+                <span>Export events</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="content-card section-card filter-card">
+            <div class="card-header">
+              <div>
+                <h3>Filters and search controls</h3>
+                <p>Segment the audit log by action, outcome, actor role, target type, and date window.</p>
+              </div>
+              <button class="link-action security-events-reset" type="button" id="security-events-reset">Reset filters</button>
+            </div>
+
+            <div class="filters-bar security-events-filters">
+              <div class="filter-group">
+                <label class="filter-label" for="security-events-action-filter">Action</label>
+                <select class="control" id="security-events-action-filter"></select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label" for="security-events-outcome-filter">Outcome</label>
+                <select class="control" id="security-events-outcome-filter">
+                  <option value="">All outcomes</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
+                  <option value="denied">Denied</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label" for="security-events-actor-role-filter">Actor role</label>
+                <select class="control" id="security-events-actor-role-filter">
+                  <option value="">All roles</option>
+                  <option value="admin">Admin</option>
+                  <option value="doctor">Doctor</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label" for="security-events-target-type-filter">Target type</label>
+                <select class="control" id="security-events-target-type-filter"></select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label" for="security-events-date-range-filter">Date range</label>
+                <select class="control" id="security-events-date-range-filter">
+                  <option value="7">Last 7 days</option>
+                  <option value="1">Last 24 hours</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                  <option value="all">All dates</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="security-events-layout">
+            <section class="content-card section-card security-events-table-card">
+              <div class="card-header">
+                <div>
+                  <h3>Security event registry</h3>
+                  <p>Newest events first, with quick access to the actor, outcome, target, and request context. Double-click any row to open the full event popup.</p>
+                </div>
+              </div>
+
+              <div class="security-events-inline-error" id="security-events-error" hidden></div>
+
+              <div class="table-wrap">
+                <table class="security-events-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Action</th>
+                      <th>Outcome</th>
+                      <th>Actor</th>
+                      <th>Role</th>
+                      <th>Target</th>
+                      <th>IP Address</th>
+                      <th>Session</th>
+                    </tr>
+                  </thead>
+                  <tbody id="security-events-table-body"></tbody>
+                </table>
+              </div>
+              <div class="table-footer table-footer-pagination">
+                <span class="table-summary" id="security-events-table-summary">Showing 0 events</span>
+                <div class="security-events-footer-controls">
+                  <label class="security-events-page-size">
+                    <span>Rows</span>
+                    <select class="control" id="security-events-page-size">
+                      <option value="12" selected>12</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                  </label>
+                  <div class="pagination" id="security-events-pagination" aria-label="Security events pagination"></div>
+                </div>
+              </div>
+            </section>
+
+            <div class="security-events-drawer-body" id="security-events-drawer-body" hidden>
+              <div class="empty-state">Select an event to inspect its details.</div>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <section class="modal-shell" id="security-event-modal" hidden aria-labelledby="security-event-modal-title" aria-modal="true" role="dialog">
+      <div class="modal-backdrop" data-close-security-event-modal></div>
+      <div class="modal-card modal-card-wide security-event-modal-card">
+        <div class="modal-head">
+          <div>
+            <h3 id="security-event-modal-title">Event details</h3>
+            <p>Full event inspection for actor, target, request context, and safe metadata.</p>
+          </div>
+          <button class="modal-close" type="button" aria-label="Close event details" data-close-security-event-modal>X</button>
+        </div>
+        <div class="security-event-modal-body" id="security-event-modal-body">
+          <div class="empty-state">Select an event to inspect its details.</div>
+        </div>
+      </div>
+    </section>
+
+    <script src="../config.js"></script>
+    <script src="admin-data.js"></script>
+    <script src="admin-app.js"></script>
+  </body>
+</html>

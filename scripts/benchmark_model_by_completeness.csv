@@ -1,0 +1,10 @@
+bucket,maxScoreExclusive,modelKey,metric,reason
+low,0.45,random_forest,0.733482,F1 mean=0.7335 | std=0.0430
+low,0.45,logistic_regression,0.717609,F1 mean=0.7176 | std=0.0605
+low,0.45,deep_neural_network,0.680795,F1 mean=0.6808 | std=0.0395
+medium,0.75,random_forest,0.786121,F1 mean=0.7861 | std=0.0480
+medium,0.75,logistic_regression,0.768767,F1 mean=0.7688 | std=0.0278
+medium,0.75,deep_neural_network,0.738066,F1 mean=0.7381 | std=0.0263
+high,1.01,random_forest,0.819001,F1 mean=0.8190 | std=0.0252
+high,1.01,logistic_regression,0.818675,F1 mean=0.8187 | std=0.0060
+high,1.01,deep_neural_network,0.798124,F1 mean=0.7981 | std=0.0152

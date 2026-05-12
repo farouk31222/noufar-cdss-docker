@@ -1,0 +1,36 @@
+# Root-level .dockerignore (applies to the backend build whose context = project root)
+**/.git
+**/.gitignore
+**/.DS_Store
+**/Thumbs.db
+
+# Node
+**/node_modules
+**/npm-debug.log
+
+# Python
+**/venv
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+
+# Local secrets — NEVER bake into images
+**/.env
+!**/.env.example
+
+# Backend runtime data
+backend/uploads
+!backend/uploads/.gitkeep
+
+# Editor / IDE
+.vscode
+.idea
+
+# Docs / misc that aren't needed at runtime
+**/*.md
+!README.md
+
+# Sub-project artifacts unnecessary in the backend image
+ai-server
+scripts

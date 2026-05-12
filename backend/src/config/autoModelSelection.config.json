@@ -1,0 +1,81 @@
+{
+  "version": "2026-05-05",
+  "objective": "max_accuracy",
+  "featureKeys": [
+    "age",
+    "consultationReason",
+    "duration",
+    "tsh",
+    "ft4",
+    "tsiLevel",
+    "antiTpoTotal",
+    "stress",
+    "palpitations",
+    "spp",
+    "amg",
+    "diarrhea",
+    "tremors",
+    "agitation",
+    "moodDisorder",
+    "sleepDisorder",
+    "sweating",
+    "heatIntolerance",
+    "muscleWeakness",
+    "goiter",
+    "blockReplace",
+    "surgery",
+    "radioactiveIodine",
+    "antiTpo",
+    "antiTg",
+    "tsi",
+    "goiterClassification",
+    "ultrasound",
+    "scintigraphy",
+    "therapy"
+  ],
+  "defaultUiValues": {
+    "stress": "No",
+    "palpitations": "No",
+    "spp": "No",
+    "amg": "No",
+    "diarrhea": "No",
+    "tremors": "No",
+    "agitation": "No",
+    "moodDisorder": "No",
+    "sleepDisorder": "No",
+    "sweating": "No",
+    "heatIntolerance": "No",
+    "muscleWeakness": "No",
+    "goiter": "No",
+    "blockReplace": "No",
+    "surgery": "No",
+    "radioactiveIodine": "No",
+    "antiTpo": "Negative",
+    "antiTg": "Negative",
+    "tsi": "Negative",
+    "tsh": 1.2,
+    "ft4": 1.1,
+    "antiTpoTotal": 180,
+    "tsiLevel": 1.3
+  },
+  "buckets": [
+    {
+      "name": "low",
+      "maxScoreExclusive": 0.45,
+      "selectedModelKey": "logistic_regression",
+      "reason": "Needs richer feature coverage"
+    },
+    {
+      "name": "medium",
+      "maxScoreExclusive": 0.75,
+      "selectedModelKey": "random_forest",
+      "reason": "Close second in medium completeness"
+    },
+    {
+      "name": "high",
+      "maxScoreExclusive": 1.01,
+      "selectedModelKey": "deep_neural_network",
+      "reason": "Best with near-complete feature vectors"
+    }
+  ]
+}

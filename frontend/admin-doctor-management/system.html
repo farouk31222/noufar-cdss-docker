@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR Admin | System</title>
+    <meta
+      name="description"
+      content="Admin system review page for comparing platform predictions with doctor-reported real outcomes."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="../assets/noufar-logo.png" />
+    <link rel="stylesheet" href="admin-styles.css" />
+  </head>
+  <body data-page="system">
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <a class="sidebar-brand" href="index.html">
+          <img src="../assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+          <div class="sidebar-brand-copy">
+            <strong>NOUFAR Admin</strong>
+            <span>Doctor management console</span>
+          </div>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <div class="sidebar-nav-group sidebar-nav-group-main">
+            <span class="sidebar-nav-label">Workspace</span>
+            <a class="sidebar-link" href="index.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h7V4H4v8Zm9 8h7v-6h-7v6Zm0-16v8h7V4h-7ZM4 20h7v-6H4v6Z" /></svg>
+              <span>Overview</span>
+            </a>
+            <a class="sidebar-link" href="doctors.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Zm-6.5 8a6.5 6.5 0 0 1 13 0" /></svg>
+              <span>Doctors</span>
+            </a>
+            <a class="sidebar-link" href="support-center.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5m-7 6 2.2-2H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" /></svg>
+              <span>Support Center</span>
+            </a>
+            <a class="sidebar-link" href="security-events.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.9 8.8 7 10 4.1-1.2 7-5.5 7-10V6l-7-3Zm0 5v4m0 4h.01" /></svg>
+              <span>Security Events</span>
+            </a>
+            <a class="sidebar-link active" href="system.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6.5 16V9m5 7V5m5 11v-6M4 8l4-3 4 3 4-3 4 3" /></svg>
+              <span>System</span>
+            </a>
+          </div>
+
+        </nav>
+      </aside>
+
+      <section class="admin-workspace">
+        <header class="topbar">
+          <button class="topbar-toggle" type="button" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+
+          <div class="topbar-title-block">
+            <span class="eyebrow">System intelligence</span>
+            <h1>Prediction Validation Monitor</h1>
+          </div>
+
+          <label class="topbar-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" /></svg>
+            <input id="system-search" type="search" placeholder="Search doctor, prediction ID, or source..." />
+          </label>
+
+          <div class="topbar-actions">
+            <div class="topbar-model-switcher">
+              <button class="topbar-model-trigger" id="system-model-trigger" type="button" aria-haspopup="dialog" aria-expanded="false">
+                <span class="topbar-model-text">
+                  <span class="topbar-model-label">Change model</span>
+                  <strong id="system-model-trigger-label">Logistic Regression</strong>
+                </span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+              </button>
+            </div>
+            <a class="icon-button notification-trigger" href="#" aria-label="Doctor registration notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a4 4 0 0 0-4 4v2.3c0 .7-.2 1.39-.58 1.97L6 13.5h12l-1.42-2.23A3.7 3.7 0 0 1 16 9.3V7a4 4 0 0 0-4-4Zm-2 14a2 2 0 0 0 4 0" /></svg>
+              <span class="notification-dot" hidden></span>
+            </a>
+            <a class="icon-button profile-trigger" href="login.html?logout=1" aria-label="Admin profile">
+              <img class="topbar-profile-avatar topbar-profile-image" src="../assets/Admin%20profileee.png" alt="Admin profile" />
+            </a>
+          </div>
+        </header>
+
+        <main class="admin-main admin-main-clean">
+          <section class="page-header-card page-header-card-simple">
+            <div class="page-header-copy">
+              <span class="hero-kicker">Prediction quality tracking</span>
+              <h2>System review and doctor corrections</h2>
+              <p>
+                Compare platform predictions with the real outcomes later recorded by doctors, monitor validation coverage,
+                and understand whether the decision support system is behaving reliably over time.
+              </p>
+              <div class="system-model-inline" aria-live="polite">
+                <span>Active model</span>
+                <strong id="system-active-model">Logistic Regression</strong>
+                <span>Selection mode</span>
+                <strong id="system-selection-policy">Manual</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="metrics-grid metrics-grid-system">
+            <article class="metric-card metric-card-total">
+              <span class="metric-label">Total predictions</span>
+              <strong id="system-total-predictions">0</strong>
+              <small>All prediction runs currently available for admin system review.</small>
+            </article>
+            <article class="metric-card metric-card-pending">
+              <span class="metric-label">Pending corrections</span>
+              <strong id="system-pending-corrections">0</strong>
+              <small>Predictions that still need the doctor to record the real outcome.</small>
+            </article>
+            <article class="metric-card metric-card-active">
+              <span class="metric-label">Validated predictions</span>
+              <strong id="system-validated-predictions">0</strong>
+              <small>Predictions already compared with a doctor-reported real result.</small>
+            </article>
+            <article class="metric-card metric-card-response">
+              <span class="metric-label">Current accuracy</span>
+              <strong id="system-validation-accuracy">0%</strong>
+              <small>Share of validated predictions currently marked as correct.</small>
+            </article>
+          </section>
+
+          <section class="content-card section-card">
+            <div class="card-header">
+              <div>
+                <h3>Validation summary</h3>
+                <p>Quick read on how many predictions were confirmed, corrected, or still pending.</p>
+              </div>
+            </div>
+            <div class="system-summary-stack" id="system-summary-stack"></div>
+          </section>
+
+          <section class="content-card section-card system-readiness-card">
+            <div class="card-header system-readiness-head">
+              <div>
+                <h3>Model readiness before change</h3>
+                <p>Review whether the currently active model has enough validated evidence before changing the production model.</p>
+              </div>
+              <div class="system-readiness-model-pill">
+                <span>Under review</span>
+                <strong id="system-readiness-model">Logistic Regression</strong>
+              </div>
+            </div>
+
+            <div class="system-readiness-grid">
+              <article class="system-readiness-banner" id="system-readiness-banner"></article>
+
+              <article class="system-evidence-card">
+                <div class="system-evidence-head">
+                  <strong>Clinical evidence</strong>
+                  <span>Coverage and quality</span>
+                </div>
+                <div class="system-evidence-metrics" id="system-evidence-metrics"></div>
+              </article>
+
+              <article class="system-matrix-card">
+                <div class="system-evidence-head">
+                  <strong>Validation matrix</strong>
+                  <span>Doctor-confirmed outcomes only</span>
+                </div>
+                <div class="system-matrix-grid" id="system-matrix-grid"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="content-card section-card filter-card">
+            <div class="card-header">
+              <div>
+                <h3>System prediction registry</h3>
+                <p>Browse every prediction with the doctor account, platform result, and real correction result. Patient names are intentionally hidden.</p>
+              </div>
+            </div>
+
+            <div class="filters-bar">
+              <div class="filter-group">
+                <label class="filter-label" for="system-validation-filter">Validation status</label>
+                <select class="control" id="system-validation-filter">
+                  <option value="all">All statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Correct">Correct</option>
+                  <option value="Incorrect">Incorrect</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label" for="system-result-filter">Predicted result</label>
+                <select class="control" id="system-result-filter">
+                  <option value="all">All predictions</option>
+                  <option value="Relapse">Relapse</option>
+                  <option value="No Relapse">No Relapse</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="content-card section-card">
+            <div class="card-header">
+              <div>
+                <h3>All predictions and corrections</h3>
+                <p>System-level registry of prediction output versus doctor correction result.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Prediction ID</th>
+                    <th>Doctor</th>
+                    <th>Model</th>
+                    <th>Source</th>
+                    <th>IA prediction</th>
+                    <th>Doctor correction</th>
+                    <th>Validation</th>
+                    <th>Correction date/time</th>
+                  </tr>
+                </thead>
+                <tbody id="system-table-body"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <span class="table-summary" id="system-table-summary">Showing 0 predictions</span>
+              <div class="pagination" id="system-pagination" hidden></div>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="admin-data.js"></script>
+    <script src="../data.js"></script>
+    <script src="admin-app.js"></script>
+  </body>
+</html>

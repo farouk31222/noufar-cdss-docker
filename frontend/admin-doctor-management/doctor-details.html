@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR Admin | Doctor Details</title>
+    <meta name="description" content="Doctor details review page with personal info, professional documents, status history, and support history." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="../assets/noufar-logo.png" />
+    <link rel="stylesheet" href="admin-styles.css" />
+  </head>
+  <body data-page="doctor-details">
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <a class="sidebar-brand" href="index.html">
+          <img src="../assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+          <div class="sidebar-brand-copy">
+            <strong>NOUFAR Admin</strong>
+            <span>Doctor management console</span>
+          </div>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <div class="sidebar-nav-group sidebar-nav-group-main">
+            <span class="sidebar-nav-label">Workspace</span>
+            <a class="sidebar-link" href="index.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h7V4H4v8Zm9 8h7v-6h-7v6Zm0-16v8h7V4h-7ZM4 20h7v-6H4v6Z" /></svg>
+              <span>Overview</span>
+            </a>
+            <a class="sidebar-link active" href="doctors.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Zm-6.5 8a6.5 6.5 0 0 1 13 0" /></svg>
+              <span>Doctors</span>
+            </a>
+            <a class="sidebar-link" href="support-center.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5m-7 6 2.2-2H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" /></svg>
+              <span>Support Center</span>
+            </a>
+            <a class="sidebar-link" href="security-events.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.9 8.8 7 10 4.1-1.2 7-5.5 7-10V6l-7-3Zm0 5v4m0 4h.01" /></svg>
+              <span>Security Events</span>
+            </a>
+            <a class="sidebar-link" href="system.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6.5 16V9m5 7V5m5 11v-6M4 8l4-3 4 3 4-3 4 3" /></svg>
+              <span>System</span>
+            </a>
+          </div>
+
+        </nav>
+      </aside>
+
+      <section class="admin-workspace">
+        <header class="topbar">
+          <button class="topbar-toggle" type="button" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+
+          <div class="topbar-title-block">
+            <span class="eyebrow">Credential review</span>
+            <h1>Doctor Details</h1>
+          </div>
+
+          <label class="topbar-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" /></svg>
+            <input type="search" placeholder="Search profile notes, document name..." />
+          </label>
+
+          <div class="topbar-actions">
+            <a class="icon-button" href="doctors.html" aria-label="Back to doctors list">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+            </a>
+            <a class="icon-button profile-trigger" href="login.html?logout=1" aria-label="Admin profile">
+              <img class="topbar-profile-avatar topbar-profile-image" src="../assets/Admin%20profileee.png" alt="Admin profile" />
+            </a>
+          </div>
+        </header>
+
+        <main class="admin-main admin-main-clean" id="doctor-detail-root">
+          <section class="page-header-card">
+            <div class="page-header-copy">
+              <span class="hero-kicker">Doctor verification dossier</span>
+              <h2 id="detail-name">Doctor Name</h2>
+              <p id="detail-subtitle">Specialty and hospital information</p>
+            </div>
+            <div class="page-header-actions detail-status-actions">
+              <div id="detail-approval"></div>
+              <div id="detail-account"></div>
+            </div>
+          </section>
+
+          <section class="panel-grid">
+            <div class="left-stack">
+              <article class="detail-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Personal and professional information</h3>
+                    <p>Primary physician profile data submitted during registration.</p>
+                  </div>
+                </div>
+                <div class="stats-grid">
+                  <div class="stat-chip"><span>Email</span><strong id="detail-email"></strong></div>
+                  <div class="stat-chip"><span>Specialty</span><strong id="detail-specialty"></strong></div>
+                  <div class="stat-chip"><span>Institution</span><strong id="detail-institution"></strong></div>
+                  <div class="stat-chip"><span>Role</span><strong id="detail-role"></strong></div>
+                  <div class="stat-chip"><span>Registration date</span><strong id="detail-registration"></strong></div>
+                </div>
+              </article>
+
+              <article class="detail-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Uploaded documents</h3>
+                    <p>Open the submitted verification documents for credential review.</p>
+                  </div>
+                </div>
+                <div class="document-list" id="detail-documents"></div>
+              </article>
+
+              <article class="detail-card" id="detail-support-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Support history</h3>
+                    <p>Previous doctor support conversations linked to this approved account.</p>
+                  </div>
+                </div>
+                <div class="list-stack" id="detail-support-history"></div>
+              </article>
+            </div>
+
+            <div class="right-stack">
+              <article class="detail-card admin-actions-card">
+                <div class="admin-actions-card-header">
+                  <div class="admin-actions-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 9.4 8 10 4.5-.6 8-5 8-10V6l-8-4Zm-1.5 13.5L7 12l1.4-1.4 2.1 2.1L15.6 7.6 17 9l-6.5 6.5Z" fill="currentColor"/></svg>
+                  </div>
+                  <div class="admin-actions-card-copy">
+                    <h3>Admin actions</h3>
+                    <p>Review the account status and apply the next available action.</p>
+                  </div>
+                </div>
+                <div class="admin-action-list" id="detail-actions">
+                  <button class="admin-action-btn primary" type="button" data-detail-action="approve">
+                    <span class="admin-action-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.55 17.05 4.5 12l1.4-1.4 3.65 3.65 8.55-8.55L19.5 7.1l-9.95 9.95Z" fill="currentColor"/></svg>
+                    </span>
+                    <span class="admin-action-text">
+                      <strong>Approve</strong>
+                      <small>Activate this doctor account</small>
+                    </span>
+                    <span class="admin-action-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  </button>
+                  <button class="admin-action-btn danger" type="button" data-detail-action="reject">
+                    <span class="admin-action-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4Z" fill="currentColor"/></svg>
+                    </span>
+                    <span class="admin-action-text">
+                      <strong>Reject</strong>
+                      <small>Decline this registration request</small>
+                    </span>
+                    <span class="admin-action-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  </button>
+                  <button class="admin-action-btn warning" type="button" data-detail-action="deactivate">
+                    <span class="admin-action-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 0 1-6.32-12.9l11.22 11.22A7.94 7.94 0 0 1 12 20Zm6.32-3.1L7.1 5.68A8 8 0 0 1 18.32 16.9Z" fill="currentColor"/></svg>
+                    </span>
+                    <span class="admin-action-text">
+                      <strong>Deactivate</strong>
+                      <small>Temporarily disable account access</small>
+                    </span>
+                    <span class="admin-action-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  </button>
+                  <button class="admin-action-btn success" type="button" data-detail-action="reactivate">
+                    <span class="admin-action-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.55 17.05 4.5 12l1.4-1.4 3.65 3.65 8.55-8.55L19.5 7.1l-9.95 9.95Z" fill="currentColor"/></svg>
+                    </span>
+                    <span class="admin-action-text">
+                      <strong>Activate</strong>
+                      <small>Restore full account access</small>
+                    </span>
+                    <span class="admin-action-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  </button>
+                  <button class="admin-action-btn secondary" type="button" data-detail-action="toggle-access">
+                    <span class="admin-action-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.5 9.4 8 10 4.5-.6 8-5 8-10V6l-8-4Zm0 6.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-3.5 8.5c0-1.7 1.6-3 3.5-3s3.5 1.3 3.5 3v.5h-7V17Z" fill="currentColor"/></svg>
+                    </span>
+                    <span class="admin-action-text">
+                      <strong>Change access</strong>
+                      <small>Toggle prediction access privileges</small>
+                    </span>
+                    <span class="admin-action-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  </button>
+                  <button class="admin-action-btn danger" type="button" data-detail-action="delete">
+                    <span class="admin-action-icon">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.75h6a1 1 0 0 1 1 1v1.25h3a.75.75 0 0 1 0 1.5h-1.05l-.82 11.04A2.25 2.25 0 0 1 14.89 20.75H9.11a2.25 2.25 0 0 1-2.24-2.21L6.05 7.5H5a.75.75 0 0 1 0-1.5h3V4.75a1 1 0 0 1 1-1Z" fill="currentColor"/></svg>
+                    </span>
+                    <span class="admin-action-text">
+                      <strong>Delete account</strong>
+                      <small>Permanently remove this account</small>
+                    </span>
+                    <span class="admin-action-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  </button>
+                </div>
+              </article>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <section class="modal-shell document-preview-shell" id="document-preview-modal" hidden aria-hidden="true">
+      <div class="modal-backdrop" data-close-document-modal></div>
+      <div class="modal-card document-preview-card">
+        <div class="modal-head">
+          <div>
+            <h3 id="document-preview-title">Document review</h3>
+            <p id="document-preview-subtitle">Review the uploaded file before validating it.</p>
+          </div>
+          <button class="modal-close" type="button" aria-label="Close document preview" data-close-document-modal>X</button>
+        </div>
+        <div class="document-preview-frame" id="document-preview-frame"></div>
+      </div>
+    </section>
+
+    <script src="../config.js"></script>
+    <script src="admin-data.js"></script>
+    <script src="admin-app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOUFAR CDSS | Hyperthyroidism Relapse Prediction Platform</title>
+  <meta name="description"
+    content="NOUFAR CDSS is a clinical decision support platform for doctors to assess hyperthyroidism relapse risk using structured patient data, probability scoring, and explanatory analytics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap"
+    rel="stylesheet" />
+  <link rel="icon" type="image/png" href="assets/noufar-logo.png" />
+  <link rel="shortcut icon" href="assets/noufar-logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header class="site-header" id="top">
+    <div class="container header-shell">
+      <a class="brand" href="#home" aria-label="NOUFAR CDSS home">
+        <img class="brand-image" src="assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+        <span class="brand-copy">
+          <strong>NOUFAR CDSS</strong>
+          <small>Clinical Decision Support System</small>
+        </span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav"
+        aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="site-nav" id="site-nav" aria-label="Primary">
+        <a href="#about">About</a>
+        <a href="#workflow">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#benefits">Benefits</a>
+        <a href="#support">Support</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" type="button" data-modal-open="login">
+          Login
+        </button>
+        <button class="btn btn-primary btn-sm" type="button" data-modal-open="register">
+          Register
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="landing-page">
+    <section class="hero section" id="home">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">New AI algorithm preview</p>
+          <h1>
+            <span>Precision AI for</span>
+            <span class="hero-accent hero-accent-long">Hyperthyroidism</span>
+            <span class="hero-accent">Relapse</span>
+            <span>Prediction.</span>
+          </h1>
+          <p class="hero-text">
+            Empowering clinicians with actionable insight, NOUFAR CDSS analyzes multi-modal
+            patient data to forecast relapse risk and support faster endocrine pathway decisions.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#about">Learn More</a>
+            <button class="btn btn-secondary" type="button" data-modal-open="demo">
+              Watch Demo
+            </button>
+          </div>
+          <div class="hero-clinical-strip" aria-label="Platform highlights">
+            <article class="hero-strip-card">
+              <strong>Doctor-only</strong>
+              <span>Restricted professional access</span>
+            </article>
+            <article class="hero-strip-card">
+              <strong>Excel / CSV ready</strong>
+              <span>Structured intake for single or batch review</span>
+            </article>
+            <article class="hero-strip-card">
+              <strong>Explainable output</strong>
+              <span>Probability score plus variable impact insight</span>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <article class="hero-risk-card">
+            <span class="hero-risk-alert">AI high relapse risk detected</span>
+            <div class="hero-risk-head">
+              <div>
+                <p class="mockup-label">Patient Risk Profile</p>
+                <strong>#CD-98231-A</strong>
+              </div>
+              <span class="hero-risk-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 7h10v10H7zM9.5 4h5M12 9v5m0 0 2-2m-2 2-2-2" />
+                </svg>
+              </span>
+            </div>
+            <div class="hero-risk-score">
+              <span>Relapse Probability</span>
+              <strong>84%</strong>
+            </div>
+            <dl class="hero-risk-metrics">
+              <div>
+                <dt>TSH Results</dt>
+                <dd>4.91 mIU/L</dd>
+              </div>
+              <div>
+                <dt>FT4</dt>
+                <dd>1.90 ng/dL</dd>
+              </div>
+              <div>
+                <dt>TRAb</dt>
+                <dd>4.5 IU/L</dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-dark-band" id="about">
+      <div class="container">
+        <div class="section-heading section-heading-split">
+          <div>
+            <p class="eyebrow">About</p>
+            <h2>Designed specifically for endocrinology workflows that demand speed and clarity.</h2>
+            <p>
+              Purpose-built for doctor-only use, NOUFAR CDSS reduces cognitive load during review by
+              connecting structured intake, predictive scoring, and explainable variables in one
+              clinical environment.
+            </p>
+          </div>
+
+          <aside class="section-summary-card">
+            <strong>Clinical overview</strong>
+            <ul class="summary-list">
+              <li>
+                <span>Secure doctor-only platform</span>
+                <strong>Verified access</strong>
+              </li>
+              <li>
+                <span>Prediction-ready patient intake</span>
+                <strong>Manual or file upload</strong>
+              </li>
+              <li>
+                <span>Explainable clinical outputs</span>
+                <strong>Probability + variable impact</strong>
+              </li>
+            </ul>
+          </aside>
+        </div>
+
+        <div class="about-grid">
+          <figure class="about-visual-card">
+            <img src="assets/about.png" alt="Doctor reviewing the NOUFAR CDSS platform on a clinical workstation" />
+            <figcaption>
+              <strong>Doctor-centered clinical review</strong>
+              <span>Structured relapse analysis, explainable outputs, and a workspace designed for real consultation flow.</span>
+            </figcaption>
+          </figure>
+
+          <div class="about-insights-grid">
+            <article class="info-card">
+              <span class="icon-badge">
+                <img src="assets/securety.png" alt="" />
+              </span>
+              <h3>Doctor-first workflow</h3>
+              <p>
+                Navigate secure relapse screening with an interface designed for endocrine teams,
+                specialist review, and structured follow-up.
+              </p>
+            </article>
+
+            <article class="info-card">
+              <span class="icon-badge">
+                <img src="assets/file.png" alt="" />
+              </span>
+              <h3>Multi-modal patient intake</h3>
+              <p>
+                Capture patient records manually or upload Excel and CSV datasets to accelerate case
+                preparation without losing data quality.
+              </p>
+            </article>
+
+            <article class="info-card">
+              <span class="icon-badge">
+                <img src="assets/dash.png" alt="" />
+              </span>
+              <h3>Explainable relapse insight</h3>
+              <p>
+                Review a clear relapse outcome, probability score, and the variables that drive the
+                model for greater confidence at decision time.
+              </p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-workflow" id="workflow">
+      <div class="container">
+        <div class="section-heading narrow">
+          <p class="eyebrow">How it works</p>
+          <h2>A guided four-step workflow that stays focused on clinical usability.</h2>
+        </div>
+
+        <div class="steps-grid">
+          <article class="step-card">
+            <span class="step-index">01</span>
+            <span class="step-kicker">Input</span>
+            <h3>Collect patient data</h3>
+            <p>Enter information manually through the form or upload an Excel or CSV file.</p>
+          </article>
+          <article class="step-card">
+            <span class="step-index">02</span>
+            <span class="step-kicker">Model</span>
+            <h3>Run prediction</h3>
+            <p>Launch the model with one click using the prepared patient profile.</p>
+          </article>
+          <article class="step-card">
+            <span class="step-index">03</span>
+            <span class="step-kicker">Result</span>
+            <h3>Review result</h3>
+            <p>See whether the predicted outcome is relapse or no relapse, with probability.</p>
+          </article>
+          <article class="step-card">
+            <span class="step-index">04</span>
+            <span class="step-kicker">Explainability</span>
+            <h3>Analyze the drivers</h3>
+            <p>Use charts to understand the variables that most influenced the prediction.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-muted" id="features">
+      <div class="container">
+        <div class="section-heading">
+          <p class="eyebrow">Features</p>
+          <h2>Everything needed for a professional prediction workflow in one organized environment.</h2>
+        </div>
+
+        <div class="feature-highlight">
+          <div class="feature-highlight-copy">
+            <p class="feature-highlight-label">Clinical workflow layer</p>
+            <h3>One unified workspace for intake, prediction, and interpretability.</h3>
+            <p>
+              The platform keeps data capture, model execution, probability review, and explanatory
+              charts in one polished physician-ready interface.
+            </p>
+          </div>
+          <div class="feature-highlight-pills">
+            <span class="pill pill-soft">Doctor-only secure access</span>
+            <span class="pill pill-soft">Excel and CSV import</span>
+            <span class="pill pill-soft">Prediction probability score</span>
+            <span class="pill pill-soft">Most influential variables</span>
+          </div>
+        </div>
+
+        <div class="feature-clusters">
+          <article class="feature-cluster">
+            <h3>Secure doctor access</h3>
+            <p>Keep the platform restricted to verified medical professionals and controlled clinical usage.</p>
+            <ul class="cluster-list">
+              <li>Doctor-only secure access</li>
+              <li>Protected account workflow</li>
+              <li>Professional dashboard environment</li>
+            </ul>
+          </article>
+          <article class="feature-cluster">
+            <h3>Structured data intake</h3>
+            <p>Capture the full patient profile quickly, whether the case is reviewed individually or from a batch file.
+            </p>
+            <ul class="cluster-list">
+              <li>Manual form entry</li>
+              <li>Excel and CSV upload</li>
+              <li>Prediction-ready case preparation</li>
+            </ul>
+          </article>
+          <article class="feature-cluster">
+            <h3>Prediction and interpretation</h3>
+            <p>Generate a clinical outcome supported by a confidence layer and a clearer explanation of what drove the
+              result.</p>
+            <ul class="cluster-list">
+              <li>Prediction engine</li>
+              <li>Probability score</li>
+              <li>Analytics charts</li>
+            </ul>
+          </article>
+          <article class="feature-cluster">
+            <h3>Clinical continuity</h3>
+            <p>Keep decision support connected to ongoing follow-up so teams can monitor relapses over time with less
+              friction.</p>
+            <ul class="cluster-list">
+              <li>Patient history tracking</li>
+              <li>Repeatable review workflow</li>
+              <li>Organized case visibility</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="benefits">
+      <div class="container benefits-shell">
+        <div class="section-heading section-heading-split">
+          <div class="narrow">
+            <p class="eyebrow">Benefits</p>
+            <h2>Clinical decision support that helps teams move faster without losing context.</h2>
+          </div>
+          <div class="benefits-note">
+            <p>
+              Designed to support day-to-day endocrine review with less friction, more structure,
+              and clearer interpretation of predicted relapse risk.
+            </p>
+          </div>
+        </div>
+
+        <div class="benefits-layout">
+          <div class="benefits-grid">
+            <article class="benefit-card">
+              <h3>Faster decision support</h3>
+              <p>Reduce friction between data entry, prediction, and clinical review.</p>
+            </article>
+            <article class="benefit-card">
+              <h3>Better patient monitoring</h3>
+              <p>Support ongoing follow-up with consistent prediction and tracking workflows.</p>
+            </article>
+            <article class="benefit-card">
+              <h3>Structured prediction workflow</h3>
+              <p>Guide each case through the same professional process from input to interpretation.</p>
+            </article>
+            <article class="benefit-card">
+              <h3>Easy for healthcare professionals</h3>
+              <p>Present advanced outputs in a clear interface built for doctor usability.</p>
+            </article>
+          </div>
+
+          <aside class="benefits-proof">
+            <p class="benefits-proof-label">Clinical value</p>
+            <h3>Built to keep multidisciplinary review more consistent from intake to interpretation.</h3>
+            <p>
+              NOUFAR CDSS helps teams standardize how relapse risk is prepared, reviewed, and communicated inside one
+              calm interface.
+            </p>
+            <ul class="cluster-list">
+              <li>Less fragmented review</li>
+              <li>Clearer model interpretation</li>
+              <li>Stronger workflow continuity</li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-muted" id="support">
+      <div class="container">
+        <div class="section-heading section-heading-split">
+          <div class="narrow">
+            <p class="eyebrow">Contact and support</p>
+            
+          </div>
+          <div class="benefits-note support-note">
+            
+          </div>
+        </div>
+
+        <div class="support-layout">
+          <div class="support-overview">
+            <article class="support-hero-card">
+              <p class="support-label">Contact us</p>
+              <h3>Reach NOUFAR CDSS support for onboarding and clinical workflow guidance.</h3>
+              <p>
+                A simple point of contact for doctors and healthcare teams who want help with
+                access, onboarding, or platform rollout.
+              </p>
+            </article>
+
+            <div class="support-contact-list">
+              <article class="support-contact-row">
+                <span class="support-contact-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.08.36 2.24.55 3.45.55a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.4 21 3 13.6 3 4a1 1 0 0 1 1-1h3.49a1 1 0 0 1 1 1c0 1.21.19 2.37.55 3.45a1 1 0 0 1-.24 1z" />
+                  </svg>
+                </span>
+                <div>
+                  <strong>Phone</strong>
+                  <span>+213 549 752 529</span>
+                </div>
+              </article>
+
+              <article class="support-contact-row">
+                <span class="support-contact-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 6h16v12H4z" />
+                    <path d="m4 7 8 6 8-6" />
+                  </svg>
+                </span>
+                <div>
+                  <strong>Email</strong>
+                  <a href="mailto:noufar.cdss@gmail.com">noufar.cdss@gmail.com</a>
+                </div>
+              </article>
+
+              
+                
+              </article>
+            </div>
+
+            
+          </div>
+
+          <article class="support-media-card">
+            <img src="assets/support-clinical.png"
+              alt="NOUFAR CDSS support specialist assisting a clinician by phone." />
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-layer" id="modal-layer" aria-hidden="true">
+    <div class="modal-backdrop" data-modal-close></div>
+
+    <section class="auth-modal demo-modal" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-title"
+      hidden>
+      <button class="modal-close" type="button" aria-label="Close demo modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="modal-copy">
+        <p class="eyebrow">Product demo</p>
+        <h2 id="demo-title">Watch NOUFAR CDSS in action.</h2>
+        <p>
+          See how the platform supports endocrinology teams from structured intake to relapse
+          prediction, probability scoring, and clinical interpretation.
+        </p>
+      </div>
+
+      <div class="demo-frame">
+        <video id="demo-video" controls playsinline preload="metadata">
+          <source src="assets/landing-demo.mp4" type="video/mp4" />
+          Your browser does not support embedded video playback.
+        </video>
+      </div>
+    </section>
+
+    <section class="auth-modal" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" hidden>
+      <button class="modal-close" type="button" aria-label="Close login modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="modal-copy">
+        <p class="eyebrow">Doctor access</p>
+        <h2 id="login-title">Sign in to continue your clinical workflow.</h2>
+        <p>
+          Access NOUFAR CDSS securely to review patient cases, run relapse predictions, and
+          inspect model-driven clinical insights.
+        </p>
+      </div>
+
+      <form class="auth-form" id="login-form">
+        <label>
+          Professional email
+          <input type="email" name="email" placeholder="name@hospital.org" required />
+        </label>
+        <label>
+          Password
+          <div class="password-field-shell">
+            <input type="password" name="password" placeholder="Enter your password" required />
+            <button class="password-visibility-toggle" type="button" data-password-toggle aria-label="Show password">
+              <svg class="password-eye-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3.2" />
+              </svg>
+              <svg class="password-eye-icon eye-closed" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 3 21 21" />
+                <path d="M10.7 5.2A11.4 11.4 0 0 1 12 5c6.4 0 10 7 10 7a16.8 16.8 0 0 1-4.1 4.8" />
+                <path d="M6.2 6.3A17.3 17.3 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.1-.8" />
+                <path d="M9.9 9.9A3 3 0 0 0 9 12a3 3 0 0 0 4.8 2.4" />
+              </svg>
+            </button>
+          </div>
+        </label>
+        <div class="auth-meta">
+          <label class="checkbox-row">
+            <input type="checkbox" name="remember" />
+            <span>Remember this device</span>
+          </label>
+          <button class="text-link" type="button" data-modal-open="reset">
+            Forgot Password?
+          </button>
+        </div>
+        <button class="btn btn-primary" type="submit">Login</button>
+        <p class="auth-switch">
+          Don't have an account?
+          <button class="text-link" type="button" data-modal-open="register">
+            Create account
+          </button>
+        </p>
+        <p class="form-note" id="login-note" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="auth-modal" id="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" hidden>
+      <button class="modal-close" type="button" aria-label="Close password reset modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="modal-copy">
+        <p class="eyebrow">Password reset</p>
+        <h2 id="reset-title">Reset your password securely.</h2>
+        <p>
+          Enter the professional email linked to your NOUFAR CDSS account and we will prepare a
+          secure password reset request.
+        </p>
+      </div>
+
+      <form class="auth-form" id="reset-form">
+        <label>
+          Professional email
+          <input type="email" name="email" placeholder="name@hospital.org" required />
+        </label>
+        <button class="btn btn-primary" type="submit">Send Reset Link</button>
+        <p class="auth-switch">
+          Remembered your password?
+          <button class="text-link" type="button" data-modal-open="login">
+            Back to login
+          </button>
+        </p>
+        <p class="form-note" id="reset-note" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="auth-modal auth-modal-2step" id="twoStep-modal" role="dialog" aria-modal="true" aria-labelledby="twoStep-title" hidden>
+      <button class="modal-close" type="button" aria-label="Close verification modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="modal-copy">
+        <p class="eyebrow">2-Step Verification</p>
+        <h2 id="twoStep-title">Verify your secure login.</h2>
+        <p id="twoStep-message">
+          Enter the 6-digit verification code sent to your professional email address.
+        </p>
+      </div>
+
+      <form class="auth-form" id="twoStep-form">
+        <label>
+          Verification code
+          <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter the 6-digit code" maxlength="6" required />
+        </label>
+        <button class="btn btn-primary" type="submit">Verify and continue</button>
+        <p class="auth-switch">
+          Didn’t receive the code?
+          <button class="text-link" type="button" data-modal-open="login">
+            Back to login
+          </button>
+        </p>
+        <p class="form-note" id="twoStep-note" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="auth-modal" id="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-title"
+      hidden>
+      <button class="modal-close" type="button" aria-label="Close registration modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="modal-copy">
+        <p class="eyebrow">Create account</p>
+        <h2 id="register-title">Request secure registration for your medical team.</h2>
+        <p>
+          Create a professional account to onboard your team, centralize patient prediction
+          workflows, and access structured decision support tools.
+        </p>
+      </div>
+
+      <form class="auth-form" id="register-form">
+        <div class="account-type-block" role="group" aria-labelledby="account-type-title">
+          <div class="account-type-head">
+            <p class="eyebrow">Type de compte</p>
+            <h3 id="account-type-title">Choisissez le profil du médecin à enregistrer.</h3>
+            <p>
+              Sélectionnez le niveau d’accès demandé pour distinguer les médecins dédiés à la saisie
+              clinique et ceux autorisés à lancer des prédictions.
+            </p>
+          </div>
+
+          <div class="account-type-grid">
+            <label class="account-type-card">
+              <input type="radio" name="doctorAccountType" value="standard" checked />
+              <span class="account-type-card-shell">
+                <span class="account-type-badge">Accès standard</span>
+                <strong>Médecin standard</strong>
+                <span>Gère et remplit uniquement les informations des patients.</span>
+              </span>
+            </label>
+
+            <label class="account-type-card">
+              <input type="radio" name="doctorAccountType" value="prediction" />
+              <span class="account-type-card-shell">
+                <span class="account-type-badge">Accès prédiction</span>
+                <strong>Médecin avec prédiction</strong>
+                <span>Gère les patients et peut lancer des prédictions médicales.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="auth-grid">
+          <label>
+            Full name
+            <input type="text" name="name" placeholder="Dr. Sarah Ahmed" required />
+          </label>
+          <label>
+            Specialty
+            <input type="text" name="specialty" placeholder="Endocrinology" required />
+          </label>
+        </div>
+        <div class="auth-grid">
+          <label>
+            Institution
+            <input type="text" name="institution" placeholder="University Hospital" required />
+          </label>
+          <label>
+            Professional email
+            <input type="email" name="email" placeholder="name@hospital.org" required />
+          </label>
+        </div>
+        <div class="auth-grid">
+          <label>
+            Password
+            <div class="password-field-shell">
+              <input type="password" name="password" placeholder="Create a password" minlength="6" autocomplete="new-password"
+                required />
+              <button class="password-visibility-toggle" type="button" data-password-toggle aria-label="Show password">
+                <svg class="password-eye-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3.2" />
+                </svg>
+                <svg class="password-eye-icon eye-closed" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 3 21 21" />
+                  <path d="M10.7 5.2A11.4 11.4 0 0 1 12 5c6.4 0 10 7 10 7a16.8 16.8 0 0 1-4.1 4.8" />
+                  <path d="M6.2 6.3A17.3 17.3 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.1-.8" />
+                  <path d="M9.9 9.9A3 3 0 0 0 9 12a3 3 0 0 0 4.8 2.4" />
+                </svg>
+              </button>
+            </div>
+          </label>
+          <label>
+            Confirm password
+            <div class="password-field-shell">
+              <input type="password" name="confirmPassword" placeholder="Confirm your password" autocomplete="new-password"
+                required />
+              <button class="password-visibility-toggle" type="button" data-password-toggle aria-label="Show password">
+                <svg class="password-eye-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3.2" />
+                </svg>
+                <svg class="password-eye-icon eye-closed" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 3 21 21" />
+                  <path d="M10.7 5.2A11.4 11.4 0 0 1 12 5c6.4 0 10 7 10 7a16.8 16.8 0 0 1-4.1 4.8" />
+                  <path d="M6.2 6.3A17.3 17.3 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.1-.8" />
+                  <path d="M9.9 9.9A3 3 0 0 0 9 12a3 3 0 0 0 4.8 2.4" />
+                </svg>
+              </button>
+            </div>
+          </label>
+        </div>
+        <div class="password-validation-card" aria-live="polite">
+          <div class="password-validation-head">
+            <strong>Password strength</strong>
+            <span class="password-strength-badge is-empty" id="password-strength-text">Add a password</span>
+          </div>
+          <div class="password-strength-meter" aria-hidden="true">
+            <span class="password-strength-fill is-empty" id="password-strength-fill"></span>
+          </div>
+          <ul class="password-rules-list">
+            <li id="password-rule-length">At least 12 characters</li>
+            <li id="password-rule-format">Contains uppercase, lowercase, number, and special character</li>
+            <li id="password-rule-match">Password confirmation matches</li>
+          </ul>
+        </div>
+        <div class="auth-upload-block">
+          <div class="auth-upload-head">
+            <strong>Required doctor documents</strong>
+            <p>Upload clear copies to complete doctor verification and registration review.</p>
+          </div>
+          <div class="auth-upload-grid">
+            <label class="auth-file-field">
+              <span>Medical license</span>
+              <input class="auth-file-input" type="file" name="medicalLicense" accept=".pdf,.png,.jpg,.jpeg,.webp"
+                required />
+              <span class="auth-file-trigger">
+                <span class="auth-file-button">Choose File</span>
+                <span class="auth-file-actions">
+                  <span class="auth-file-name" data-file-name="medicalLicense">No file selected</span>
+                  <button class="auth-file-view" type="button" data-file-preview="medicalLicense" aria-label="Preview medical license" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z" />
+                      <circle cx="12" cy="12" r="3.2" />
+                    </svg>
+                  </button>
+                </span>
+              </span>
+              <small class="auth-file-meta" data-file-meta="medicalLicense">
+                PDF, PNG, JPG or WEBP up to 5 MB.
+              </small>
+            </label>
+            <label class="auth-file-field">
+              <span>National ID</span>
+              <input class="auth-file-input" type="file" name="nationalId" accept=".pdf,.png,.jpg,.jpeg,.webp"
+                required />
+              <span class="auth-file-trigger">
+                <span class="auth-file-button">Choose File</span>
+                <span class="auth-file-actions">
+                  <span class="auth-file-name" data-file-name="nationalId">No file selected</span>
+                  <button class="auth-file-view" type="button" data-file-preview="nationalId" aria-label="Preview national ID" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z" />
+                      <circle cx="12" cy="12" r="3.2" />
+                    </svg>
+                  </button>
+                </span>
+              </span>
+              <small class="auth-file-meta" data-file-meta="nationalId">
+                PDF, PNG, JPG or WEBP up to 5 MB.
+              </small>
+            </label>
+          </div>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="terms" required />
+          <span>I confirm that this account will be used by a healthcare professional.</span>
+        </label>
+        <button class="btn btn-primary" type="submit">Create account</button>
+        <p class="auth-switch">
+          Already have an account?
+          <button class="text-link" type="button" data-modal-open="login">Login</button>
+        </p>
+        <p class="form-note" id="register-note" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section
+      class="auth-modal auth-modal-document-preview"
+      id="document-preview-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="document-preview-title"
+      hidden
+    >
+      <button class="modal-close" type="button" aria-label="Close document preview" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="modal-copy document-preview-copy">
+        <p class="eyebrow">Document preview</p>
+        <h2 id="document-preview-title">Uploaded document</h2>
+        <p id="document-preview-meta">Review the selected registration document before submitting the form.</p>
+      </div>
+
+      <div class="document-preview-frame">
+        <img id="document-preview-image" alt="Uploaded registration document preview" hidden />
+        <iframe id="document-preview-pdf" title="Uploaded registration document preview" hidden></iframe>
+      </div>
+    </section>
+
+    <section
+      class="auth-modal auth-modal-success"
+      id="register-success-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="register-success-title"
+      hidden
+    >
+      <button class="modal-close" type="button" aria-label="Close success modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="success-modal-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="m5 12 4.2 4.2L19 6.5" />
+        </svg>
+      </div>
+
+      <div class="modal-copy success-modal-copy">
+        <p class="eyebrow">Registration received</p>
+        <h2 id="register-success-title">Registration Successful!</h2>
+        <p>Your account has been created. Approval pending — you'll receive an email soon.</p>
+      </div>
+
+      <div class="success-modal-status">
+        <div class="success-modal-status-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 7.5h16v9H4z" />
+            <path d="m5 8 7 5 7-5" />
+          </svg>
+        </div>
+        <div class="success-modal-status-copy">
+          <strong>Approval Pending</strong>
+          <p>You’ll receive an email once your account has been approved.</p>
+        </div>
+      </div>
+
+      <div class="success-modal-actions">
+        <button class="btn btn-primary" type="button" data-modal-open="login">Go to Login</button>
+        <button class="text-link success-modal-close-link" type="button" data-modal-close>Close</button>
+      </div>
+    </section>
+
+    <section
+      class="auth-modal auth-modal-success auth-modal-pending"
+      id="pending-approval-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pending-approval-title"
+      hidden
+    >
+      <button class="modal-close" type="button" aria-label="Close pending approval modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="success-modal-badge pending-modal-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 6v6l4 2" />
+          <circle cx="12" cy="12" r="8" />
+        </svg>
+      </div>
+
+      <div class="modal-copy success-modal-copy">
+        <p class="eyebrow">Approval in progress</p>
+        <h2 id="pending-approval-title">Your account is pending approval</h2>
+        <p id="pending-approval-message">
+          You’ll receive an email once it has been approved. If it takes more than 24 hours, please contact support at: noufar.cdss@gmail.com.
+        </p>
+      </div>
+
+      <div class="success-modal-status pending-modal-status">
+        <div class="success-modal-status-icon pending-modal-status-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 7.5h16v9H4z" />
+            <path d="m5 8 7 5 7-5" />
+          </svg>
+        </div>
+        <div class="success-modal-status-copy">
+          <strong>Approval pending</strong>
+          <p>Once the admin approves your account, we’ll notify you by email and you’ll be able to log in.</p>
+        </div>
+      </div>
+
+      <div class="success-modal-actions">
+        <button class="btn btn-primary" type="button" data-modal-close>Understood</button>
+        <a class="text-link success-modal-close-link" href="mailto:noufar.cdss@gmail.com">Contact support</a>
+      </div>
+    </section>
+
+    <section
+      class="auth-modal auth-modal-success auth-modal-pending auth-modal-deactivated"
+      id="deactivated-account-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deactivated-account-title"
+      hidden
+    >
+      <button class="modal-close" type="button" aria-label="Close deactivated account modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="success-modal-badge pending-modal-badge deactivated-hero-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M8 10V7.5A4 4 0 0 1 16 7.5V10" />
+          <rect x="6.5" y="10" width="11" height="9" rx="2.2" />
+          <path d="M12 13.2v2.8" />
+        </svg>
+      </div>
+
+      <div class="modal-copy success-modal-copy deactivated-modal-copy">
+        <h2 id="deactivated-account-title">Account Deactivated</h2>
+        <p id="deactivated-account-message">
+          Your account has been deactivated by the administrator.
+        </p>
+      </div>
+
+      <div class="deactivated-modal-reason">
+        <strong>Reason</strong>
+        <p id="deactivated-account-reason">No reason was provided by the admin.</p>
+      </div>
+
+      <div class="deactivated-modal-support">
+        <div class="deactivated-modal-support-icon" aria-hidden="true">i</div>
+        <p>
+          If you have any questions or need assistance, please contact our support team:
+          <a href="mailto:noufar.cdss@gmail.com">noufar.cdss@gmail.com</a>
+        </p>
+      </div>
+
+      <div class="deactivated-modal-note">
+        <div class="deactivated-modal-note-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 7.5h16v9H4z" />
+            <path d="m5 8 7 5 7-5" />
+          </svg>
+        </div>
+        <p>Once your account is reactivated, you will receive an email notification.</p>
+      </div>
+
+      <div class="success-modal-actions deactivated-modal-actions">
+        <button class="btn btn-primary" type="button" id="deactivated-account-understood">Understood</button>
+      </div>
+    </section>
+
+    <section
+      class="auth-modal auth-modal-success auth-modal-pending auth-modal-deactivated auth-modal-deleted"
+      id="deleted-account-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deleted-account-title"
+      hidden
+    >
+      <button class="modal-close" type="button" aria-label="Close deleted account modal" data-modal-close>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="success-modal-badge pending-modal-badge deactivated-hero-badge deleted-hero-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M7 8h10" />
+          <path d="M9 8V6.8h6V8" />
+          <path d="M9 10.2v6.2" />
+          <path d="M15 10.2v6.2" />
+          <path d="M7.8 8l.7 9.4a1.8 1.8 0 0 0 1.8 1.6h3.4a1.8 1.8 0 0 0 1.8-1.6l.7-9.4" />
+        </svg>
+      </div>
+
+      <div class="modal-copy success-modal-copy deactivated-modal-copy">
+        <h2 id="deleted-account-title">Account Deleted</h2>
+        <p id="deleted-account-message">
+          Your account has been deleted by the administrator.
+        </p>
+      </div>
+
+      <div class="deactivated-modal-reason deleted-modal-reason">
+        <strong>Reason</strong>
+        <p id="deleted-account-reason">No reason was provided by the admin.</p>
+      </div>
+
+      <div class="deactivated-modal-support deleted-modal-support">
+        <div class="deactivated-modal-support-icon deleted-modal-support-icon" aria-hidden="true">!</div>
+        <p>
+          If you have any questions or need assistance, please contact our support team:
+          <a href="mailto:noufar.cdss@gmail.com">noufar.cdss@gmail.com</a>
+        </p>
+      </div>
+
+      <div class="success-modal-actions deactivated-modal-actions">
+        <button class="btn btn-primary btn-danger-surface" type="button" id="deleted-account-understood">Understood</button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-frame">
+      <div class="footer-shell">
+        <div class="footer-brand">
+          <a class="brand" href="#top" aria-label="NOUFAR CDSS home">
+            <img class="brand-image" src="assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+            <span class="brand-copy">
+              <strong>NOUFAR CDSS</strong>
+              <small>Hyperthyroidism relapse prediction</small>
+            </span>
+          </a>
+          <p>
+            A doctor-focused clinical decision support platform built to organize structured intake,
+            relapse prediction, and interpretable review in one professional environment.
+          </p>
+          
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-link-column">
+            <h3>Platform</h3>
+            <a href="#about">About</a>
+            <a href="#workflow">How It Works</a>
+            <a href="#features">Features</a>
+            <a href="#benefits">Benefits</a>
+          </div>
+          <div class="footer-link-column">
+            <h3>Contact</h3>
+            <a href="#support">Contact and support</a>
+            <a href="tel:+213549752529">+213 549 752 529</a>
+            <a href="mailto:noufar.cdss@gmail.com">noufar.cdss@gmail.com</a>
+            
+          </div>
+          <div class="footer-link-column">
+            <h3>Access</h3>
+            <a href="#" data-modal-open="login">Doctor login</a>
+            <a href="#" data-modal-open="register">Request registration</a>
+            <span class="footer-meta-text">Secure doctor onboarding and registration review.</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 NOUFAR CDSS. All rights reserved.</p>
+        <span class="footer-bottom-note">Clinical decision support for hyperthyroidism relapse review.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="password-toggle.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

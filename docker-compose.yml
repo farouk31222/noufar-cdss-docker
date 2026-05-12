@@ -1,0 +1,132 @@
+# NOUFAR CDSS — full stack on Docker
+# Usage:
+#   1) cp backend/.env.example backend/.env   (then fill secrets)
+#   2) docker compose up --build
+# Then open: http://localhost:5000
+
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    # Mongo is reachable from the backend container as "mongo:27017"
+    # We do NOT expose it on the host by default (more secure).
+    # Uncomment the next two lines if you want to connect with Compass:
+    # ports:
+    #   - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - noufar-net
+
+  ai-server:
+    build:
+      context: ./ai-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # AI server is only used by the backend, so we keep its port internal.
+    # Uncomment to debug from the host:
+    # ports:
+    #   - "5001:5001"
+    networks:
+      - noufar-net
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "minioadmin"
+      MINIO_ROOT_PASSWORD: "minioadmin"
+    volumes:
+      - minio_data:/data
+    ports:
+      # 9000 = S3 API,  9001 = Web console (http://localhost:9001)
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - noufar-net
+
+  # One-shot job: wait for MinIO, then create the bucket the backend needs.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/noufar-private-files &&
+      echo 'MinIO bucket noufar-private-files ready.'
+      "
+    networks:
+      - noufar-net
+
+  backend:
+    build:
+      # Build context = project root so the image can also include /frontend
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # Overrides for container networking — these win over .env
+      PORT: "5000"
+      MONGODB_URI: "mongodb://mongo:27017/noufar_cdss"
+      FLASK_AI_URL: "http://ai-server:5001"
+      APP_BASE_URL: "http://localhost:8080"
+      FRONTEND_BASE_URL: "http://localhost:8080"
+      CORS_ALLOWED_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
+      # MinIO inside docker — service name resolves on the noufar-net network
+      MINIO_ENDPOINT: "minio"
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET: "noufar-private-files"
+      # Run in development mode locally so the strict production
+      # security policy (which rejects placeholder secrets, default
+      # MinIO creds, etc.) does NOT block startup on dev machines.
+      # In real production, set NODE_ENV=production and remove this
+      # line — but make sure every secret in .env is a real value.
+      NODE_ENV: "development"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ai-server:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      # host:container — backend listens on 5000 inside the container,
+      # but we publish it on 8080 of the host.
+      - "8080:5000"
+    volumes:
+      # Persist uploaded files outside the container
+      - backend_uploads:/app/backend/uploads
+      # Mount frontend live — any edit on host is reflected without rebuild
+      - ./frontend:/app/frontend
+    networks:
+      - noufar-net
+
+volumes:
+  mongo_data:
+  backend_uploads:
+  minio_data:
+
+networks:
+  noufar-net:
+    driver: bridge

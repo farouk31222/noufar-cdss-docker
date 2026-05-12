@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR Admin | Support Center</title>
+    <meta name="description" content="Admin support inbox for doctor messages with status, priority, and conversation management." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="../assets/noufar-logo.png" />
+    <link rel="stylesheet" href="admin-styles.css" />
+  </head>
+  <body data-page="support">
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <a class="sidebar-brand" href="index.html">
+          <img src="../assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+          <div class="sidebar-brand-copy">
+            <strong>NOUFAR Admin</strong>
+            <span>Doctor management console</span>
+          </div>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <div class="sidebar-nav-group sidebar-nav-group-main">
+            <span class="sidebar-nav-label">Workspace</span>
+            <a class="sidebar-link" href="index.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h7V4H4v8Zm9 8h7v-6h-7v6Zm0-16v8h7V4h-7ZM4 20h7v-6H4v6Z" /></svg>
+              <span>Overview</span>
+            </a>
+            <a class="sidebar-link" href="doctors.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Zm-6.5 8a6.5 6.5 0 0 1 13 0" /></svg>
+              <span>Doctors</span>
+            </a>
+            <a class="sidebar-link active" href="support-center.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5m-7 6 2.2-2H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" /></svg>
+              <span>Support Center</span>
+            </a>
+            <a class="sidebar-link" href="security-events.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.9 8.8 7 10 4.1-1.2 7-5.5 7-10V6l-7-3Zm0 5v4m0 4h.01" /></svg>
+              <span>Security Events</span>
+            </a>
+            <a class="sidebar-link" href="system.html">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6.5 16V9m5 7V5m5 11v-6M4 8l4-3 4 3 4-3 4 3" /></svg>
+              <span>System</span>
+            </a>
+          </div>
+
+        </nav>
+      </aside>
+
+      <section class="admin-workspace">
+        <header class="topbar">
+          <button class="topbar-toggle" type="button" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+
+          <div class="topbar-title-block">
+            <span class="eyebrow">Physician support</span>
+            <h1>Support Center Inbox</h1>
+          </div>
+
+          <label class="topbar-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" /></svg>
+            <input id="ticket-search" type="search" placeholder="Search doctor, ticket ID, topic..." />
+          </label>
+
+          <div class="topbar-actions">
+            <a class="icon-button notification-trigger" href="#" aria-label="Open inbox notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a4 4 0 0 0-4 4v2.3c0 .7-.2 1.39-.58 1.97L6 13.5h12l-1.42-2.23A3.7 3.7 0 0 1 16 9.3V7a4 4 0 0 0-4-4Zm-2 14a2 2 0 0 0 4 0" /></svg>
+              <span class="notification-dot" hidden></span>
+            </a>
+            <a class="icon-button profile-trigger" href="login.html?logout=1" aria-label="Admin profile">
+              <img class="topbar-profile-avatar topbar-profile-image" src="../assets/Admin%20profileee.png" alt="Admin profile" />
+            </a>
+          </div>
+        </header>
+
+        <main class="admin-main admin-main-clean">
+          <section class="page-header-card page-header-card-simple">
+            <div class="page-header-copy">
+              <span class="hero-kicker">Doctor support operations</span>
+              <h2>Support center inbox</h2>
+              <p>Review physician conversations, reply quickly, and keep every support thread clearly tracked by status, priority, and recency.</p>
+            </div>
+          </section>
+
+          <section class="support-workspace">
+            <div class="support-inbox-column">
+              <article class="content-card section-card filter-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Inbox filters</h3>
+                    <p>Reduce noise and surface the conversations that need an admin answer first.</p>
+                  </div>
+                </div>
+                <div class="filters-bar filters-grid">
+                  <div class="filter-group">
+                    <label class="filter-label" for="ticket-status-filter">Ticket status</label>
+                    <select class="control" id="ticket-status-filter">
+                      <option value="all">All statuses</option>
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </div>
+                  <div class="filter-group">
+                    <label class="filter-label" for="ticket-priority-filter">Priority</label>
+                    <select class="control" id="ticket-priority-filter">
+                      <option value="all">All priorities</option>
+                      <option value="Urgent">Urgent</option>
+                      <option value="High">High</option>
+                      <option value="Routine">Routine</option>
+                    </select>
+                  </div>
+                  <div class="filter-group">
+                    <label class="filter-label" for="ticket-date-filter">Updated date</label>
+                    <select class="control" id="ticket-date-filter">
+                      <option value="all">All dates</option>
+                      <option value="7">Last 7 days</option>
+                      <option value="30">Last 30 days</option>
+                    </select>
+                  </div>
+                </div>
+              </article>
+
+              <article class="content-card section-card admin-inbox-card">
+                <div class="admin-thread-panel-head">
+                  <div>
+                    <h3>Doctor message inbox</h3>
+                    <p>All incoming physician support requests, sorted by urgency and latest updates.</p>
+                  </div>
+                </div>
+
+                <div class="admin-thread-list-shell">
+                  <div class="admin-thread-toolbar">
+                    <div class="admin-thread-toolbar-bottom">
+                      <label class="ticket-select-toggle admin-thread-select-all" for="admin-ticket-select-all">
+                        <input id="admin-ticket-select-all" type="checkbox" />
+                        <span>Select all</span>
+                      </label>
+                      <div class="ticket-list-toolbar-actions admin-thread-toolbar-actions">
+                        <button class="btn btn-secondary btn-compact" type="button" id="admin-delete-selected" disabled>
+                          Delete selected
+                        </button>
+                        <button class="btn btn-secondary btn-compact" type="button" id="admin-delete-all" disabled>
+                          Delete all
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ticket-list-scroll admin-thread-scroll">
+                    <div class="ticket-list admin-thread-stack" id="support-ticket-list"></div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="support-detail-column">
+              <article class="content-card section-card">
+                <div class="card-header">
+                  <div>
+                    <h3 id="ticket-subject">Ticket subject</h3>
+                    <p id="ticket-meta">Doctor and category</p>
+                  </div>
+                  <div class="action-row">
+                    <span id="ticket-status-badge"></span>
+                    <span id="ticket-priority-badge"></span>
+                  </div>
+                </div>
+                <div class="conversation conversation-shell" id="conversation-thread"></div>
+                <form class="reply-box reply-box-clean" id="reply-form">
+                  <label class="filter-label" for="reply-message">Admin reply</label>
+                  <textarea id="reply-message" placeholder="Write a clear reply to the doctor..."></textarea>
+                  <div class="support-attachment-toolbar support-attachment-toolbar-admin">
+                    <label class="support-attachment-trigger support-attachment-trigger-admin" aria-label="Attach file">
+                      <input id="reply-file" type="file" hidden />
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 12.5v-5a3.5 3.5 0 1 1 7 0v8a5 5 0 1 1-10 0V8.8" /></svg>
+                      <span>Attach file</span>
+                    </label>
+                    <div class="support-attachment-selected support-attachment-selected-admin" id="reply-file-bar" hidden>
+                      <span id="reply-file-name"></span>
+                      <button class="support-attachment-clear support-attachment-clear-admin" id="reply-file-clear" type="button">Remove</button>
+                    </div>
+                  </div>
+                  <div class="action-row reply-action-row" id="reply-action-row" hidden>
+                    <button class="btn btn-primary" type="submit">Send reply</button>
+                  </div>
+                </form>
+              </article>
+
+              <article class="content-card section-card ticket-controls-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Ticket controls</h3>
+                    <p>Track ownership, update ticket state, and keep support activity governed.</p>
+                  </div>
+                </div>
+                <div class="ticket-controls-stack">
+                  <div class="stats-grid support-meta-grid">
+                    <div class="stat-chip"><span>Assigned admin</span><strong id="ticket-assigned">-</strong></div>
+                    <div class="stat-chip"><span>Created</span><strong id="ticket-created">-</strong></div>
+                    <div class="stat-chip"><span>Last updated</span><strong id="ticket-updated">-</strong></div>
+                  </div>
+
+                  <div class="ticket-control-panel">
+                    <div class="ticket-control-copy">
+                      <span class="ticket-control-kicker">Workflow control</span>
+                      <strong>Update ticket lifecycle</strong>
+                      <p>Keep every support thread aligned with the current response stage and follow-up need.</p>
+                    </div>
+                    <div class="reply-box reply-box-inline">
+                      <label class="filter-label" for="ticket-status-select">Ticket status</label>
+                      <select class="control" id="ticket-status-select">
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                      </select>
+                      <button class="btn btn-secondary" type="button" id="resolve-toggle">Mark resolved</button>
+                    </div>
+                  </div>
+
+                  <div class="ticket-control-panel" id="access-upgrade-panel" hidden>
+                    <div class="ticket-control-copy">
+                      <span class="ticket-control-kicker">Access upgrade request</span>
+                      <strong>Review doctor prediction access</strong>
+                      <p>Approve this request to upgrade the doctor to Doctor with prediction, or refuse it and keep the account in Standard doctor mode.</p>
+                    </div>
+                    <div class="reply-box reply-box-inline">
+                      <label class="filter-label" for="access-upgrade-reason">Admin note</label>
+                      <textarea id="access-upgrade-reason" placeholder="Optional note for the doctor..."></textarea>
+                      <div class="action-row">
+                        <button class="btn btn-secondary" type="button" id="access-upgrade-refuse">Refuse access</button>
+                        <button class="btn btn-primary" type="button" id="access-upgrade-approve">Approve access</button>
+                      </div>
+                      <p class="muted-copy" id="access-upgrade-state" hidden></p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="admin-data.js"></script>
+    <script src="admin-app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+# ===== Secrets — NEVER commit =====
+.env
+**/.env
+!**/.env.example
+
+# ===== Node =====
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Python =====
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+**/venv/
+**/.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ===== Backend runtime data =====
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/support-files/
+!backend/uploads/support-files/.gitkeep
+
+# ===== Editors / OS =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Docker =====
+# (keep Dockerfiles and docker-compose.yml under version control,
+#  ignore only local state)
+.docker/
+
+# ===== Benchmarks / scratch outputs =====
+scripts/benchmark_outputs/

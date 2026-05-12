@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR Admin | Login</title>
+    <meta name="description" content="Secure admin login for NOUFAR doctor management console." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="../assets/noufar-logo.png" />
+    <link rel="stylesheet" href="admin-styles.css" />
+  </head>
+  <body class="admin-auth-body">
+    <div class="admin-auth-shell">
+      <section class="admin-auth-hero">
+        <div>
+          <div class="admin-auth-brand">
+            <img src="../assets/noufar-logo.png" alt="NOUFAR logo" />
+            <div>
+              <strong>NOUFAR Admin</strong>
+              <span>Doctor management console</span>
+            </div>
+          </div>
+
+          <div class="admin-auth-copy">
+            <span class="hero-kicker">Secure admin access</span>
+            <h1>Manage doctors with a calm, structured admin workspace.</h1>
+            <p>
+              Review physician registrations, control doctor account status, respond to support requests, and keep platform governance centralized in one premium admin console.
+            </p>
+          </div>
+        </div>
+
+        <div class="admin-auth-highlights">
+          <article class="admin-auth-highlight">
+            <strong>Doctor approval workflow</strong>
+            <p>Review pending registrations, inspect credentials, and validate every physician account before activation.</p>
+          </article>
+          <article class="admin-auth-highlight">
+            <strong>Support and governance</strong>
+            <p>Track incoming doctor messages, reply from a structured inbox, and keep a clear audit trail of admin actions.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="admin-auth-card">
+        <span class="hero-kicker">Admin access</span>
+        <h2>Access the admin dashboard</h2>
+        <p>Use the backend bootstrap administrator access configured in your <code>.env</code> file to open the admin workspace.</p>
+
+        <form class="admin-auth-form" id="admin-login-form" data-auth-panel="login">
+          <div class="filter-group">
+            <label class="filter-label" for="admin-username">Admin login</label>
+            <input class="control" id="admin-username" name="username" type="text" placeholder="Enter admin login" autocomplete="username" />
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label" for="admin-password">Password</label>
+            <input class="control" id="admin-password" name="password" type="password" placeholder="Enter admin password" autocomplete="current-password" />
+          </div>
+
+          <div class="admin-auth-actions">
+            <span class="admin-auth-error" id="admin-login-error"></span>
+            <button class="btn btn-primary" type="submit">Login</button>
+          </div>
+        </form>
+        <div class="admin-auth-helper">Configured in backend: <strong>DEFAULT_ADMIN_EMAIL</strong> / <strong>DEFAULT_ADMIN_PASSWORD</strong></div>
+      </section>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="admin-login.js"></script>
+  </body>
+</html>

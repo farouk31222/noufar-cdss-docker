@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR CDSS | Choose Patient</title>
+    <meta
+      name="description"
+      content="Select a patient from an uploaded Excel or CSV dataset and run a relapse prediction."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="assets/noufar-logo.png" />
+    <link rel="shortcut icon" href="assets/noufar-logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css?v=20260507-1" />
+    <style>
+      .dataset-page-body {
+        overflow-x: hidden;
+      }
+
+      .dataset-page-body .app-layout,
+      .dataset-page-body .workspace,
+      .dataset-page-body .main-content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      .dataset-page-body .main-content,
+      .dataset-page-layout,
+      .dataset-main-column,
+      .dataset-side-column,
+      .dataset-overview-card,
+      .dataset-table-card {
+        min-width: 0;
+      }
+
+      .dataset-page-body .main-content,
+      .dataset-page-body .workspace {
+        overflow-x: hidden;
+      }
+
+      @media (min-width: 901px) {
+        .dataset-page-body .app-layout {
+          grid-template-columns: minmax(0, 1fr) !important;
+          padding-left: 260px;
+        }
+
+        .dataset-page-body .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: 260px;
+          min-height: 100vh;
+          z-index: 20;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+
+        .dataset-page-body .app-layout.sidebar-collapsed .sidebar {
+          width: 82px;
+        }
+
+        .dataset-page-body .app-layout.sidebar-collapsed {
+          padding-left: 82px;
+        }
+      }
+
+      .dataset-page-body .workspace {
+        position: relative;
+        z-index: 1;
+      }
+
+      .dataset-page-layout {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) 320px !important;
+        gap: 1.15rem !important;
+        align-items: start;
+        max-width: 100%;
+      }
+
+      .dataset-main-column {
+        max-width: 100%;
+        overflow: hidden;
+      }
+
+      .dataset-side-column {
+        width: 320px;
+        min-width: 320px;
+        max-width: 320px;
+        position: sticky;
+        top: 84px;
+      }
+
+      .dataset-table-card .table-shell {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+
+      @media (max-width: 1024px) {
+        .dataset-page-body .app-layout,
+        .dataset-page-body .app-layout.sidebar-collapsed {
+          grid-template-columns: 1fr !important;
+          padding-left: 0;
+        }
+
+        .dataset-page-layout {
+          grid-template-columns: 1fr !important;
+        }
+
+        .dataset-side-column {
+          width: auto;
+          min-width: 0;
+          max-width: none;
+          position: static;
+          top: auto;
+        }
+      }
+    </style>
+  </head>
+  <body class="app-body dataset-page-body">
+    <div class="app-layout">
+      <aside class="sidebar" aria-label="Primary">
+        <a class="sidebar-logo" href="dashboard.html" aria-label="NOUFAR CDSS dashboard">
+          <img class="sidebar-logo-image" src="assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+          <span class="sidebar-logo-copy">
+            <strong>NOUFAR</strong>
+            <small>CDSS</small>
+          </span>
+        </a>
+
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" href="dashboard.html">
+            <img class="sidebar-icon-image" src="assets/sidebar-dashboard-icon.png" alt="" aria-hidden="true" />
+            <span>Dashboard</span>
+          </a>
+          <a class="sidebar-link active" href="new-prediction.html">
+            <img class="sidebar-icon-image" src="assets/sidebar-plus-icon.png" alt="" aria-hidden="true" />
+            <span>New Prediction</span>
+          </a>
+          <a class="sidebar-link" href="history.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
+            </svg>
+            <span>Predictions</span>
+          </a>
+          <a class="sidebar-link" href="patients.html">
+            <img class="sidebar-icon-image" src="assets/pattients.png" alt="" aria-hidden="true" />
+            <span>Patients</span>
+          </a>
+          <a class="sidebar-link" href="doctor-inbox.html">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
+            </svg>
+            <span>Inbox</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <button class="mobile-nav-button" type="button" aria-expanded="false" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+            </svg>
+          </button>
+
+          <div class="topbar-spacer"></div>
+
+          <div class="topbar-icons" aria-label="Toolbar">
+            <a class="icon-button" href="new-prediction.html" aria-label="Back to data import">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </a>
+            <button class="icon-button" type="button" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3a4 4 0 0 0-4 4v2.3c0 .7-.2 1.39-.58 1.97L6 13.5h12l-1.42-2.23A3.7 3.7 0 0 1 16 9.3V7a4 4 0 0 0-4-4Zm-2 14a2 2 0 0 0 4 0" />
+              </svg>
+            </button>
+            <div class="profile-menu-shell">
+              <button
+                class="profile-trigger"
+                type="button"
+                aria-label="Open profile menu"
+                aria-expanded="false"
+                data-profile-toggle
+              >
+                <span class="profile-trigger-avatar">DC</span>
+              </button>
+
+              <section class="profile-menu-card" data-profile-menu hidden>
+                <div class="profile-menu-head">
+                  <div class="profile-menu-avatar">DC</div>
+                  <div class="profile-menu-copy">
+                    <strong>Dr. Clinical Lead</strong>
+                    <span>Endocrinology Unit</span>
+                  </div>
+                </div>
+
+                <nav class="profile-menu-links" aria-label="Profile menu">
+                  <a class="profile-menu-link" href="history.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
+                    </svg>
+                    <span>Prediction History</span>
+                  </a>
+                  <a class="profile-menu-link" href="account-settings.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5-2.1.7a6.8 6.8 0 0 1-.5 1.3l1.1 2-2 2-2-1.1a6.8 6.8 0 0 1-1.3.5L12 20l-1.2-2.1a6.8 6.8 0 0 1-1.3-.5l-2 1.1-2-2 1.1-2a6.8 6.8 0 0 1-.5-1.3L4 12l2.1-1.2a6.8 6.8 0 0 1 .5-1.3l-1.1-2 2-2 2 1.1a6.8 6.8 0 0 1 1.3-.5L12 4l1.2 2.1a6.8 6.8 0 0 1 1.3.5l2-1.1 2 2-1.1 2a6.8 6.8 0 0 1 .5 1.3L20 12Z" />
+                    </svg>
+                    <span>Account Settings</span>
+                  </a>
+                  <a class="profile-menu-link" href="index.html#support">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 12c0-4.42 3.58-8 8-8s8 3.58 8 8-3.58 8-8 8m0-4v.01M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.8-2.5 2.1-2.5 4" />
+                    </svg>
+                    <span>Support Center</span>
+                  </a>
+                </nav>
+
+                <div class="profile-menu-footer">
+                  <a class="profile-menu-link logout" href="index.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m10 17 5-5-5-5M15 12H4m7-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+                    </svg>
+                    <span>Logout</span>
+                  </a>
+                </div>
+              </section>
+            </div>
+          </div>
+        </header>
+
+        <main class="main-content" id="dataset-main">
+          <section class="surface-card prediction-page-hero">
+            <div class="prediction-page-hero-copy">
+              <span class="prediction-page-kicker">Clinical intelligence workspace</span>
+              <h1>Choose Patient and Run Prediction</h1>
+              <p>
+                Review the imported cohort, select one patient profile, then launch an individualized relapse prediction with a clean guided workflow.
+              </p>
+              <div class="prediction-page-pills">
+                <span class="dashboard-pill">Imported cohort review</span>
+                <span class="dashboard-pill">Single-patient selection</span>
+                <span class="dashboard-pill">Guided prediction workflow</span>
+              </div>
+              <div class="prediction-page-hero-actions">
+                <a class="btn btn-secondary btn-sm" href="new-prediction.html">Back to Import</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="dataset-page-layout">
+            <div class="dataset-main-column">
+              <section class="surface-card dataset-overview-card">
+                <div class="prediction-card-head dataset-overview-head">
+                  <div class="dataset-overview-copy">
+                    <span class="dataset-file-label">Active dataset</span>
+                    <h2 id="dataset-name">Uploaded Dataset</h2>
+                    <p id="dataset-subtitle">Structured patient table ready for selection.</p>
+                  </div>
+                </div>
+
+                <div class="dataset-info-grid">
+                  <article class="dataset-info-card">
+                    <span>Total patients</span>
+                    <strong id="dataset-total">0</strong>
+                  </article>
+                  <article class="dataset-info-card">
+                    <span>Columns</span>
+                    <strong id="dataset-columns">0</strong>
+                  </article>
+                  <article class="dataset-info-card">
+                    <span>Worksheet</span>
+                    <strong id="dataset-sheet">Dataset</strong>
+                  </article>
+                </div>
+              </section>
+
+              <section class="surface-card dataset-table-card">
+                <div class="selection-toolbar">
+                  <div>
+                    <h2>Patient Dataset</h2>
+                    <p class="section-note">Choose one patient record to launch a prediction.</p>
+                  </div>
+
+                  <div class="dataset-toolbar-actions">
+                    <button class="btn btn-secondary btn-sm" type="button" id="dataset-expand-table" aria-label="Agrandir le tableau">
+                      <img class="dataset-expand-icon" src="assets/agrandir.png?v=20260512" alt="" aria-hidden="true" />
+                    </button>
+                    <label class="field">
+                      <span>Search patient or ID</span>
+                      <input type="search" id="dataset-search" placeholder="Search uploaded dataset..." />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="dataset-filter-bar" aria-label="Clinical filters">
+                  <div class="dataset-filter-head">
+                    <span class="dataset-filter-kicker">Clinical Filters</span>
+                    <strong id="dataset-filter-status">Showing all imported patients</strong>
+                  </div>
+
+                  <div class="dataset-filter-grid">
+                    <label class="field dataset-filter-field">
+                      <span>Consultation reason</span>
+                      <select id="dataset-filter-consultation">
+                        <option value="">All reasons</option>
+                      </select>
+                    </label>
+
+                    <label class="field dataset-filter-field">
+                      <span>Ultrasound</span>
+                      <select id="dataset-filter-ultrasound">
+                        <option value="">All ultrasound findings</option>
+                      </select>
+                    </label>
+
+                    <label class="field dataset-filter-field">
+                      <span>TSI status</span>
+                      <select id="dataset-filter-tsi">
+                        <option value="">All TSI profiles</option>
+                      </select>
+                    </label>
+
+                    <div class="dataset-filter-actions">
+                      <button class="btn btn-secondary btn-sm" type="button" id="dataset-filter-reset">
+                        Reset Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-shell">
+                  <table class="results-table selection-results-table">
+                    <thead id="dataset-head"></thead>
+                    <tbody id="dataset-body"></tbody>
+                  </table>
+                </div>
+
+                <div class="pagination-bar" id="dataset-pagination" aria-label="Dataset pagination"></div>
+              </section>
+            </div>
+
+            <div class="dataset-side-column">
+              <aside class="surface-card selection-status-card">
+                <div class="outcome-title">Selection Status</div>
+                <div class="selection-summary" id="selection-summary">
+                  <strong>No patient selected</strong>
+                  <span>Select one row from the dataset table to prepare the patient-level prediction.</span>
+                </div>
+                <button class="btn btn-secondary" type="button" id="edit-selected-row" disabled>
+                  Edit selected row
+                </button>
+                <button class="btn btn-primary" type="button" id="run-selected-prediction" disabled>
+                  Run Prediction
+                </button>
+                <p class="selection-helper">
+                  This workflow lets you review imported Excel or CSV data before running the relapse model for an individual patient.
+                </p>
+              </aside>
+
+              <aside class="surface-card outcome-card" aria-live="polite">
+                <div class="outcome-title">Prediction Outcome</div>
+                <div class="outcome-state awaiting" id="selection-outcome-state">
+                  <div class="outcome-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3Z" />
+                    </svg>
+                  </div>
+                  <strong id="selection-outcome-heading">Awaiting Data Input</strong>
+                  <p id="selection-outcome-text">
+                    Select a patient from the uploaded dataset to generate the individualized prediction result.
+                  </p>
+                </div>
+
+                <div class="outcome-details">
+                  <div class="outcome-chip-row">
+                    <span class="prediction-badge" id="selection-outcome-badge">Pending</span>
+                    <strong id="selection-outcome-probability">0%</strong>
+                  </div>
+                  <div class="outcome-metric">
+                    <span>Estimated relapse probability</span>
+                    <div class="probability-bar large">
+                      <i id="selection-outcome-bar" style="width: 0%"></i>
+                    </div>
+                  </div>
+                  <div class="outcome-summary" id="selection-outcome-summary">
+                    <strong>Pending analysis</strong>
+                    <span>Choose a patient row to activate the prediction workflow.</span>
+                    <span>Probability and explanatory variables will appear after model execution.</span>
+                  </div>
+                  <div class="outcome-actions">
+                    <button class="btn btn-secondary btn-sm outcome-print-button" id="selection-print-report-button" type="button" hidden>
+                      Print Report
+                    </button>
+                  </div>
+                  <div class="impact-section">
+                    <div class="impact-head">
+                      <span>Most impactful variables</span>
+                      <small>Patient-level explanation</small>
+                    </div>
+                    <div class="impact-list" id="selection-impact-list">
+                      <div class="impact-empty">Run the prediction to view the most influential variables for this patient.</div>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <section class="modal-shell" id="coming-soon-modal" hidden aria-labelledby="coming-soon-title" aria-modal="true" role="dialog">
+      <div class="modal-backdrop" data-coming-soon-close></div>
+      <div class="modal-card modal-card-coming-soon">
+        <div class="modal-card-head coming-soon-head">
+          <div>
+            <h2 id="coming-soon-title">Coming Soon</h2>
+            <p id="coming-soon-copy">This NOUFAR CDSS workspace is currently being prepared for a future release.</p>
+          </div>
+          <button class="modal-close-button" type="button" aria-label="Close coming soon modal" data-coming-soon-close>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <div class="coming-soon-art" aria-hidden="true">
+          <div class="coming-soon-frame">
+            <strong>COMING SOON</strong>
+            <span>STAY TUNED</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="modal-shell" id="dataset-duplicate-modal" hidden aria-labelledby="dataset-duplicate-title" aria-modal="true" role="dialog">
+      <div class="modal-backdrop" data-close-dataset-duplicate></div>
+      <div class="modal-card modal-card-compact modal-card-danger modal-card-service-error">
+        <div class="modal-card-head">
+          <div>
+            <h2 id="dataset-duplicate-title">Prediction Already Exists</h2>
+            <p id="dataset-duplicate-copy">
+              A prediction already exists for this imported patient. Duplicate predictions are not allowed.
+            </p>
+          </div>
+          <button class="modal-close-button" type="button" aria-label="Close duplicate prediction dialog" data-close-dataset-duplicate>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" type="button" id="dataset-duplicate-view" hidden>View Prediction</button>
+          <button class="btn btn-primary" type="button" id="dataset-duplicate-ok">Understood</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="modal-shell" id="dataset-service-error-modal" hidden aria-labelledby="dataset-service-error-title" aria-modal="true" role="dialog">
+      <div class="modal-backdrop" data-close-dataset-service-error></div>
+      <div class="modal-card modal-card-compact modal-card-danger">
+        <div class="modal-card-head">
+          <div>
+            <h2 id="dataset-service-error-title">AI Service Unavailable</h2>
+            <p id="dataset-service-error-copy">
+              The AI prediction service is currently unavailable. Please try again later or contact the system administrator.
+            </p>
+          </div>
+          <button class="modal-close-button" type="button" aria-label="Close AI service unavailable dialog" data-close-dataset-service-error>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <div class="service-error-visual" aria-hidden="true">
+          <img
+            src="assets/4d0eeacd-e38f-46fe-abdb-5c09b5cd4a79.png"
+            alt=""
+            class="service-error-visual-image"
+          />
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" type="button" id="dataset-service-error-support">Contact Support</button>
+          <button class="btn btn-primary" type="button" id="dataset-service-error-ok">Understood</button>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" data-support-new-message hidden aria-hidden="true" tabindex="-1"></button>
+
+    <script src="/config.js"></script>
+    <script src="noufar-app.js"></script>
+    <script src="/config.js"></script>
+    <script src="app-shell.js?v=20260507-sidebarfix"></script>
+    <script src="/config.js"></script>
+    <script src="dataset-selection.js?v=20260502c"></script>
+  </body>
+</html>
