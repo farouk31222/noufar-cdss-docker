@@ -2,14 +2,17 @@ const dashboardDoctorAuthStorageKey = "noufar-doctor-auth-v1";
 const dashboardApiBaseUrl = window.NOUFAR_API_BASE_URL || "http://localhost:5000/api";
 const dashboardDoctorSessionBridge = window.NoufarDoctorSessionBridge || null;
 
+const patientTotalNode = document.querySelector("#stat-patient-total");
 const totalNode = document.querySelector("#stat-total");
 const relapseNode = document.querySelector("#stat-relapse");
 const noRelapseNode = document.querySelector("#stat-no-relapse");
 const averageNode = document.querySelector("#stat-average");
+const patientTotalNoteNode = document.querySelector("#stat-patient-total-note");
 const totalNoteNode = document.querySelector("#stat-total-note");
 const relapseNoteNode = document.querySelector("#stat-relapse-note");
 const noRelapseNoteNode = document.querySelector("#stat-no-relapse-note");
 const averageNoteNode = document.querySelector("#stat-average-note");
+const patientTotalBarNode = document.querySelector("#stat-patient-total-bar");
 const totalBarNode = document.querySelector("#stat-total-bar");
 const relapseBarNode = document.querySelector("#stat-relapse-bar");
 const noRelapseBarNode = document.querySelector("#stat-no-relapse-bar");
@@ -26,6 +29,57 @@ const validationIncorrectBarNode = document.querySelector("#validation-incorrect
 const recentHost = document.querySelector("#recent-activity");
 const queueCountNode = document.querySelector("#queue-count");
 const priorityListHost = document.querySelector("#priority-list");
+let dashboardPatientTotalCount = 0;
+
+const dashboardCountAnimations = new WeakMap();
+const dashboardEaseOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+const animateStatCount = (node, target, options = {}) => {
+  if (!node) return;
+  const targetValue = Number(target) || 0;
+  const {
+    duration = 1100,
+    decimals = 0,
+    suffix = "",
+    prefix = "",
+    useGrouping = true,
+  } = options;
+
+  const previousFrame = dashboardCountAnimations.get(node);
+  if (previousFrame) cancelAnimationFrame(previousFrame);
+
+  const formatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping,
+  });
+
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion || duration <= 0) {
+    node.textContent = `${prefix}${formatter.format(targetValue)}${suffix}`;
+    return;
+  }
+
+  const startValue = 0;
+  const startTime = performance.now();
+
+  const step = (now) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = dashboardEaseOutCubic(progress);
+    const current = startValue + (targetValue - startValue) * eased;
+    node.textContent = `${prefix}${formatter.format(current)}${suffix}`;
+    if (progress < 1) {
+      dashboardCountAnimations.set(node, requestAnimationFrame(step));
+    } else {
+      dashboardCountAnimations.delete(node);
+      node.textContent = `${prefix}${formatter.format(targetValue)}${suffix}`;
+    }
+  };
+
+  node.textContent = `${prefix}${formatter.format(startValue)}${suffix}`;
+  dashboardCountAnimations.set(node, requestAnimationFrame(step));
+};
 
 const getDashboardDoctorSession = () => {
   try {
@@ -64,23 +118,75 @@ const requestDashboardPredictions = async () => {
   return Array.isArray(data) ? data : [];
 };
 
+const requestDashboardPatients = async () => {
+  if (dashboardDoctorSessionBridge?.requestJson) {
+    const data = await dashboardDoctorSessionBridge.requestJson("/patients");
+    return Array.isArray(data) ? data : [];
+  }
+
+  const session = getDashboardDoctorSession();
+  const token = session?.token;
+
+  if (!token) {
+    throw new Error("Doctor session token is missing. Please log in again.");
+  }
+
+  const response = await fetch(`${dashboardApiBaseUrl}/patients`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => []);
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to load dashboard patients.");
+  }
+
+  return Array.isArray(data) ? data : [];
+};
+
+const getFallbackPatientTotal = () => {
+  const uniquePatients = new Set(
+    patientPredictions
+      .map((entry) => entry.patientId || entry.patient || entry.patientName || entry.id)
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase())
+  );
+
+  return uniquePatients.size || patientPredictions.length;
+};
+
 const renderDashboardStats = () => {
   const stats = getDashboardStats();
   const averageProbability = getAverageProbability();
+  const patientTotal = dashboardPatientTotalCount || getFallbackPatientTotal();
 
-  if (totalNode) totalNode.textContent = stats.total.toLocaleString();
-  if (relapseNode) relapseNode.textContent = stats.relapse.toLocaleString();
-  if (noRelapseNode) noRelapseNode.textContent = stats.noRelapse.toLocaleString();
-  if (averageNode) averageNode.textContent = `${averageProbability}%`;
+  animateStatCount(patientTotalNode, patientTotal);
+  animateStatCount(totalNode, stats.total);
+  animateStatCount(relapseNode, stats.relapse);
+  animateStatCount(noRelapseNode, stats.noRelapse);
+  animateStatCount(averageNode, averageProbability, {
+    decimals: Number.isInteger(averageProbability) ? 0 : 1,
+    suffix: "%",
+    useGrouping: false,
+  });
 
   const relapsePercent = stats.total ? Math.round((stats.relapse / stats.total) * 100) : 0;
   const stablePercent = stats.total ? 100 - relapsePercent : 0;
+  const analyzedCoverage = patientTotal ? Math.min(Math.round((stats.total / patientTotal) * 100), 100) : 0;
 
-  if (totalNoteNode) totalNoteNode.textContent = `${relapsePercent}% flagged for closer follow-up`;
+  if (patientTotalNoteNode) {
+    patientTotalNoteNode.textContent = `${patientTotal.toLocaleString()} patient${patientTotal === 1 ? "" : "s"} in your private cohort`;
+  }
+  if (totalNoteNode) {
+    totalNoteNode.textContent = `${stats.total.toLocaleString()} prediction${stats.total === 1 ? "" : "s"} generated`;
+  }
   if (relapseNoteNode) relapseNoteNode.textContent = `${relapsePercent}% of total cases`;
   if (noRelapseNoteNode) noRelapseNoteNode.textContent = `${stablePercent}% of total cases`;
   if (averageNoteNode) averageNoteNode.textContent = "Live cohort overview";
-  if (totalBarNode) totalBarNode.style.width = "100%";
+  if (patientTotalBarNode) patientTotalBarNode.style.width = patientTotal ? "100%" : "0%";
+  if (totalBarNode) totalBarNode.style.width = `${analyzedCoverage}%`;
   if (relapseBarNode) relapseBarNode.style.width = `${relapsePercent}%`;
   if (noRelapseBarNode) noRelapseBarNode.style.width = `${stablePercent}%`;
   if (averageBarNode) averageBarNode.style.width = `${averageProbability}%`;
@@ -124,9 +230,9 @@ const renderDashboardValidationStats = () => {
   const pendingPercent = total ? Math.round((validation.pending / total) * 100) : 0;
   const incorrectPercent = total ? Math.round((validation.incorrect / total) * 100) : 0;
 
-  if (validationCorrectNode) validationCorrectNode.textContent = validation.correct.toLocaleString();
-  if (validationPendingNode) validationPendingNode.textContent = validation.pending.toLocaleString();
-  if (validationIncorrectNode) validationIncorrectNode.textContent = validation.incorrect.toLocaleString();
+  animateStatCount(validationCorrectNode, validation.correct);
+  animateStatCount(validationPendingNode, validation.pending);
+  animateStatCount(validationIncorrectNode, validation.incorrect);
 
   if (validationCorrectNoteNode) {
     validationCorrectNoteNode.textContent = `${correctPercent}% of total predictions`;
@@ -148,21 +254,38 @@ const renderDashboardRecentActivity = () => {
 
   recentHost.innerHTML = "";
 
-  getRecentPatients().forEach((entry) => {
+  getRecentPatients(6).forEach((entry) => {
     const badge = getPredictionBadge(entry);
+    const shortId = entry.id.length > 14
+      ? `${entry.id.slice(0, 8)}…${entry.id.slice(-4)}`
+      : entry.id;
+    const rawDoctorName = String(entry.predictedByName || "").trim();
+    const predictedByName = !rawDoctorName
+      ? "Unknown user"
+      : /^dr\.?\s+/i.test(rawDoctorName)
+        ? rawDoctorName
+        : `Dr. ${rawDoctorName}`;
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${entry.id}</td>
-      <td>${formatDate(entry.analyzedAt, true)}</td>
-      <td>${formatPredictedByDisplay(entry.predictedByName)}</td>
+      <td><span class="table-id-pill" title="${entry.id}">${shortId}</span></td>
+      <td><span class="table-date">${formatDate(entry.analyzedAt, true)}</span></td>
+      <td><span class="table-predicted-by">${predictedByName}</span></td>
       <td><span class="prediction-badge ${badge.tone}">${badge.label}</span></td>
       <td>
         <span class="probability-cell ${entry.result === 'Relapse' ? 'prob-relapse' : 'prob-stable'}">
-          <strong>${entry.probability}%</strong>
           <span class="probability-bar"><i style="width:${entry.probability}%"></i></span>
+          <strong>${entry.probability}%</strong>
         </span>
       </td>
-      <td><a class="table-action" href="prediction-details.html?id=${encodeURIComponent(entry.id)}">Details</a></td>
+      <td>
+        <a class="table-action-btn" href="prediction-details.html?id=${encodeURIComponent(entry.id)}" aria-label="View prediction details">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>
+          <span>Details</span>
+        </a>
+      </td>
     `;
     recentHost.appendChild(row);
   });
@@ -179,23 +302,41 @@ const renderDashboardPriorityQueue = () => {
 
   priorityListHost.innerHTML = "";
 
-  topRiskPatients.forEach((entry) => {
+  topRiskPatients.forEach((entry, index) => {
     const badge = getPredictionBadge(entry);
+    const shortId = entry.id.length > 12
+      ? `${entry.id.slice(0, 6)}…${entry.id.slice(-4)}`
+      : entry.id;
     const item = document.createElement("article");
     item.className = "priority-item";
+    item.setAttribute("data-prediction-id", entry.id);
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("title", "Double-click to view prediction details");
     item.innerHTML = `
-      <div class="priority-item-head">
-        <div>
-          <strong>${entry.id} - ${entry.patient}</strong>
-          <span>${formatDate(entry.analyzedAt, true)} - ${entry.source}</span>
+      <span class="priority-item-rank">${index + 1}</span>
+      <div class="priority-item-body">
+        <div class="priority-item-head">
+          <div class="priority-item-info">
+            <strong>${entry.patient}</strong>
+            <span class="priority-item-id" title="${entry.id}">${shortId}</span>
+            <span class="priority-item-meta">${formatDate(entry.analyzedAt, true)} · ${entry.source}</span>
+          </div>
+          <span class="prediction-badge ${badge.tone}">${badge.label}</span>
         </div>
-        <span class="prediction-badge ${badge.tone}">${badge.label}</span>
+        <div class="priority-item-prob ${entry.result === 'Relapse' ? 'prob-relapse' : 'prob-stable'}">
+          <span class="priority-item-prob-track"><i style="width:${entry.probability}%"></i></span>
+          <strong>${entry.probability}%</strong>
+        </div>
       </div>
-      <span class="probability-cell ${entry.result === 'Relapse' ? 'prob-relapse' : 'prob-stable'}">
-        <strong>${entry.probability}%</strong>
-        <span class="probability-bar"><i style="width:${entry.probability}%"></i></span>
-      </span>
     `;
+    const openDetails = () => {
+      window.location.href = `prediction-details.html?id=${encodeURIComponent(entry.id)}`;
+    };
+    item.addEventListener("dblclick", openDetails);
+    item.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") openDetails();
+    });
     priorityListHost.appendChild(item);
   });
 };
@@ -226,7 +367,21 @@ const renderDashboardError = (message) => {
 
 const loadDashboardPage = async () => {
   try {
-    const predictions = await requestDashboardPredictions();
+    const [predictionsResult, patientsResult] = await Promise.allSettled([
+      requestDashboardPredictions(),
+      requestDashboardPatients(),
+    ]);
+
+    if (predictionsResult.status === "rejected") {
+      throw predictionsResult.reason;
+    }
+
+    const predictions = predictionsResult.value;
+    dashboardPatientTotalCount =
+      patientsResult.status === "fulfilled" && Array.isArray(patientsResult.value)
+        ? patientsResult.value.length
+        : 0;
+
     if (typeof replacePatientPredictions === "function") {
       replacePatientPredictions(predictions);
     }

@@ -266,6 +266,45 @@ const NoufarApp = (() => {
       .replace(/[^\w\s]/g, "")
       .replace(/\s+/g, " ");
 
+  const ANTI_TPO_TOTAL_ALIASES = [
+    "anti tpo total",
+    "anti-tpo total",
+    "anti_tpo_total",
+    "antiTpoTotal",
+    "antiTPOtotal",
+    "AntiTPOTOTAL",
+    "anti tpo taux",
+    "anti-tpo taux",
+    "anti_tpo_taux",
+    "AntiTPO taux",
+    "AntiTPOTAUX",
+    "AntiTPO_TAUX",
+    "anti tpo level",
+    "anti-tpo level",
+    "anti tpo value",
+    "anti tpo titer",
+    "anti tpo titre",
+    "anti tpo total ui ml",
+    "anti tpo total iu ml",
+    "anti tpo total ui/ml",
+    "anti tpo total iu/ml",
+  ];
+
+  const TSI_LEVEL_ALIASES = [
+    "tsi level",
+    "tsiLevel",
+    "TSILevel",
+    "tsi_level",
+    "tsi taux",
+    "TSItaux",
+    "TSI_taux",
+    "tsi titer",
+    "tsi titre",
+    "tsi value",
+    "tsi total",
+    "tsi index",
+  ];
+
   const REQUIRED_DATASET_COLUMNS = [
     { label: "Name", aliases: ["name", "full name", "patient name", "nom", "patient"] },
     { label: "Age", aliases: ["age", "patient age", "AGE"] },
@@ -276,20 +315,11 @@ const NoufarApp = (() => {
     { label: "Anti-TPO", aliases: ["anti tpo", "anti-tpo", "anti tpo status", "AntiTPO_POSITIFS", "AntiTPO_NEGATIFS"] },
     {
       label: "Anti-TPO total",
-      aliases: [
-        "anti tpo total",
-        "anti-tpo total",
-        "antiTpoTotal",
-        "anti_tpo_total",
-        "anti tpo taux",
-        "anti-tpo taux",
-        "AntiTPO taux",
-        "AntiTPOTAUX",
-      ],
+      aliases: ANTI_TPO_TOTAL_ALIASES,
     },
     { label: "Anti-Tg", aliases: ["anti tg", "anti-tg", "anti tg status", "AntiTg_POSITIFS", "AntiTg_NEGATIFS"] },
     { label: "TSI", aliases: ["tsi", "tsi status", "TSI_POSITIFS", "TSI_NEGATIFS"] },
-    { label: "TSI level", aliases: ["tsi level", "tsiLevel", "tsi_level", "tsi taux", "TSItaux", "tsi titer"] },
+    { label: "TSI level", aliases: TSI_LEVEL_ALIASES },
     { label: "Ultrasound", aliases: ["ultrasound", "thyroid ultrasound", "echographie"] },
     { label: "Scintigraphy", aliases: ["scintigraphy", "thyroid scintigraphy"] },
     { label: "Therapy", aliases: ["therapy", "treatment", "treatment type"] },

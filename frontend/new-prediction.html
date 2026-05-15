@@ -36,13 +36,11 @@
             <span>Dashboard</span>
           </a>
           <a class="sidebar-link active" href="new-prediction.html">
-            <img class="sidebar-icon-image" src="assets/sidebar-plus-icon.png" alt="" aria-hidden="true" />
+            <img class="sidebar-icon-image" src="assets/predictions.png" alt="" aria-hidden="true" />
             <span>New Prediction</span>
           </a>
           <a class="sidebar-link" href="history.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/history.png" alt="" aria-hidden="true" />
             <span>Predictions</span>
           </a>
           <a class="sidebar-link" href="patients.html">
@@ -50,9 +48,7 @@
             <span>Patients</span>
           </a>
           <a class="sidebar-link" href="doctor-inbox.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/inbox.png" alt="" aria-hidden="true" />
             <span>Inbox</span>
           </a>
         </nav>
@@ -143,11 +139,45 @@
                 <span class="dashboard-pill">Explainable clinical output</span>
               </div>
             </div>
+            <div class="prediction-page-mode-actions" aria-label="Prediction entry modes">
+              <a class="prediction-mode-button prediction-mode-button-manual" href="#manual-entry-section">
+                <span class="prediction-mode-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M7 4h10v16H7zM10 8h4M10 12h4M10 16h3" />
+                  </svg>
+                </span>
+                <span class="prediction-mode-copy">
+                  <strong>Manual Entry</strong>
+                  <small>Fill clinical form</small>
+                </span>
+                <span class="prediction-mode-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                </span>
+              </a>
+              <a class="prediction-mode-button prediction-mode-button-import" href="#data-import-section">
+                <span class="prediction-mode-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 15V4m0 0L8 8m4-4 4 4M5 20h14" />
+                  </svg>
+                </span>
+                <span class="prediction-mode-copy">
+                  <strong>Data Import</strong>
+                  <small>Upload Excel or CSV</small>
+                </span>
+                <span class="prediction-mode-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                </span>
+              </a>
+            </div>
           </section>
 
           <section class="prediction-layout">
             <div class="prediction-column">
-              <section class="surface-card prediction-form-card">
+              <section class="surface-card prediction-form-card" id="manual-entry-section">
                 <div class="prediction-card-head">
                   <div class="prediction-card-head-copy">
                     <span class="prediction-card-kicker">Clinical intake</span>
@@ -241,7 +271,7 @@
                       <label class="field slider-field">
                         <span>TSH <em>*</em></span>
                         <div class="range-field-shell">
-                          <input class="range-input" type="range" min="0" max="5" step="0.1" value="1.2" name="tsh" data-range-target="tsh-value" data-range-decimals="1" />
+                          <input class="range-input" type="range" min="0" max="50" step="0.1" value="1.2" name="tsh" data-range-target="tsh-value" data-range-decimals="1" />
                           <div class="range-field-meta">
                             <strong id="tsh-value">1.2</strong>
                             <small>mIU/L</small>
@@ -251,7 +281,7 @@
                       <label class="field slider-field">
                         <span>FT4 <em>*</em></span>
                         <div class="range-field-shell">
-                          <input class="range-input" type="range" min="0.3" max="4" step="0.1" value="1.1" name="ft4" data-range-target="ft4-value" data-range-decimals="1" />
+                          <input class="range-input" type="range" min="0" max="10" step="0.1" value="1.1" name="ft4" data-range-target="ft4-value" data-range-decimals="1" />
                           <div class="range-field-meta">
                             <strong id="ft4-value">1.1</strong>
                             <small>ng/dL</small>
@@ -273,7 +303,7 @@
                       <label class="field slider-field">
                         <span>Anti-TPO total <em>*</em></span>
                         <div class="range-field-shell">
-                          <input class="range-input" type="range" min="0" max="1000" step="10" value="180" name="antiTpoTotal" data-range-target="anti-tpo-total-value" data-range-decimals="0" />
+                          <input class="range-input" type="range" min="0" max="3000" step="10" value="180" name="antiTpoTotal" data-range-target="anti-tpo-total-value" data-range-decimals="0" />
                           <div class="range-field-meta">
                             <strong id="anti-tpo-total-value">180</strong>
                             <small>IU/mL</small>
@@ -307,7 +337,7 @@
                       <label class="field slider-field">
                         <span>TSI level <em>*</em></span>
                         <div class="range-field-shell">
-                          <input class="range-input" type="range" min="0" max="5" step="0.1" value="1.3" name="tsiLevel" data-range-target="tsi-level-value" data-range-decimals="1" />
+                          <input class="range-input" type="range" min="0" max="10" step="0.1" value="1.3" name="tsiLevel" data-range-target="tsi-level-value" data-range-decimals="1" />
                           <div class="range-field-meta">
                             <strong id="tsi-level-value">1.3</strong>
                             <small>index</small>
@@ -370,7 +400,7 @@
                       <p class="prediction-form-note" id="prediction-form-note">Complete all required fields to enable prediction.</p>
                     </div>
                     <button class="btn btn-primary" type="submit" id="run-prediction-button" disabled>
-                      <img src="assets/IA 2.png" alt="" class="btn-ia-icon" aria-hidden="true"/>
+                      <img src="assets/ia.png" alt="" class="btn-ia-icon" aria-hidden="true"/>
                       Run Prediction
                     </button>
                   </div>
@@ -380,7 +410,7 @@
 
             <div class="import-divider"><span>OR BATCH IMPORT</span></div>
 
-            <section class="surface-card import-card">
+            <section class="surface-card import-card" id="data-import-section">
                 <div class="prediction-card-head">
                   <div class="import-head-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -429,7 +459,7 @@
                         </div>
                       </div>
                       <button class="btn btn-primary upload-run-btn" id="choose-patient-button" type="button" hidden>
-                        <img src="assets/IA 2.png" alt="" class="btn-ia-icon" aria-hidden="true"/>
+                        <img src="assets/ia.png" alt="" class="btn-ia-icon" aria-hidden="true"/>
                         Choose Patient and Run Prediction
                       </button>
                     </div>
@@ -506,9 +536,7 @@
               <div class="outcome-title">Prediction Outcome</div>
               <div class="outcome-state awaiting" id="outcome-state">
                 <div class="outcome-icon">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3Z" />
-                  </svg>
+                  <img class="outcome-status-image outcome-status-image-awaiting" src="assets/Ia awaiting.png" alt="" aria-hidden="true" />
                 </div>
                 <strong id="outcome-heading">Awaiting Data Input</strong>
                 <p id="outcome-text">Enter clinical parameters manually or upload a dataset to run the prediction model.</p>
@@ -527,8 +555,11 @@
                 </div>
                 <div class="outcome-summary" id="outcome-summary"></div>
                 <div class="outcome-actions">
-                  <button class="btn btn-secondary btn-sm outcome-print-button" id="print-report-button" type="button" hidden>
-                    Print Report
+                  <button class="btn btn-primary btn-sm outcome-details-button" id="view-prediction-details-button" type="button" hidden>
+                    View prediction details
+                  </button>
+                  <button class="btn btn-secondary btn-sm outcome-print-button" id="print-report-button" type="button" hidden aria-label="Print report" title="Print report">
+                    <img src="assets/printer.png" alt="" aria-hidden="true" />
                   </button>
                 </div>
                 <div class="impact-section">
@@ -725,6 +756,6 @@
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="noufar-app.js"></script>
     <script src="app-shell.js?v=20260506-2"></script>
-    <script src="new-prediction.js?v=20260506-2"></script>
+    <script src="new-prediction.js?v=20260514-outcome-icons"></script>
   </body>
 </html>

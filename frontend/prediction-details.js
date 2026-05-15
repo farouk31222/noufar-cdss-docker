@@ -563,13 +563,26 @@ const buildDetailProfileFromInputData = (entry) => {
       muscleWeakness: asTriValue(input.muscleWeakness),
       goiter: asTriValue(input.goiter),
       goiterClass: input.goiterClassification || defaultDetailProfile.goiterClass,
-      tsh: input.tsh ?? defaultDetailProfile.tsh,
-      ft4: input.ft4 ?? defaultDetailProfile.ft4,
-      antiTpo: input.antiTPO || defaultDetailProfile.antiTpo,
-      antiTpoTotal: input.antiTPOtotal ?? defaultDetailProfile.antiTpoTotal,
-      antiTg: input.antiTg || defaultDetailProfile.antiTg,
-      tsi: input.TSI || defaultDetailProfile.tsi,
-      tsiLevel: input.TSIlevel ?? defaultDetailProfile.tsiLevel,
+      tsh: input.tsh ?? input.TSH ?? defaultDetailProfile.tsh,
+      ft4: input.ft4 ?? input.FT4 ?? input.freeT4 ?? defaultDetailProfile.ft4,
+      antiTpo: input.antiTPO || input.antiTpo || input.AntiTPO || defaultDetailProfile.antiTpo,
+      antiTpoTotal:
+        input.antiTPOtotal
+        ?? input.antiTpoTotal
+        ?? input.antiTPOTotal
+        ?? input.AntiTPOtotal
+        ?? input.AntiTPOTotal
+        ?? input.anti_tpo_total
+        ?? defaultDetailProfile.antiTpoTotal,
+      antiTg: input.antiTg || input.AntiTg || input.antiTG || defaultDetailProfile.antiTg,
+      tsi: input.TSI || input.tsi || input.Tsi || defaultDetailProfile.tsi,
+      tsiLevel:
+        input.TSIlevel
+        ?? input.tsiLevel
+        ?? input.TSILevel
+        ?? input.TSIIevel
+        ?? input.tsi_level
+        ?? defaultDetailProfile.tsiLevel,
       ultrasound: normalizeDetailUltrasound(input.ultrasound),
       scintigraphy: normalizeDetailScintigraphy(input.scintigraphy),
       therapy: input.therapy || defaultDetailProfile.therapy,
@@ -1702,6 +1715,122 @@ const updateDetailTogglePresentation = (input) => {
   setDetailTriToggleState(input, input.dataset.triState || (input.checked ? "Yes" : "Not measured"));
 };
 
+const DETAIL_CLINICAL_REFERENCES = {
+  tsh: { normalMin: 0.4, normalMax: 4.0, highAbove: 10, unit: "mIU/L" },
+  ft4: { normalMin: 0.8, normalMax: 1.8, highAbove: 3, unit: "ng/dL" },
+  antiTpoTotal: { normalMin: 0, normalMax: 35, highAbove: 500, unit: "IU/mL" },
+  tsiLevel: { normalMin: 0, normalMax: 1.75, highAbove: 7, unit: "index" },
+};
+
+const DETAIL_THUMB_GRADIENTS = {
+  default: "linear-gradient(180deg, #2d71d3 0%, #174f9d 100%)",
+  low: "linear-gradient(180deg, #4a93d8 0%, #1b5b9a 100%)",
+  normal: "linear-gradient(180deg, #2cb578 0%, #1b7a52 100%)",
+  elevated: "linear-gradient(180deg, #e2a223 0%, #a8690a 100%)",
+  high: "linear-gradient(180deg, #e54c46 0%, #a91e1a 100%)",
+};
+
+const DETAIL_THUMB_SHADOWS = {
+  default: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  low: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  normal: "0 10px 18px rgba(27, 122, 82, 0.28)",
+  elevated: "0 10px 18px rgba(168, 105, 10, 0.28)",
+  high: "0 10px 18px rgba(169, 30, 26, 0.3)",
+};
+
+const buildDetailClinicalTrackGradient = (normalMinPct, normalMaxPct) => {
+  const nMin = Math.max(0, Math.min(100, normalMinPct));
+  const nMax = Math.max(nMin, Math.min(100, normalMaxPct));
+  return `linear-gradient(90deg, rgba(155, 174, 196, 0.28) 0%, rgba(155, 174, 196, 0.28) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMax}%, rgba(155, 174, 196, 0.28) ${nMax}%, rgba(155, 174, 196, 0.28) 100%)`;
+};
+
+const formatDetailTickValue = (value) => {
+  if (!Number.isFinite(value)) return String(value);
+  if (Number.isInteger(value)) return String(value);
+  return Number(value.toFixed(2)).toString();
+};
+
+const getDetailClinicalKey = (input) => {
+  if (!input) return null;
+  if (input.name && DETAIL_CLINICAL_REFERENCES[input.name]) return input.name;
+  const id = (input.id || "").toLowerCase();
+  if (id.includes("anti-tpo-total")) return "antiTpoTotal";
+  if (id.includes("tsi-level")) return "tsiLevel";
+  if (id.includes("tsh")) return "tsh";
+  if (id.includes("ft4")) return "ft4";
+  return null;
+};
+
+const computeDetailClinicalStatus = (value, ref) => {
+  if (!Number.isFinite(value)) return { label: "—", tone: "default" };
+  if (value < ref.normalMin) return { label: "Low", tone: "low" };
+  if (value <= ref.normalMax) return { label: "Normal", tone: "normal" };
+  if (value < ref.highAbove) return { label: "Elevated", tone: "elevated" };
+  return { label: "High", tone: "high" };
+};
+
+const ensureDetailClinicalHeader = (input) => {
+  const label = input.closest("label.slider-field");
+  if (!label) return null;
+  let header = label.querySelector(":scope > .slider-field-header");
+  if (header) return header;
+  const titleSpan = label.querySelector(":scope > span");
+  if (!titleSpan) return null;
+  header = document.createElement("div");
+  header.className = "slider-field-header";
+  titleSpan.parentNode.insertBefore(header, titleSpan);
+  header.appendChild(titleSpan);
+  const badge = document.createElement("span");
+  badge.className = "range-status-badge";
+  badge.dataset.tone = "default";
+  header.appendChild(badge);
+  return header;
+};
+
+const renderDetailClinicalEnhancements = (input, value) => {
+  const key = getDetailClinicalKey(input);
+  if (!key) return null;
+  const ref = DETAIL_CLINICAL_REFERENCES[key];
+  const status = computeDetailClinicalStatus(value, ref);
+
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const span = max > min ? max - min : 1;
+  const normalMinPct = ((ref.normalMin - min) / span) * 100;
+  const normalMaxPct = ((ref.normalMax - min) / span) * 100;
+
+  const label = input.closest("label.slider-field");
+  if (label) label.classList.add("is-clinical");
+
+  const header = ensureDetailClinicalHeader(input);
+  if (header) {
+    const badge = header.querySelector(".range-status-badge");
+    if (badge) {
+      badge.textContent = status.label;
+      badge.dataset.tone = status.tone;
+      badge.hidden = false;
+    }
+  }
+
+  return { status, normalMinPct, normalMaxPct };
+};
+
+const clearDetailClinicalEnhancements = (input) => {
+  const shell = input.closest(".range-field-shell");
+  const row = shell?.querySelector(".range-reference-row");
+  if (row) row.hidden = true;
+  const scale = shell?.querySelector(".range-scale");
+  if (scale) scale.hidden = true;
+  const label = input.closest("label.slider-field");
+  const badge = label?.querySelector(".range-status-badge");
+  if (badge) badge.hidden = true;
+  const target = document.getElementById(input.dataset.rangeTarget || "");
+  if (target) target.dataset.clinicalTone = "default";
+  input.style.removeProperty("--range-track-bg");
+  input.style.removeProperty("--range-thumb-bg");
+  input.style.removeProperty("--range-thumb-shadow");
+};
+
 const updateDetailRangePresentation = (input) => {
   if (!input) return;
 
@@ -1710,6 +1839,7 @@ const updateDetailRangePresentation = (input) => {
     input.disabled = true;
     input.classList.add("is-not-measured");
     if (target) target.textContent = "Not measured";
+    clearDetailClinicalEnhancements(input);
     return;
   }
 
@@ -1719,7 +1849,20 @@ const updateDetailRangePresentation = (input) => {
   const decimals = Number(input.dataset.rangeDecimals || 0);
   const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
-  input.style.background = `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`;
+  const result = renderDetailClinicalEnhancements(input, value);
+  if (result) {
+    const tone = result.status.tone;
+    const trackBg = buildDetailClinicalTrackGradient(result.normalMinPct, result.normalMaxPct);
+    input.style.setProperty("--range-track-bg", trackBg);
+    input.style.setProperty("--range-thumb-bg", DETAIL_THUMB_GRADIENTS[tone] || DETAIL_THUMB_GRADIENTS.default);
+    input.style.setProperty("--range-thumb-shadow", DETAIL_THUMB_SHADOWS[tone] || DETAIL_THUMB_SHADOWS.default);
+    input.style.background = trackBg;
+  } else {
+    input.style.setProperty("--range-track-bg", `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`);
+    input.style.removeProperty("--range-thumb-bg");
+    input.style.removeProperty("--range-thumb-shadow");
+    input.style.background = `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`;
+  }
 
   if (target) {
     target.textContent = decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
@@ -1984,7 +2127,7 @@ const buildPredictionFromProfile = (profile) => {
   addContribution("Anti-Tg", profile.antiTg === "Positive" ? 6 : -3, profile.antiTg === "Positive" ? "Additional antibody burden" : "Reduced antibody activity", profile.antiTg === "Positive" ? "warm" : "cool");
   addContribution("TSI", profile.tsi === "Positive" ? 16 : -8, profile.tsi === "Positive" ? "Dominant relapse driver" : "Reduced immunological drive", profile.tsi === "Positive" ? "warm" : "cool");
   const tsiLevel = Number(profile.tsiLevel);
-  if (tsiLevel >= 4) addContribution("TSI level", 12, "High stimulating immunological activity", "warm");
+  if (tsiLevel >= 7) addContribution("TSI level", 12, "High stimulating immunological activity", "warm");
   else if (tsiLevel >= 2) addContribution("TSI level", 7, "Moderate stimulating activity", "warm");
   else addContribution("TSI level", -4, "Lower stimulating antibody burden", "cool");
 

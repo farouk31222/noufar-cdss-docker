@@ -26,7 +26,20 @@ const datasetImportRowSchema = new mongoose.Schema(
     },
     rowData: {
       type: mongoose.Schema.Types.Mixed,
-      required: true,
+      default: () => ({}),
+    },
+    encryptedRowData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+    encryptedSearchText: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
+    encryptedRowDataKeyId: {
+      type: String,
+      default: "",
+      trim: true,
     },
     searchText: {
       type: String,
@@ -48,6 +61,30 @@ const datasetImportRowSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    consultationReasonBlindIndex: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    sexBlindIndex: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    ultrasoundBlindIndex: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    tsiBlindIndex: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
   },
   { timestamps: true }
 );
@@ -55,5 +92,9 @@ const datasetImportRowSchema = new mongoose.Schema(
 datasetImportRowSchema.index({ datasetImport: 1, rowIndex: 1 });
 datasetImportRowSchema.index({ datasetImport: 1, rowId: 1 }, { unique: true });
 datasetImportRowSchema.index({ doctor: 1, datasetImport: 1 });
+datasetImportRowSchema.index({ datasetImport: 1, consultationReasonBlindIndex: 1 });
+datasetImportRowSchema.index({ datasetImport: 1, sexBlindIndex: 1 });
+datasetImportRowSchema.index({ datasetImport: 1, ultrasoundBlindIndex: 1 });
+datasetImportRowSchema.index({ datasetImport: 1, tsiBlindIndex: 1 });
 
 module.exports = mongoose.model("DatasetImportRow", datasetImportRowSchema);

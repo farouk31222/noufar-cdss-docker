@@ -36,13 +36,11 @@
             <span>Dashboard</span>
           </a>
           <a class="sidebar-link" href="new-prediction.html">
-            <img class="sidebar-icon-image" src="assets/sidebar-plus-icon.png" alt="" aria-hidden="true" />
+            <img class="sidebar-icon-image" src="assets/predictions.png" alt="" aria-hidden="true" />
             <span>New Prediction</span>
           </a>
           <a class="sidebar-link" href="history.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/history.png" alt="" aria-hidden="true" />
             <span>Predictions</span>
           </a>
           <a class="sidebar-link" href="patients.html">
@@ -50,9 +48,7 @@
             <span>Patients</span>
           </a>
           <a class="sidebar-link" href="doctor-inbox.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/inbox.png" alt="" aria-hidden="true" />
             <span>Inbox</span>
           </a>
         </nav>
@@ -245,36 +241,11 @@
 
               
 
-              <section class="surface-card account-status-card account-plain-card">
-                <div class="account-section-header-line">
-                  <h2>Save Status</h2>
-                </div>
-                <div class="account-status-shell">
-                  <div class="account-status-topline">
-                    <span class="account-status-kicker">Workspace sync</span>
-                    <div class="account-status-indicator is-neutral" id="account-status-indicator">
-                      <span class="account-status-indicator-dot" aria-hidden="true"></span>
-                      <strong id="account-status-title">Ready to save</strong>
-                    </div>
-                  </div>
-                  <div class="account-save-banner is-neutral" id="account-save-banner">
-                    Ready to save any preference changes for your clinical workspace.
-                  </div>
-                  <div class="account-status-meta-grid">
-                    <div class="account-status-meta-card">
-                      <span>Last updated</span>
-                      <strong id="account-last-updated">Today</strong>
-                    </div>
-                    <div class="account-status-meta-card">
-                      <span>Sync scope</span>
-                      <strong>Profile, security, and clinical preferences</strong>
-                    </div>
-                  </div>
-                </div>
-              </section>
             </div>
           </section>
         </main>
+
+        <div class="toast-stack" id="account-toast-stack" aria-live="polite" aria-atomic="true"></div>
       </div>
     </div>
 

@@ -29,23 +29,23 @@
           <div class="sidebar-nav-group sidebar-nav-group-main">
             <span class="sidebar-nav-label">Workspace</span>
             <a class="sidebar-link" href="index.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h7V4H4v8Zm9 8h7v-6h-7v6Zm0-16v8h7V4h-7ZM4 20h7v-6H4v6Z" /></svg>
+              <img class="sidebar-link-image" src="assets/dashborad.png" alt="" aria-hidden="true" />
               <span>Overview</span>
             </a>
             <a class="sidebar-link" href="doctors.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Zm-6.5 8a6.5 6.5 0 0 1 13 0" /></svg>
+              <img class="sidebar-link-image" src="assets/doc.png" alt="" aria-hidden="true" />
               <span>Doctors</span>
             </a>
             <a class="sidebar-link active" href="support-center.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5m-7 6 2.2-2H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" /></svg>
+              <img class="sidebar-link-image" src="assets/sup.png" alt="" aria-hidden="true" />
               <span>Support Center</span>
             </a>
             <a class="sidebar-link" href="security-events.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.9 8.8 7 10 4.1-1.2 7-5.5 7-10V6l-7-3Zm0 5v4m0 4h.01" /></svg>
+              <img class="sidebar-link-image" src="assets/suc.png" alt="" aria-hidden="true" />
               <span>Security Events</span>
             </a>
             <a class="sidebar-link" href="system.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6.5 16V9m5 7V5m5 11v-6M4 8l4-3 4 3 4-3 4 3" /></svg>
+              <img class="sidebar-link-image" src="assets/sys.png" alt="" aria-hidden="true" />
               <span>System</span>
             </a>
           </div>
@@ -215,14 +215,16 @@
                       <strong>Update ticket lifecycle</strong>
                       <p>Keep every support thread aligned with the current response stage and follow-up need.</p>
                     </div>
-                    <div class="reply-box reply-box-inline">
-                      <label class="filter-label" for="ticket-status-select">Ticket status</label>
-                      <select class="control" id="ticket-status-select">
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                        <option value="Closed">Closed</option>
-                      </select>
+                    <div class="ticket-workflow-actions">
+                      <label class="ticket-status-field" for="ticket-status-select">
+                        <span>Ticket status</span>
+                        <select class="control" id="ticket-status-select">
+                          <option value="Open">Open</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Resolved">Resolved</option>
+                          <option value="Closed">Closed</option>
+                        </select>
+                      </label>
                       <button class="btn btn-secondary" type="button" id="resolve-toggle">Mark resolved</button>
                     </div>
                   </div>
@@ -241,6 +243,23 @@
                         <button class="btn btn-primary" type="button" id="access-upgrade-approve">Approve access</button>
                       </div>
                       <p class="muted-copy" id="access-upgrade-state" hidden></p>
+                    </div>
+                  </div>
+
+                  <div class="ticket-control-panel" id="unlock-account-panel" hidden>
+                    <div class="ticket-control-copy">
+                      <span class="ticket-control-kicker">Account unblock request</span>
+                      <strong>Review blocked account access</strong>
+                      <p>Approve this request to unblock the doctor account, or refuse it and keep the account blocked.</p>
+                    </div>
+                    <div class="reply-box reply-box-inline">
+                      <label class="filter-label" for="unlock-account-reason">Admin note</label>
+                      <textarea id="unlock-account-reason" placeholder="Optional note for the doctor..."></textarea>
+                      <div class="action-row">
+                        <button class="btn btn-secondary" type="button" id="unlock-account-refuse">Refuse unblock</button>
+                        <button class="btn btn-primary" type="button" id="unlock-account-approve">Deblock account</button>
+                      </div>
+                      <p class="muted-copy" id="unlock-account-state" hidden></p>
                     </div>
                   </div>
                 </div>

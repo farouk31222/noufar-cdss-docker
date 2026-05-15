@@ -248,10 +248,13 @@ const ensureDoctorAccountCanAuthenticate = (user) => {
   if (user.role !== "doctor") return;
 
   if (user.accountStatus === "Deleted") {
-    const error = new Error("Your account has been deleted.");
+    const error = new Error("Your account has been blocked.");
     error.statusCode = 403;
     error.code = "ACCOUNT_DELETED";
-    error.reason = user.deletionReason || "No reason was provided by the admin.";
+    error.reason = user.deletionReason || "No block reason was provided.";
+    error.email = user.email || "";
+    error.doctorName = user.name || "";
+    error.institution = user.hospital || "";
     throw error;
   }
 
@@ -526,9 +529,12 @@ const loginUser = async (req, res, next) => {
 
     if (user.role === "doctor" && user.accountStatus === "Deleted") {
       res.status(403);
-      const error = new Error("Your account has been deleted.");
+      const error = new Error("Your account has been blocked.");
       error.code = "ACCOUNT_DELETED";
-      error.reason = user.deletionReason || "No reason was provided by the admin.";
+      error.reason = user.deletionReason || "No block reason was provided.";
+      error.email = user.email || "";
+      error.doctorName = user.name || "";
+      error.institution = user.hospital || "";
       throw error;
     }
 
@@ -1480,6 +1486,7 @@ const rejectDoctorAccount = async (req, res, next) => {
   let doctor = null;
   try {
     doctor = await User.findById(req.params.id);
+    const actor = getActorName(req.user);
 
     if (!doctor || doctor.role !== "doctor") {
       res.status(404);
@@ -1487,6 +1494,11 @@ const rejectDoctorAccount = async (req, res, next) => {
     }
 
     const rejectionReason = String(req.body?.reason || "").trim() || "No rejection reason was provided.";
+    doctor.approvalStatus = "Rejected";
+    doctor.accountStatus = "Inactive";
+    doctor.rejectionReason = rejectionReason;
+    doctor.deactivationReason = "";
+    appendDoctorHistory(doctor, `Doctor registration rejected: ${rejectionReason}`, actor, req.user?._id || null);
 
     let emailStatus = "sent";
 
@@ -1500,17 +1512,17 @@ const rejectDoctorAccount = async (req, res, next) => {
       emailStatus = "failed";
     }
 
-    await doctor.deleteOne();
+    await doctor.save();
 
     res.status(200).json({
-      removedId: req.params.id,
+      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
       emailStatus,
       message:
         emailStatus === "sent"
-          ? "Doctor rejected, removed, and email sent"
+          ? "Doctor rejected and email sent"
           : emailStatus === "skipped"
-            ? "Doctor rejected and removed, but email sending is not configured"
-            : "Doctor rejected and removed, but email delivery failed",
+            ? "Doctor rejected, but email sending is not configured"
+            : "Doctor rejected, but email delivery failed",
     });
     await logAuditEventSafe({
       req,
@@ -1717,12 +1729,12 @@ const deleteDoctorAccount = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
-    const deletionReason = String(req.body?.reason || "").trim() || "No deletion reason was provided.";
+    const deletionReason = String(req.body?.reason || "").trim() || "No block reason was provided.";
 
     doctor.accountStatus = "Deleted";
     doctor.deletionReason = deletionReason;
     doctor.deactivationReason = "";
-    appendDoctorHistory(doctor, `Doctor account deleted: ${deletionReason}`, actor, req.user?._id || null);
+    appendDoctorHistory(doctor, `Doctor account blocked: ${deletionReason}`, actor, req.user?._id || null);
     await doctor.save();
 
     let emailStatus = "sent";
@@ -1742,10 +1754,10 @@ const deleteDoctorAccount = async (req, res, next) => {
       emailStatus,
       message:
         emailStatus === "sent"
-          ? "Doctor account deleted and email sent"
+          ? "Doctor account blocked and email sent"
           : emailStatus === "skipped"
-            ? "Doctor account deleted but email sending is not configured"
-            : "Doctor account deleted but email delivery failed",
+            ? "Doctor account blocked but email sending is not configured"
+            : "Doctor account blocked but email delivery failed",
     });
     await logAuditEventSafe({
       req,

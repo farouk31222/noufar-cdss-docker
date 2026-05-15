@@ -12,6 +12,7 @@ const outcomeProbability = document.querySelector("#outcome-probability");
 const outcomeBar = document.querySelector("#outcome-bar");
 const outcomeSummary = document.querySelector("#outcome-summary");
 const printReportButton = document.querySelector("#print-report-button");
+const viewPredictionDetailsButton = document.querySelector("#view-prediction-details-button");
 const impactList = document.querySelector("#impact-list");
 const impactEmpty = document.querySelector("#impact-empty");
 const datasetFile = document.querySelector("#dataset-file");
@@ -198,6 +199,7 @@ let consultUploadId = null;
 let consultPage = 1;
 let deleteTargetId = null;
 let latestPredictionResult = null;
+let latestPredictionDetailsId = "";
 let duplicatePredictionId = "";
 let aiServiceWasUnavailable = false;
 const allowedUploadExtensions = [".csv", ".xlsx", ".xls"];
@@ -227,6 +229,10 @@ const normalizeImportedColumnKey = (value) =>
     .replace(/[^\w\s]/g, "")
     .replace(/\s+/g, " ");
 
+const IMPORT_CONSULTATION_REASON_OPTIONS = ["DYSTHYROIDIE", "Compression signs", "Tumefaction", "Other"];
+const IMPORT_CONSULTATION_REASON_ERROR =
+  "Consultation reason must be DYSTHYROIDIE, Compression signs, Tumefaction, or Other.";
+
 const getImportedRowValue = (row, aliases = []) => {
   const normalizedAliases = aliases.map(normalizeImportedColumnKey);
   for (const [key, value] of Object.entries(row || {})) {
@@ -241,6 +247,22 @@ const getImportedRowValue = (row, aliases = []) => {
   }
   return "";
 };
+
+const normalizeImportedUploadConsultationReason = (value) => {
+  const normalized = normalizeImportedColumnKey(value);
+  if (!normalized || ["-", "not measured", "not mesured", "not messured", "not available", "na", "n a"].includes(normalized)) {
+    return "";
+  }
+  return (
+    IMPORT_CONSULTATION_REASON_OPTIONS.find((option) => normalizeImportedColumnKey(option) === normalized) ||
+    String(value ?? "").trim()
+  );
+};
+
+const isAllowedImportedConsultationReason = (value) =>
+  IMPORT_CONSULTATION_REASON_OPTIONS.some(
+    (option) => normalizeImportedColumnKey(option) === normalizeImportedColumnKey(value)
+  );
 
 const normalizeImportedUploadStatus = (value) => {
   const normalized = normalizeImportedColumnKey(value);
@@ -331,13 +353,11 @@ const deletePrivateDatasetImport = async (datasetImportId) => {
 };
 
 const uploadPrivateDatasetImport = async (file, dataset) => {
-  const consultationReasons = [
-    ...new Set(
-      dataset.rows
-        .map((row) => String(getImportedRowValue(row, ["Consultation reason", "Reason", "Motif consultation"])).trim())
-        .filter(Boolean)
-    ),
-  ].sort((a, b) => a.localeCompare(b));
+  // Note: Files containing empty or invalid values are accepted.
+  // Validation errors are flagged visually on each row in the dataset table
+  // and enforced only at inline-edit save time.
+
+  const consultationReasons = IMPORT_CONSULTATION_REASON_OPTIONS;
   const ultrasoundValues = [
     ...new Set(
       dataset.rows
@@ -1075,6 +1095,126 @@ const updateTogglePresentation = (input) => {
   }
 };
 
+const CLINICAL_REFERENCES = {
+  tsh: { normalMin: 0.4, normalMax: 4.0, highAbove: 10, unit: "mIU/L" },
+  ft4: { normalMin: 0.8, normalMax: 1.8, highAbove: 3, unit: "ng/dL" },
+  antiTpoTotal: { normalMin: 0, normalMax: 35, highAbove: 500, unit: "IU/mL" },
+  tsiLevel: { normalMin: 0, normalMax: 1.75, highAbove: 7, unit: "index" },
+};
+
+const THUMB_GRADIENTS = {
+  default: "linear-gradient(180deg, #2d71d3 0%, #174f9d 100%)",
+  low: "linear-gradient(180deg, #4a93d8 0%, #1b5b9a 100%)",
+  normal: "linear-gradient(180deg, #2cb578 0%, #1b7a52 100%)",
+  elevated: "linear-gradient(180deg, #e2a223 0%, #a8690a 100%)",
+  high: "linear-gradient(180deg, #e54c46 0%, #a91e1a 100%)",
+};
+
+const THUMB_SHADOWS = {
+  default: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  low: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  normal: "0 10px 18px rgba(27, 122, 82, 0.28)",
+  elevated: "0 10px 18px rgba(168, 105, 10, 0.28)",
+  high: "0 10px 18px rgba(169, 30, 26, 0.3)",
+};
+
+const DEFAULT_TRACK_BG = "linear-gradient(90deg, rgba(68, 121, 196, 0.22) 0%, rgba(150, 187, 239, 0.24) 100%)";
+
+const buildClinicalTrackGradient = (normalMinPct, normalMaxPct) => {
+  const nMin = Math.max(0, Math.min(100, normalMinPct));
+  const nMax = Math.max(nMin, Math.min(100, normalMaxPct));
+  return `linear-gradient(90deg, rgba(155, 174, 196, 0.28) 0%, rgba(155, 174, 196, 0.28) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMax}%, rgba(155, 174, 196, 0.28) ${nMax}%, rgba(155, 174, 196, 0.28) 100%)`;
+};
+
+const formatTickValue = (value) => {
+  if (!Number.isFinite(value)) return String(value);
+  if (Number.isInteger(value)) return String(value);
+  return Number(value.toFixed(2)).toString();
+};
+
+const getClinicalKey = (input) => {
+  if (!input) return null;
+  if (input.name && CLINICAL_REFERENCES[input.name]) return input.name;
+  const id = (input.id || "").toLowerCase();
+  if (id.includes("anti-tpo-total")) return "antiTpoTotal";
+  if (id.includes("tsi-level")) return "tsiLevel";
+  if (id.includes("tsh")) return "tsh";
+  if (id.includes("ft4")) return "ft4";
+  return null;
+};
+
+const computeClinicalStatus = (value, ref) => {
+  if (!Number.isFinite(value)) return { label: "—", tone: "default" };
+  if (value < ref.normalMin) return { label: "Low", tone: "low" };
+  if (value <= ref.normalMax) return { label: "Normal", tone: "normal" };
+  if (value < ref.highAbove) return { label: "Elevated", tone: "elevated" };
+  return { label: "High", tone: "high" };
+};
+
+const ensureClinicalSliderHeader = (input) => {
+  const label = input.closest("label.slider-field");
+  if (!label) return null;
+  let header = label.querySelector(":scope > .slider-field-header");
+  if (header) return header;
+  const titleSpan = label.querySelector(":scope > span");
+  if (!titleSpan) return null;
+  header = document.createElement("div");
+  header.className = "slider-field-header";
+  titleSpan.parentNode.insertBefore(header, titleSpan);
+  header.appendChild(titleSpan);
+  const badge = document.createElement("span");
+  badge.className = "range-status-badge";
+  badge.dataset.tone = "default";
+  header.appendChild(badge);
+  return header;
+};
+
+const renderClinicalEnhancements = (input, value) => {
+  const key = getClinicalKey(input);
+  if (!key) return null;
+  const ref = CLINICAL_REFERENCES[key];
+  const status = computeClinicalStatus(value, ref);
+
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const span = max > min ? max - min : 1;
+  const normalMinPct = ((ref.normalMin - min) / span) * 100;
+  const normalMaxPct = ((ref.normalMax - min) / span) * 100;
+
+  // Mark label as clinical
+  const label = input.closest("label.slider-field");
+  if (label) label.classList.add("is-clinical");
+
+  // Header badge
+  const header = ensureClinicalSliderHeader(input);
+  if (header) {
+    const badge = header.querySelector(".range-status-badge");
+    if (badge) {
+      badge.textContent = status.label;
+      badge.dataset.tone = status.tone;
+      badge.hidden = false;
+    }
+  }
+
+  return { status, normalMinPct, normalMaxPct };
+};
+
+const clearClinicalEnhancements = (input) => {
+  const shell = input.closest(".range-field-shell");
+  const row = shell?.querySelector(".range-reference-row");
+  if (row) row.hidden = true;
+  const scale = shell?.querySelector(".range-scale");
+  if (scale) scale.hidden = true;
+  const label = input.closest("label.slider-field");
+  const badge = label?.querySelector(".range-status-badge");
+  if (badge) badge.hidden = true;
+  const target = document.getElementById(input.dataset.rangeTarget || "");
+  if (target) target.dataset.clinicalTone = "default";
+  input.style.removeProperty("--range-track-bg");
+  input.style.removeProperty("--range-thumb-bg");
+  input.style.removeProperty("--range-thumb-shadow");
+};
+
 const updateRangePresentation = (input) => {
   if (!input) return;
   const target = document.getElementById(input.dataset.rangeTarget || "");
@@ -1083,6 +1223,7 @@ const updateRangePresentation = (input) => {
     input.disabled = true;
     input.classList.add("is-not-measured");
     if (target) target.textContent = "Not measured";
+    clearClinicalEnhancements(input);
     return;
   }
 
@@ -1092,7 +1233,20 @@ const updateRangePresentation = (input) => {
   const decimals = Number(input.dataset.rangeDecimals || 0);
   const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
-  input.style.background = `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`;
+  const result = renderClinicalEnhancements(input, value);
+  if (result) {
+    const tone = result.status.tone;
+    const trackBg = buildClinicalTrackGradient(result.normalMinPct, result.normalMaxPct);
+    input.style.setProperty("--range-track-bg", trackBg);
+    input.style.setProperty("--range-thumb-bg", THUMB_GRADIENTS[tone] || THUMB_GRADIENTS.default);
+    input.style.setProperty("--range-thumb-shadow", THUMB_SHADOWS[tone] || THUMB_SHADOWS.default);
+    input.style.background = trackBg;
+  } else {
+    input.style.setProperty("--range-track-bg", `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`);
+    input.style.removeProperty("--range-thumb-bg");
+    input.style.removeProperty("--range-thumb-shadow");
+    input.style.background = `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`;
+  }
 
   if (target) {
     target.textContent = decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
@@ -1299,12 +1453,31 @@ const selectRecentUpload = (uploadId) => {
   renderUploadSuccess(upload);
 };
 
+const setOutcomeIcon = (mode = "pending") => {
+  if (!outcomeState) return;
+
+  const iconSlot = outcomeState.querySelector(".outcome-icon");
+  if (!iconSlot) return;
+
+  const iconMap = {
+    relapse: "assets/Relapce.png",
+    stable: "assets/NotRelapce.png",
+    pending: "assets/Ia awaiting.png",
+  };
+
+  const src = iconMap[mode] || iconMap.pending;
+  const awaitingClass = mode === "pending" ? " outcome-status-image-awaiting" : "";
+  iconSlot.innerHTML = `<img class="outcome-status-image${awaitingClass}" src="${src}" alt="" aria-hidden="true" />`;
+};
+
 const setOutcomePending = (message) => {
   if (!outcomeState) return;
   latestPredictionResult = null;
+  latestPredictionDetailsId = "";
 
   outcomeState.classList.remove("relapse", "stable");
   outcomeState.classList.add("awaiting");
+  setOutcomeIcon();
   outcomeHeading.textContent = "Awaiting Data Input";
   outcomeText.textContent =
     message ||
@@ -1342,6 +1515,12 @@ const setOutcomePending = (message) => {
 
   if (printReportButton) {
     printReportButton.hidden = true;
+    printReportButton.style.display = "none";
+  }
+
+  if (viewPredictionDetailsButton) {
+    viewPredictionDetailsButton.hidden = true;
+    viewPredictionDetailsButton.style.display = "none";
   }
 };
 
@@ -1351,6 +1530,7 @@ const renderOutcome = (result) => {
 
   outcomeState.classList.remove("awaiting", "relapse", "stable");
   outcomeState.classList.add(result.relapse ? "relapse" : "stable");
+  setOutcomeIcon(result.relapse ? "relapse" : "stable");
   if (outcomeCard) {
     outcomeCard.classList.remove("is-relapse", "is-stable");
     outcomeCard.classList.add(result.relapse ? "is-relapse" : "is-stable");
@@ -1413,6 +1593,13 @@ const renderOutcome = (result) => {
 
   if (printReportButton) {
     printReportButton.hidden = false;
+    printReportButton.style.display = "";
+  }
+
+  if (viewPredictionDetailsButton) {
+    const shouldShowDetailsButton = Boolean(latestPredictionDetailsId);
+    viewPredictionDetailsButton.hidden = !shouldShowDetailsButton;
+    viewPredictionDetailsButton.style.display = shouldShowDetailsButton ? "" : "none";
   }
 };
 
@@ -1765,6 +1952,7 @@ if (predictionForm) {
         if (typeof upsertPatientPrediction === "function" && response?.prediction) {
           upsertPatientPrediction(response.prediction);
         }
+          latestPredictionDetailsId = response?.prediction?.id || response?.prediction?._id || "";
           renderOutcome(response.displayResult);
           revealPredictionOutcome();
           if (aiServiceWasUnavailable) {
@@ -1872,6 +2060,14 @@ if (choosePatientButton) {
 
 if (printReportButton) {
   printReportButton.addEventListener("click", printPredictionReport);
+}
+
+if (viewPredictionDetailsButton) {
+  viewPredictionDetailsButton.addEventListener("click", () => {
+    if (!latestPredictionDetailsId) return;
+    const returnTo = `${window.location.pathname.split("/").pop() || "new-prediction.html"}${window.location.search}`;
+    window.location.href = `prediction-details.html?id=${encodeURIComponent(latestPredictionDetailsId)}&returnTo=${encodeURIComponent(returnTo)}`;
+  });
 }
 
 duplicateCloseButtons.forEach((button) => {

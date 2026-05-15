@@ -10,6 +10,7 @@ const predictionRoutes = require("./routes/predictionRoutes");
 const supportRoutes = require("./routes/supportRoutes");
 const datasetImportRoutes = require("./routes/datasetImportRoutes");
 const securityEventRoutes = require("./routes/securityEventRoutes");
+const modelLearningRoutes = require("./routes/modelLearningRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -111,6 +112,7 @@ app.use("/api/predictions", predictionRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/dataset-imports", datasetImportRoutes);
 app.use("/api/security-events", securityEventRoutes);
+app.use("/api/model-learning", modelLearningRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

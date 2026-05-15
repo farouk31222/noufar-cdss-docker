@@ -11,9 +11,8 @@ const datasetSearch = document.querySelector("#dataset-search");
 const datasetTableCard = document.querySelector(".dataset-table-card");
 const datasetExpandTableButton = document.querySelector("#dataset-expand-table");
 const datasetPagination = document.querySelector("#dataset-pagination");
+const datasetSexFilter = document.querySelector("#dataset-filter-sex");
 const datasetConsultationFilter = document.querySelector("#dataset-filter-consultation");
-const datasetUltrasoundFilter = document.querySelector("#dataset-filter-ultrasound");
-const datasetTsiFilter = document.querySelector("#dataset-filter-tsi");
 const datasetFilterResetButton = document.querySelector("#dataset-filter-reset");
 const datasetFilterStatus = document.querySelector("#dataset-filter-status");
 const selectionSummary = document.querySelector("#selection-summary");
@@ -28,6 +27,7 @@ const outcomeBar = document.querySelector("#selection-outcome-bar");
 const outcomeSummary = document.querySelector("#selection-outcome-summary");
 const impactList = document.querySelector("#selection-impact-list");
 const printReportButton = document.querySelector("#selection-print-report-button");
+const viewPredictionDetailsButton = document.querySelector("#selection-view-prediction-details-button");
 const datasetDuplicateModal = document.querySelector("#dataset-duplicate-modal");
 const datasetDuplicateCopy = document.querySelector("#dataset-duplicate-copy");
 const datasetDuplicateViewButton = document.querySelector("#dataset-duplicate-view");
@@ -53,6 +53,7 @@ let selectedRowId = "";
 let currentPage = 1;
 let searchTerm = "";
 let latestSelectionResult = null;
+let latestSelectionPredictionId = "";
 let latestSelectedRow = null;
 let editingRowId = "";
 let inlineEditSaving = false;
@@ -60,9 +61,8 @@ let datasetTablePlaceholder = null;
 let duplicatePredictionId = "";
 let datasetAiServiceWasUnavailable = false;
 let activeClinicalFilters = {
+  sex: "",
   consultationReason: "",
-  ultrasound: "",
-  tsi: "",
 };
 
 const requestDatasetImportsJson = async (path, options = {}) => {
@@ -308,6 +308,22 @@ const isNotMeasuredValue = (value) => {
   ].includes(normalized);
 };
 
+const CONSULTATION_REASON_OPTIONS = ["DYSTHYROIDIE", "Compression signs", "Tumefaction", "Other"];
+const CONSULTATION_REASON_ERROR =
+  "Consultation reason must be DYSTHYROIDIE, Compression signs, Tumefaction, or Other.";
+
+const normalizeImportedConsultationReason = (value) => {
+  if (isDatasetBlank(value) || isNotMeasuredValue(value)) return "";
+  const normalized = normalizeDatasetKey(value);
+  return (
+    CONSULTATION_REASON_OPTIONS.find((option) => normalizeDatasetKey(option) === normalized) ||
+    String(value ?? "").trim()
+  );
+};
+
+const isAllowedConsultationReason = (value) =>
+  CONSULTATION_REASON_OPTIONS.some((option) => normalizeDatasetKey(option) === normalizeDatasetKey(value));
+
 const parseImportedNumber = (value) => {
   const parsed = Number(String(value ?? "").trim().replace(",", "."));
   return Number.isFinite(parsed) ? parsed : null;
@@ -405,15 +421,39 @@ const FIELD_ALIASES = {
     "Anti TPO total",
     "AntiTpoTotal",
     "AntiTPO total",
+    "AntiTPOtotal",
+    "AntiTPOTOTAL",
     "anti_tpo_total",
     "Anti TPO taux",
     "Anti-TPO taux",
     "AntiTPO taux",
     "AntiTPOTAUX",
+    "AntiTPO_TAUX",
+    "Anti TPO level",
+    "Anti-TPO level",
+    "Anti TPO value",
+    "Anti-TPO titer",
+    "Anti TPO titre",
+    "Anti TPO total UI/ml",
+    "Anti TPO total IU/ml",
   ],
   antiTg: ["Anti-Tg", "Anti Tg", "AntiTg", "AntiTG"],
   tsi: ["TSI"],
-  tsiLevel: ["TSI level", "TSI Level", "TsiLevel", "tsi_level", "TSI taux", "TSItaux", "TSI titer"],
+  tsiLevel: [
+    "TSI level",
+    "TSI Level",
+    "TsiLevel",
+    "TSILevel",
+    "tsi_level",
+    "TSI taux",
+    "TSItaux",
+    "TSI_taux",
+    "TSI titer",
+    "TSI titre",
+    "TSI value",
+    "TSI total",
+    "TSI index",
+  ],
   ultrasound: ["Ultrasound", "Echographie"],
   scintigraphy: ["Scintigraphy"],
   therapy: ["Therapy", "Treatment", "Treatment type"],
@@ -425,6 +465,7 @@ const FIELD_ALIASES = {
 
 const normalizeDatasetFieldValue = (field, value) => {
   if (field === "sex") return normalizeImportedSex(value);
+  if (field === "consultationReason") return normalizeImportedConsultationReason(value);
   if (["antiTpo", "antiTg", "tsi"].includes(field)) return normalizeImportedClinicalStatus(value);
   if (field === "ultrasound") return normalizeImportedUltrasound(value);
   if (field === "scintigraphy") return normalizeImportedScintigraphy(value);
@@ -479,11 +520,38 @@ const getFieldForDatasetColumn = (column) => {
   );
 };
 
+const REQUIRED_DATASET_FIELDS_FOR_EDIT = {
+  name: "Name",
+  age: "Age",
+  sex: "Sex",
+  consultationReason: "Consultation reason",
+  tsh: "TSH",
+  ft4: "FT4",
+  antiTpo: "Anti-TPO",
+  antiTpoTotal: "Anti-TPO total",
+  antiTg: "Anti-Tg",
+  tsi: "TSI",
+  tsiLevel: "TSI level",
+  ultrasound: "Ultrasound",
+  scintigraphy: "Scintigraphy",
+  therapy: "Therapy",
+  duration: "Duration of treatment",
+};
+
 const validateDatasetFieldValue = (field, value) => {
   if (!field) return null;
   const normalizedValue = normalizeDatasetFieldValue(field, value);
   const raw = String(normalizedValue ?? "").trim();
   const normalized = normalizeDatasetKey(raw);
+
+  if (field === "consultationReason") {
+    if (!raw || isNotMeasuredValue(raw)) return "Consultation reason is required.";
+    return isAllowedConsultationReason(raw) ? null : CONSULTATION_REASON_ERROR;
+  }
+
+  if (REQUIRED_DATASET_FIELDS_FOR_EDIT[field] && (!raw || isNotMeasuredValue(raw))) {
+    return `${REQUIRED_DATASET_FIELDS_FOR_EDIT[field]} is required.`;
+  }
 
   if (!raw || isNotMeasuredValue(raw)) return null;
 
@@ -636,6 +704,27 @@ const saveInlineEditRow = (rowId) => {
     return;
   }
 
+  // Required-fields check: enforced only when saving an inline edit
+  const editedRow = buildInlineEditableRowData(rowId);
+  const requiredErrors = [];
+  Object.entries(REQUIRED_DATASET_FIELDS_FOR_EDIT).forEach(([field, label]) => {
+    const aliases = FIELD_ALIASES[field] || [label];
+    const value = getDatasetRowValue(editedRow, aliases, "");
+    const raw = String(value ?? "").trim();
+    if (!raw || isNotMeasuredValue(raw)) {
+      requiredErrors.push({ field, label, message: `${label} is required.` });
+    }
+  });
+
+  if (requiredErrors.length) {
+    const firstError = requiredErrors[0];
+    showDatasetSelectionToast(
+      `${firstError.label}: ${firstError.message} Please fill it before saving.`,
+      "danger"
+    );
+    return;
+  }
+
   const rowData = buildInlineEditableRowData(rowId);
   inlineEditSaving = true;
   renderDatasetTable().catch(() => {});
@@ -698,10 +787,20 @@ const renderDatasetCell = (row, column) => {
     return `<td>${escapeDatasetCellHtml(displayValue)}</td>`;
   }
 
+  const safeDisplay = escapeDatasetCellHtml(displayValue);
+  const isEmptyValue = !displayValue || displayValue === "-";
   return `
     <td class="dataset-cell-invalid" title="${escapeDatasetCellHtml(validationMessage)}">
-      <span class="dataset-cell-warning" aria-hidden="true">!</span>
-      <span>${escapeDatasetCellHtml(displayValue)}</span>
+      <span class="dataset-cell-invalid-shell">
+        <span class="dataset-cell-warning" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5"/>
+            <path d="M12 16h.01"/>
+          </svg>
+        </span>
+        <span class="dataset-cell-invalid-value${isEmptyValue ? " is-empty" : ""}">${isEmptyValue ? "Required" : safeDisplay}</span>
+      </span>
     </td>
   `;
 };
@@ -709,12 +808,13 @@ const renderDatasetCell = (row, column) => {
 const populateDatasetFilterOptions = () => {
   if (!dataset) return;
 
-  const buildOptions = (select, values, emptyLabel) => {
+  const buildOptions = (select, values, emptyLabel, { sort = true } = {}) => {
     if (!select) return;
     const previous = select.value;
-    const uniqueValues = [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))].sort((a, b) =>
-      a.localeCompare(b)
-    );
+    const uniqueValues = [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+    if (sort) {
+      uniqueValues.sort((a, b) => a.localeCompare(b));
+    }
     select.innerHTML = "";
 
     const defaultOption = document.createElement("option");
@@ -734,18 +834,9 @@ const populateDatasetFilterOptions = () => {
 
   buildOptions(
     datasetConsultationFilter,
-    dataset.consultationReasons || [],
-    "All reasons"
-  );
-  buildOptions(
-    datasetUltrasoundFilter,
-    dataset.ultrasoundValues || [],
-    "All ultrasound findings"
-  );
-  buildOptions(
-    datasetTsiFilter,
-    dataset.tsiValues || [],
-    "All TSI profiles"
+    CONSULTATION_REASON_OPTIONS,
+    "All reasons",
+    { sort: false }
   );
 };
 
@@ -805,9 +896,9 @@ const buildImportedPredictionPayload = (row) => {
     name: patientName || patientId || "Imported patient",
     age: Number(getDatasetRowValue(row, ["Age", "Patient age", "AGE"], 0)) || 0,
     sex: normalizeImportedSex(getDatasetRowValue(row, ["Sex", "Gender", "Sexe"], "")),
-    consultationReason: String(
-      getDatasetRowValue(row, ["Consultation reason", "Reason", "Motif consultation"], "")
-    ).trim(),
+    consultationReason: normalizeImportedConsultationReason(
+      getDatasetRowValue(row, FIELD_ALIASES.consultationReason, "")
+    ),
     stress: normalizeImportedToggleValue(getDatasetRowValue(row, ["Stress"], "")),
     palpitations: normalizeImportedToggleValue(getDatasetRowValue(row, ["Palpitations"], "")),
     spp: normalizeImportedToggleValue(getDatasetRowValue(row, ["SPP"], "")),
@@ -1389,10 +1480,27 @@ const getDataset = async () => {
   return uploads[0] || null;
 };
 
+const setOutcomeIcon = (mode = "pending") => {
+  const icon = outcomeState?.querySelector(".outcome-icon");
+  if (!icon) return;
+
+  if (mode === "relapse" || mode === "stable") {
+    const iconSrc = mode === "relapse" ? "assets/Relapce.png" : "assets/NotRelapce.png";
+    icon.innerHTML = `<img class="outcome-status-image" src="${iconSrc}" alt="" aria-hidden="true" />`;
+    return;
+  }
+
+  icon.innerHTML = `
+    <img class="outcome-status-image outcome-status-image-awaiting" src="assets/Ia awaiting.png" alt="" aria-hidden="true" />
+  `;
+};
+
 const setPendingOutcome = () => {
   latestSelectionResult = null;
+  latestSelectionPredictionId = "";
   outcomeState.classList.remove("relapse", "stable");
   outcomeState.classList.add("awaiting");
+  setOutcomeIcon();
   outcomeHeading.textContent = "Awaiting Data Input";
   outcomeText.textContent =
     "Select a patient from the uploaded dataset to generate the individualized prediction result.";
@@ -1409,6 +1517,11 @@ const setPendingOutcome = () => {
     '<div class="impact-empty">Run the prediction to view the most influential variables for this patient.</div>';
   if (printReportButton) {
     printReportButton.hidden = true;
+    printReportButton.style.display = "none";
+  }
+  if (viewPredictionDetailsButton) {
+    viewPredictionDetailsButton.hidden = true;
+    viewPredictionDetailsButton.style.display = "none";
   }
   setSelectionPredictionLoadingState(false);
 };
@@ -1469,9 +1582,8 @@ const renderDatasetTable = async () => {
     page: currentPage,
     pageSize: 8,
     search: searchTerm,
+    sex: activeClinicalFilters.sex,
     consultationReason: activeClinicalFilters.consultationReason,
-    ultrasound: activeClinicalFilters.ultrasound,
-    tsi: activeClinicalFilters.tsi,
   });
 
   const pagination = response?.pagination || {};
@@ -1555,6 +1667,7 @@ const renderOutcome = (result) => {
 
   outcomeState.classList.remove("awaiting", "relapse", "stable");
   outcomeState.classList.add(result.relapse ? "relapse" : "stable");
+  setOutcomeIcon(result.relapse ? "relapse" : "stable");
   const selOutcomeCard = outcomeState?.closest(".outcome-card");
   if (selOutcomeCard) {
     selOutcomeCard.classList.remove("is-relapse", "is-stable");
@@ -1574,6 +1687,16 @@ const renderOutcome = (result) => {
     <span>Treatment duration: ${result.duration || 0} months</span>
     <span>Predicted outcome: ${badge.label}</span>
   `;
+
+  if (printReportButton) {
+    printReportButton.hidden = false;
+    printReportButton.style.display = "";
+  }
+  if (viewPredictionDetailsButton) {
+    const shouldShowDetailsButton = Boolean(latestSelectionPredictionId);
+    viewPredictionDetailsButton.hidden = !shouldShowDetailsButton;
+    viewPredictionDetailsButton.style.display = shouldShowDetailsButton ? "" : "none";
+  }
 
   impactList.innerHTML = "";
 
@@ -1612,9 +1735,6 @@ const renderOutcome = (result) => {
     impactList.appendChild(impactItem);
   });
 
-  if (printReportButton) {
-    printReportButton.hidden = false;
-  }
 };
 
 if (datasetMobileButton && datasetSidebar) {
@@ -1679,43 +1799,32 @@ if (datasetSearch) {
   });
 }
 
+const resetDatasetSelectionAfterFilterChange = () => {
+  currentPage = 1;
+  selectedRowId = "";
+  latestSelectedRow = null;
+  editingRowId = "";
+  renderDatasetTable().catch(() => {});
+};
+
+datasetSexFilter?.addEventListener("change", (event) => {
+  activeClinicalFilters.sex = event.target.value;
+  resetDatasetSelectionAfterFilterChange();
+});
+
 datasetConsultationFilter?.addEventListener("change", (event) => {
   activeClinicalFilters.consultationReason = event.target.value;
-  currentPage = 1;
-  selectedRowId = "";
-  latestSelectedRow = null;
-  editingRowId = "";
-  renderDatasetTable().catch(() => {});
-});
-
-datasetUltrasoundFilter?.addEventListener("change", (event) => {
-  activeClinicalFilters.ultrasound = event.target.value;
-  currentPage = 1;
-  selectedRowId = "";
-  latestSelectedRow = null;
-  editingRowId = "";
-  renderDatasetTable().catch(() => {});
-});
-
-datasetTsiFilter?.addEventListener("change", (event) => {
-  activeClinicalFilters.tsi = event.target.value;
-  currentPage = 1;
-  selectedRowId = "";
-  latestSelectedRow = null;
-  editingRowId = "";
-  renderDatasetTable().catch(() => {});
+  resetDatasetSelectionAfterFilterChange();
 });
 
 datasetFilterResetButton?.addEventListener("click", () => {
   activeClinicalFilters = {
+    sex: "",
     consultationReason: "",
-    ultrasound: "",
-    tsi: "",
   };
 
+  if (datasetSexFilter) datasetSexFilter.value = "";
   if (datasetConsultationFilter) datasetConsultationFilter.value = "";
-  if (datasetUltrasoundFilter) datasetUltrasoundFilter.value = "";
-  if (datasetTsiFilter) datasetTsiFilter.value = "";
   currentPage = 1;
   selectedRowId = "";
   latestSelectedRow = null;
@@ -1873,6 +1982,7 @@ if (runSelectedPredictionButton) {
 
       try {
         const response = await requestImportedPrediction(selectedRow);
+        latestSelectionPredictionId = response?.prediction?.id || response?.prediction?._id || "";
         renderOutcome(response.displayResult);
         if (datasetAiServiceWasUnavailable) {
           showDatasetSelectionToast("AI prediction service is available again. Prediction generated successfully.");
@@ -1914,6 +2024,14 @@ if (runSelectedPredictionButton) {
 
 if (printReportButton) {
   printReportButton.addEventListener("click", printSelectionReport);
+}
+
+if (viewPredictionDetailsButton) {
+  viewPredictionDetailsButton.addEventListener("click", () => {
+    if (!latestSelectionPredictionId) return;
+    const returnTo = `${window.location.pathname.split("/").pop() || "dataset-selection.html"}${window.location.search}`;
+    window.location.href = `prediction-details.html?id=${encodeURIComponent(latestSelectionPredictionId)}&returnTo=${encodeURIComponent(returnTo)}`;
+  });
 }
 
 datasetDuplicateCloseButtons.forEach((button) => {

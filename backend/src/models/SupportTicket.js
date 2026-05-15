@@ -5,7 +5,7 @@ const supportMessageSchema = new mongoose.Schema(
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
     senderRole: {
       type: String,
@@ -80,8 +80,36 @@ const supportTicketSchema = new mongoose.Schema(
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
       index: true,
+    },
+    contactRequest: {
+      name: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: "",
+      },
+      institution: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      phone: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      source: {
+        type: String,
+        trim: true,
+        default: "",
+      },
     },
     category: {
       type: String,
@@ -137,6 +165,27 @@ const supportTicketSchema = new mongoose.Schema(
       default: null,
     },
     accessUpgradeRequest: {
+      decision: {
+        type: String,
+        enum: ["pending", "approved", "refused"],
+        default: "pending",
+      },
+      reviewedAt: {
+        type: Date,
+        default: null,
+      },
+      reviewedBy: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      reviewedReason: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
+    unlockAccountRequest: {
       decision: {
         type: String,
         enum: ["pending", "approved", "refused"],

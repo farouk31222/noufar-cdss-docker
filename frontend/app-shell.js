@@ -18,6 +18,7 @@ const desktopSidebarStorageKey = "noufar-sidebar-collapsed";
 const doctorAuthStorageKey = "noufar-doctor-auth-v1";
 const API_BASE_URL = window.NOUFAR_API_BASE_URL || "http://localhost:5000/api";
 const ADMIN_SUPPORT_AVATAR_URL = "assets/Admin%20profileee.png";
+const BLOCKED_ACCOUNT_ICON_URL = "assets/Block.png";
 const sessionTimeoutDurations = {
   "10 seconds": 10 * 1000,
   "30 minutes": 30 * 60 * 1000,
@@ -439,10 +440,11 @@ const requestDoctorBlob = async (path, options = {}) => {
   const session = await ensureFreshDoctorSession();
 
   const normalizedPath = String(path || "").trim();
+  const apiOrigin = API_BASE_URL.replace(/\/api\/?$/i, "");
   const requestUrl = /^https?:/i.test(normalizedPath)
     ? normalizedPath
     : normalizedPath.startsWith("/api/")
-      ? `${window.NOUFAR_API_BASE_URL || "http://localhost:5000"}${normalizedPath}`
+      ? `${apiOrigin}${normalizedPath}`
       : `${API_BASE_URL}${normalizedPath}`;
 
   const makeRequest = async (token) =>
@@ -519,19 +521,18 @@ const openDoctorStatePopup = (options) => {
   modal.setAttribute("aria-modal", "true");
   modal.setAttribute("role", "dialog");
   const isDeleted = options.variant === "deleted";
+  const blockedReason = options.reason || "No block reason was provided.";
   modal.innerHTML = `
     <div class="modal-backdrop"></div>
     <div class="modal-card modal-card-support doctor-state-card doctor-state-card-rich${isDeleted ? " doctor-state-card-deleted" : ""}">
       <div class="modal-card-head">
         <div class="doctor-state-head">
           <div class="doctor-state-lock${isDeleted ? " doctor-state-lock-deleted" : ""}" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              ${
-                isDeleted
-                  ? '<path d="M7 8h10" /><path d="M9 8V6.8h6V8" /><path d="M9 10.2v6.2" /><path d="M15 10.2v6.2" /><path d="M7.8 8l.7 9.4a1.8 1.8 0 0 0 1.8 1.6h3.4a1.8 1.8 0 0 0 1.8-1.6l.7-9.4" />'
-                  : '<path d="M8 10V7.5A4 4 0 0 1 16 7.5V10" /><rect x="6.5" y="10" width="11" height="9" rx="2.2" /><path d="M12 13.2v2.8" />'
-              }
-            </svg>
+            ${
+              isDeleted
+                ? `<img src="${BLOCKED_ACCOUNT_ICON_URL}" alt="" />`
+                : '<svg viewBox="0 0 24 24"><path d="M8 10V7.5A4 4 0 0 1 16 7.5V10" /><rect x="6.5" y="10" width="11" height="9" rx="2.2" /><path d="M12 13.2v2.8" /></svg>'
+            }
           </div>
           <div>
             <h2 id="doctor-state-title">${options.title}</h2>
@@ -541,11 +542,15 @@ const openDoctorStatePopup = (options) => {
       <p class="doctor-state-intro">${options.message}</p>
       <div class="doctor-state-reason doctor-state-reason-rich${isDeleted ? " doctor-state-reason-deleted" : ""}">
         <strong>Reason</strong>
-        <p>${escapeNotificationHtml(options.reason || "No reason was provided by the admin.")}</p>
+        <p>${escapeNotificationHtml(isDeleted ? blockedReason : options.reason || "No reason was provided by the admin.")}</p>
       </div>
       <div class="doctor-state-support-rich${isDeleted ? " doctor-state-support-deleted" : ""}">
         <div class="doctor-state-support-icon${isDeleted ? " doctor-state-support-icon-deleted" : ""}" aria-hidden="true">${isDeleted ? "!" : "i"}</div>
-        <p>If you have any questions or need assistance, please contact our support team: <a href="mailto:noufar.cdss@gmail.com">noufar.cdss@gmail.com</a></p>
+        <p>${
+          isDeleted
+            ? "If you believe this is a mistake, contact support and request an account unblock review."
+            : 'If you have any questions or need assistance, please contact our support team: <a href="mailto:noufar.cdss@gmail.com">noufar.cdss@gmail.com</a>'
+        }</p>
       </div>
       <div class="doctor-state-note-rich${isDeleted ? " doctor-state-note-deleted" : ""}">
         <div class="doctor-state-note-icon${isDeleted ? " doctor-state-note-icon-deleted" : ""}" aria-hidden="true">
@@ -554,9 +559,10 @@ const openDoctorStatePopup = (options) => {
             <path d="m5 8 7 5 7-5" />
           </svg>
         </div>
-        <p>${isDeleted ? "If you need clarification, please contact support for the next steps." : "Once your account is reactivated, you will receive an email notification."}</p>
+        <p>${isDeleted ? "Use the support form to send an unblock request directly to the admin team." : "Once your account is reactivated, you will receive an email notification."}</p>
       </div>
       <div class="account-modal-actions doctor-state-actions">
+        ${isDeleted ? '<button class="btn btn-secondary btn-sm" type="button" id="doctor-state-contact-support">Contact support</button>' : ""}
         <button class="btn btn-primary btn-sm${isDeleted ? " btn-danger-surface" : ""}" type="button" id="doctor-state-understood">Understood</button>
       </div>
     </div>
@@ -569,6 +575,19 @@ const openDoctorStatePopup = (options) => {
     clearDoctorSession();
     document.body.style.overflow = "";
     window.location.href = "index.html";
+  });
+
+  modal.querySelector("#doctor-state-contact-support")?.addEventListener("click", () => {
+    const params = new URLSearchParams({
+      support: "unlock",
+      name: options.name || doctorSession?.user?.name || "",
+      email: options.email || doctorSession?.user?.email || "",
+      institution: options.institution || doctorSession?.user?.hospital || "",
+      reason: blockedReason,
+    });
+    clearDoctorSession();
+    document.body.style.overflow = "";
+    window.location.href = `index.html?${params.toString()}#support`;
   });
 };
 
@@ -598,6 +617,7 @@ const applyDoctorAccessMode = (session) => {
     "history.html",
     "prediction-details.html",
     "dataset-selection.html",
+    "my-imports.html",
   ]);
 
   if (document.body) {
@@ -619,6 +639,7 @@ const applyDoctorAccessMode = (session) => {
   document
     .querySelectorAll(
       '.sidebar-link[href="dashboard.html"], .sidebar-link[href="new-prediction.html"], .sidebar-link[href="history.html"], .profile-menu-link[href="history.html"]'
+        + ', .profile-menu-link[href="my-imports.html"]'
     )
     .forEach((node) => {
       const shouldHide = !canRunPredictions;
@@ -643,9 +664,12 @@ if (doctorSession?.token) {
     .then((profile) => {
       if (profile?.role === "doctor" && profile?.accountStatus === "Deleted") {
         openDoctorStatePopup({
-          title: "Your account has been deleted",
-          message: "Your account has been deleted by the administrator.",
+          title: "Your account has been blocked",
+          message: "Your account has been blocked by the administrator.",
           reason: profile?.deletionReason,
+          name: profile?.name,
+          email: profile?.email,
+          institution: profile?.hospital,
           variant: "deleted",
         });
         return;
@@ -686,9 +710,12 @@ if (doctorSession?.token) {
 
       if (error.status === 403 && error.payload?.code === "ACCOUNT_DELETED") {
         openDoctorStatePopup({
-          title: "Your account has been deleted",
-          message: "Your account has been deleted by the administrator.",
+          title: "Your account has been blocked",
+          message: "Your account has been blocked by the administrator.",
           reason: error.payload?.reason,
+          name: error.payload?.doctorName || doctorSession?.user?.name,
+          email: error.payload?.email || doctorSession?.user?.email,
+          institution: error.payload?.institution || doctorSession?.user?.hospital,
           variant: "deleted",
         });
         return;
@@ -1085,6 +1112,7 @@ const buildSupportAttachmentMarkup = (attachment, senderRole) => {
       </div>
       <div class="support-attachment-actions">
         <button
+          class="support-attachment-action support-attachment-action-open"
           type="button"
           data-support-attachment-open="${escapeNotificationHtml(fileUrl)}"
           data-support-attachment-name="${escapeNotificationHtml(fileName)}"
@@ -1099,6 +1127,7 @@ const buildSupportAttachmentMarkup = (attachment, senderRole) => {
           </svg>
         </button>
         <button
+          class="support-attachment-action support-attachment-action-download"
           type="button"
           data-support-attachment-download="${escapeNotificationHtml(fileUrl)}"
           data-support-attachment-name="${escapeNotificationHtml(fileName)}"
@@ -1389,9 +1418,6 @@ const buildDoctorInboxConversationMarkup = (ticket) => {
           <span class="${getInboxPriorityClass(ticket.priority)}">${escapeNotificationHtml(ticket.priority)}</span>
           <span class="${getInboxStatusClass(ticket.status)}">${escapeNotificationHtml(ticket.status)}</span>
         </div>
-      </div>
-      <div class="doctor-inbox-head-actions">
-        <button class="btn btn-secondary btn-sm" type="button" data-doctor-inbox-compose>New request</button>
       </div>
     </div>
     <div class="doctor-inbox-timeline-stamp">${escapeNotificationHtml(
@@ -1904,7 +1930,6 @@ const renderNotificationPanel = () => {
               <span class="notification-priority notification-priority-${escapeNotificationHtml(priorityClass)}">${escapeNotificationHtml(thread.priority)}</span>
             </span>
           </div>
-          <span class="notification-item-menu" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
       `;
     })
@@ -1933,33 +1958,77 @@ const buildDoctorSupportConversationMarkup = (ticket) => {
     return `<div class="notification-empty-state"><strong>No messages yet</strong><p>This conversation has no messages yet.</p></div>`;
   }
 
-  return messages
-    .map(
-      (message) => {
-        const senderName = message.senderName || "Support";
-        const messageTime = new Intl.DateTimeFormat("en-GB", {
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(new Date(message.createdAt));
+  const sortedMessages = [...messages].sort(
+    (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+  );
 
-        return `
-          <article class="message-bubble ${message.senderRole === "admin" ? "admin" : "doctor"}">
-            ${buildDoctorMessageAvatarMarkup(message)}
-            <div class="message-bubble-card">
-              <div class="message-bubble-head">
-                <strong>${escapeNotificationHtml(senderName)}</strong>
-                <time>${escapeNotificationHtml(messageTime)}</time>
-              </div>
-              ${message.body ? `<p>${escapeNotificationHtml(message.body)}</p>` : ""}
-              ${buildSupportAttachmentMarkup(message.attachment, message.senderRole)}
-            </div>
-          </article>
-        `;
-      }
-    )
-    .join("");
+  const dayKeyFormatter = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  const dayLabelFormatter = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const startOfDay = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  const today = startOfDay(new Date());
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const formatDayLabel = (date) => {
+    const day = startOfDay(date);
+    if (day.getTime() === today.getTime()) return "Today";
+    if (day.getTime() === yesterday.getTime()) return "Yesterday";
+    return dayLabelFormatter.format(day);
+  };
+
+  let lastDayKey = null;
+  const parts = [];
+
+  sortedMessages.forEach((message) => {
+    const createdDate = new Date(message.createdAt);
+    const dayKey = dayKeyFormatter.format(createdDate);
+
+    if (dayKey !== lastDayKey) {
+      parts.push(`
+        <div class="message-day-divider" role="separator" aria-label="${escapeNotificationHtml(formatDayLabel(createdDate))}">
+          <span class="message-day-divider-pill">${escapeNotificationHtml(formatDayLabel(createdDate))}</span>
+        </div>
+      `);
+      lastDayKey = dayKey;
+    }
+
+    const senderName = message.senderName || "Support";
+    const messageTime = timeFormatter.format(createdDate);
+
+    parts.push(`
+      <article class="message-bubble ${message.senderRole === "admin" ? "admin" : "doctor"}">
+        ${buildDoctorMessageAvatarMarkup(message)}
+        <div class="message-bubble-card">
+          <div class="message-bubble-head">
+            <strong>${escapeNotificationHtml(senderName)}</strong>
+            <time>${escapeNotificationHtml(messageTime)}</time>
+          </div>
+          ${message.body ? `<p>${escapeNotificationHtml(message.body)}</p>` : ""}
+          ${buildSupportAttachmentMarkup(message.attachment, message.senderRole)}
+        </div>
+      </article>
+    `);
+  });
+
+  return parts.join("");
 };
 
 const closeDoctorSupportConversation = () => {
@@ -2247,9 +2316,7 @@ const ensureDoctorInboxNavigation = () => {
     predictionsLink.href = "history.html";
     predictionsLink.dataset.label = "Predictions";
     predictionsLink.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
-      </svg>
+      <img class="sidebar-icon-image" src="assets/history.png" alt="" aria-hidden="true" />
       <span>Predictions</span>
     `;
     sidebarNav.appendChild(predictionsLink);
@@ -2279,9 +2346,7 @@ const ensureDoctorInboxNavigation = () => {
     inboxLink.href = "doctor-inbox.html";
     inboxLink.dataset.label = "Inbox";
     inboxLink.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
-      </svg>
+      <img class="sidebar-icon-image" src="assets/inbox.png" alt="" aria-hidden="true" />
       <span>Inbox</span>
     `;
     sidebarNav.appendChild(inboxLink);
@@ -2305,17 +2370,43 @@ const ensureDoctorInboxNavigation = () => {
   }
 
   document.querySelectorAll(".profile-menu-links").forEach((menu) => {
-    if (menu.querySelector('a[href="doctor-inbox.html"]')) return;
-    const inboxLink = document.createElement("a");
-    inboxLink.className = "profile-menu-link";
-    inboxLink.href = "doctor-inbox.html";
-    inboxLink.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
-      </svg>
-      <span>Support Inbox</span>
-    `;
-    menu.appendChild(inboxLink);
+    if (!menu.querySelector('a[href="my-imports.html"]')) {
+      const importsLink = document.createElement("a");
+      importsLink.className = "profile-menu-link";
+      if (document.body?.dataset.page === "my-imports") {
+        importsLink.classList.add("active");
+      }
+      importsLink.href = "my-imports.html";
+      importsLink.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 7c0-1.66 3.13-3 7-3s7 1.34 7 3-3.13 3-7 3-7-1.34-7-3Zm0 0v10c0 1.66 3.13 3 7 3s7-1.34 7-3V7M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" />
+        </svg>
+        <span>My imported data</span>
+      `;
+      const accountLink = menu.querySelector('a[href="account-settings.html"]');
+      menu.insertBefore(importsLink, accountLink || null);
+    }
+
+    const importsLink = menu.querySelector('a[href="my-imports.html"]');
+    if (importsLink) {
+      const shouldHideImportsLink = !doctorCanRunPredictions(doctorSession);
+      importsLink.hidden = shouldHideImportsLink;
+      importsLink.toggleAttribute("hidden", shouldHideImportsLink);
+      importsLink.style.display = shouldHideImportsLink ? "none" : "";
+    }
+
+    if (!menu.querySelector('a[href="doctor-inbox.html"]')) {
+      const inboxLink = document.createElement("a");
+      inboxLink.className = "profile-menu-link";
+      inboxLink.href = "doctor-inbox.html";
+      inboxLink.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
+        </svg>
+        <span>Support Inbox</span>
+      `;
+      menu.appendChild(inboxLink);
+    }
   });
 };
 

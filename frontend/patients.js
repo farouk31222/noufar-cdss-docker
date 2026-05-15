@@ -81,6 +81,20 @@ const normalizeTriToggleValue = (value) => {
   return "Not measured";
 };
 
+const normalizePatientBiologyStatus = (value) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["positive", "positif", "positifs", "positives", "+"].includes(normalized)) return "Positive";
+  if (["negative", "negatif", "negatifs", "negatives", "-"].includes(normalized)) return "Negative";
+  return "Negative";
+};
+
+const getMeasuredRangeValue = (input, value) => {
+  const rawValue = String(value ?? "").trim();
+  const parsed = Number(rawValue);
+  if (Number.isFinite(parsed)) return String(parsed);
+  return input?.defaultValue || input?.value || input?.min || "0";
+};
+
 const setPatientTriToggleState = (input, nextState) => {
   const state = normalizeTriToggleValue(nextState);
   input.dataset.triState = state;
@@ -320,7 +334,7 @@ const createPatientEntry = async (payload) => {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return data.patient;
+  return data.patient || data;
 };
 
 const updatePatientEntry = async (id, payload) => {
@@ -328,7 +342,7 @@ const updatePatientEntry = async (id, payload) => {
     method: "PUT",
     body: JSON.stringify(payload),
   });
-  return data.patient;
+  return data.patient || data;
 };
 
 const deletePatientEntry = async (id) => {
@@ -430,21 +444,17 @@ const serializePatientForm = () => {
   patientToggleInputs.forEach((input) => {
     formData.set(input.name, normalizeTriToggleValue(input.dataset.triState || input.value));
   });
-  patientRangeInputs.forEach((input) => {
-    if (input.dataset.notMeasured === "true") {
-      formData.set(input.name, "Not measured");
-    }
-  });
   const payload = Object.fromEntries(formData.entries());
   payload.source = "Manual";
   payload.age = Number(payload.age);
   payload.duration = Number(payload.duration || 0);
-  payload.tsh = String(payload.tsh || "").toLowerCase() === "not measured" ? "Not measured" : Number(payload.tsh || 0);
-  payload.ft4 = String(payload.ft4 || "").toLowerCase() === "not measured" ? "Not measured" : Number(payload.ft4 || 0);
-  payload.antiTpoTotal =
-    String(payload.antiTpoTotal || "").toLowerCase() === "not measured" ? "Not measured" : Number(payload.antiTpoTotal || 0);
-  payload.tsiLevel =
-    String(payload.tsiLevel || "").toLowerCase() === "not measured" ? "Not measured" : Number(payload.tsiLevel || 0);
+  payload.tsh = Number(payload.tsh || 0);
+  payload.ft4 = Number(payload.ft4 || 0);
+  payload.antiTpo = normalizePatientBiologyStatus(payload.antiTpo);
+  payload.antiTpoTotal = Number(payload.antiTpoTotal || 0);
+  payload.antiTg = normalizePatientBiologyStatus(payload.antiTg);
+  payload.tsi = normalizePatientBiologyStatus(payload.tsi);
+  payload.tsiLevel = Number(payload.tsiLevel || 0);
   return payload;
 };
 
@@ -585,6 +595,122 @@ const updatePatientTogglePresentation = (input) => {
   }
 };
 
+const PATIENT_CLINICAL_REFERENCES = {
+  tsh: { normalMin: 0.4, normalMax: 4.0, highAbove: 10, unit: "mIU/L" },
+  ft4: { normalMin: 0.8, normalMax: 1.8, highAbove: 3, unit: "ng/dL" },
+  antiTpoTotal: { normalMin: 0, normalMax: 35, highAbove: 500, unit: "IU/mL" },
+  tsiLevel: { normalMin: 0, normalMax: 1.75, highAbove: 7, unit: "index" },
+};
+
+const PATIENT_THUMB_GRADIENTS = {
+  default: "linear-gradient(180deg, #2d71d3 0%, #174f9d 100%)",
+  low: "linear-gradient(180deg, #4a93d8 0%, #1b5b9a 100%)",
+  normal: "linear-gradient(180deg, #2cb578 0%, #1b7a52 100%)",
+  elevated: "linear-gradient(180deg, #e2a223 0%, #a8690a 100%)",
+  high: "linear-gradient(180deg, #e54c46 0%, #a91e1a 100%)",
+};
+
+const PATIENT_THUMB_SHADOWS = {
+  default: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  low: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  normal: "0 10px 18px rgba(27, 122, 82, 0.28)",
+  elevated: "0 10px 18px rgba(168, 105, 10, 0.28)",
+  high: "0 10px 18px rgba(169, 30, 26, 0.3)",
+};
+
+const buildPatientClinicalTrackGradient = (normalMinPct, normalMaxPct) => {
+  const nMin = Math.max(0, Math.min(100, normalMinPct));
+  const nMax = Math.max(nMin, Math.min(100, normalMaxPct));
+  return `linear-gradient(90deg, rgba(155, 174, 196, 0.28) 0%, rgba(155, 174, 196, 0.28) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMax}%, rgba(155, 174, 196, 0.28) ${nMax}%, rgba(155, 174, 196, 0.28) 100%)`;
+};
+
+const formatPatientTickValue = (value) => {
+  if (!Number.isFinite(value)) return String(value);
+  if (Number.isInteger(value)) return String(value);
+  return Number(value.toFixed(2)).toString();
+};
+
+const getPatientClinicalKey = (input) => {
+  if (!input) return null;
+  if (input.name && PATIENT_CLINICAL_REFERENCES[input.name]) return input.name;
+  const id = (input.id || "").toLowerCase();
+  if (id.includes("anti-tpo-total")) return "antiTpoTotal";
+  if (id.includes("tsi-level")) return "tsiLevel";
+  if (id.includes("tsh")) return "tsh";
+  if (id.includes("ft4")) return "ft4";
+  return null;
+};
+
+const computePatientClinicalStatus = (value, ref) => {
+  if (!Number.isFinite(value)) return { label: "—", tone: "default" };
+  if (value < ref.normalMin) return { label: "Low", tone: "low" };
+  if (value <= ref.normalMax) return { label: "Normal", tone: "normal" };
+  if (value < ref.highAbove) return { label: "Elevated", tone: "elevated" };
+  return { label: "High", tone: "high" };
+};
+
+const ensurePatientClinicalHeader = (input) => {
+  const label = input.closest("label.slider-field");
+  if (!label) return null;
+  let header = label.querySelector(":scope > .slider-field-header");
+  if (header) return header;
+  const titleSpan = label.querySelector(":scope > span");
+  if (!titleSpan) return null;
+  header = document.createElement("div");
+  header.className = "slider-field-header";
+  titleSpan.parentNode.insertBefore(header, titleSpan);
+  header.appendChild(titleSpan);
+  const badge = document.createElement("span");
+  badge.className = "range-status-badge";
+  badge.dataset.tone = "default";
+  header.appendChild(badge);
+  return header;
+};
+
+const renderPatientClinicalEnhancements = (input, value) => {
+  const key = getPatientClinicalKey(input);
+  if (!key) return null;
+  const ref = PATIENT_CLINICAL_REFERENCES[key];
+  const status = computePatientClinicalStatus(value, ref);
+
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const span = max > min ? max - min : 1;
+  const normalMinPct = ((ref.normalMin - min) / span) * 100;
+  const normalMaxPct = ((ref.normalMax - min) / span) * 100;
+
+  const label = input.closest("label.slider-field");
+  if (label) label.classList.add("is-clinical");
+
+  const header = ensurePatientClinicalHeader(input);
+  if (header) {
+    const badge = header.querySelector(".range-status-badge");
+    if (badge) {
+      badge.textContent = status.label;
+      badge.dataset.tone = status.tone;
+      badge.hidden = false;
+    }
+  }
+
+  return { status, normalMinPct, normalMaxPct };
+};
+
+const clearPatientClinicalEnhancements = (input) => {
+  const shell = input.closest(".range-field-shell");
+  const row = shell?.querySelector(".range-reference-row");
+  if (row) row.hidden = true;
+  const scale = shell?.querySelector(".range-scale");
+  if (scale) scale.hidden = true;
+  const label = input.closest("label.slider-field");
+  const badge = label?.querySelector(".range-status-badge");
+  if (badge) badge.hidden = true;
+  const target = document.getElementById(input.dataset.rangeTarget || "");
+  if (target) target.dataset.clinicalTone = "default";
+  input.style.removeProperty("--range-track-bg");
+  input.style.removeProperty("--range-thumb-bg");
+  input.style.removeProperty("--range-thumb-shadow");
+};
+
 const updatePatientRangePresentation = (input) => {
   if (!input) return;
   const target = document.getElementById(input.dataset.rangeTarget || "");
@@ -593,6 +719,7 @@ const updatePatientRangePresentation = (input) => {
     input.disabled = true;
     input.classList.add("is-not-measured");
     if (target) target.textContent = "Not measured";
+    clearPatientClinicalEnhancements(input);
     return;
   }
 
@@ -602,7 +729,20 @@ const updatePatientRangePresentation = (input) => {
   const decimals = Number(input.dataset.rangeDecimals || 0);
   const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
-  input.style.background = `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`;
+  const result = renderPatientClinicalEnhancements(input, value);
+  if (result) {
+    const tone = result.status.tone;
+    const trackBg = buildPatientClinicalTrackGradient(result.normalMinPct, result.normalMaxPct);
+    input.style.setProperty("--range-track-bg", trackBg);
+    input.style.setProperty("--range-thumb-bg", PATIENT_THUMB_GRADIENTS[tone] || PATIENT_THUMB_GRADIENTS.default);
+    input.style.setProperty("--range-thumb-shadow", PATIENT_THUMB_SHADOWS[tone] || PATIENT_THUMB_SHADOWS.default);
+    input.style.background = trackBg;
+  } else {
+    input.style.setProperty("--range-track-bg", `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`);
+    input.style.removeProperty("--range-thumb-bg");
+    input.style.removeProperty("--range-thumb-shadow");
+    input.style.background = `linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%)`;
+  }
 
   if (target) {
     target.textContent = decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
@@ -751,25 +891,26 @@ const populatePatientForm = (patient) => {
     field.value = nextValue === undefined || nextValue === null ? "" : String(nextValue);
   });
 
+  patientChipSelectGroups.forEach((group) => {
+    const field = group.closest(".chip-select-field");
+    const hiddenInput = field?.querySelector('input[type="hidden"]');
+    if (!hiddenInput) return;
+    hiddenInput.value = normalizePatientBiologyStatus(values[hiddenInput.name]);
+  });
+
+  patientRangeInputs.forEach((input) => {
+    input.value = getMeasuredRangeValue(input, values[input.name]);
+    input.dataset.notMeasured = "false";
+    input.disabled = false;
+    input.classList.remove("is-not-measured");
+  });
+
   patientToggleInputs.forEach((input) => {
     updatePatientTogglePresentation(input);
     syncPatientFieldState(input);
   });
 
   patientRangeInputs.forEach((input) => {
-    const markedNotMeasured = String(values[input.name] ?? "").trim().toLowerCase() === "not measured";
-    const notMeasuredButton = addPatientForm.querySelector(`[data-range-not-measured="${input.name}"]`);
-    if (notMeasuredButton instanceof HTMLInputElement) {
-      notMeasuredButton.checked = markedNotMeasured;
-      input.dataset.notMeasured = markedNotMeasured ? "true" : "false";
-      if (markedNotMeasured) {
-        input.disabled = true;
-        input.classList.add("is-not-measured");
-      } else {
-        input.disabled = false;
-        input.classList.remove("is-not-measured");
-      }
-    }
     updatePatientRangePresentation(input);
     syncPatientFieldState(input);
   });
@@ -811,13 +952,9 @@ const resetPatientFormState = () => {
 
   patientRangeInputs.forEach((input) => {
     input.dataset.touched = "false";
-    const notMeasuredButton = addPatientForm.querySelector(`[data-range-not-measured="${input.name}"]`);
-    if (notMeasuredButton instanceof HTMLInputElement) {
-      notMeasuredButton.checked = false;
-      input.dataset.notMeasured = "false";
-      input.disabled = false;
-      input.classList.remove("is-not-measured");
-    }
+    input.dataset.notMeasured = "false";
+    input.disabled = false;
+    input.classList.remove("is-not-measured");
     updatePatientRangePresentation(input);
     syncPatientFieldState(input);
   });
@@ -897,29 +1034,72 @@ const buildReadonlyToggleField = (label, rawValue) => {
   `;
 };
 
-const buildReadonlyRangeField = (label, rawValue, min, max, decimals, unit) => {
-  if (String(rawValue ?? "").trim().toLowerCase() === "not measured") {
-    return `
-      <label class="field slider-field">
-        <span>${escapePatientHtml(label)}</span>
-        <div class="range-field-shell is-not-measured">
-          <div class="range-field-meta">
-            <strong>Not measured</strong>
-            <small>${escapePatientHtml(unit)}</small>
-          </div>
-        </div>
-      </label>
-    `;
-  }
+const READONLY_CLINICAL_REFS = {
+  "TSH": { normalMin: 0.4, normalMax: 4.0, highAbove: 10 },
+  "FT4": { normalMin: 0.8, normalMax: 1.8, highAbove: 3 },
+  "Anti-TPO total": { normalMin: 0, normalMax: 35, highAbove: 500 },
+  "TSI level": { normalMin: 0, normalMax: 1.75, highAbove: 7 },
+};
 
+const READONLY_THUMB_BG = {
+  default: "linear-gradient(180deg, #2d71d3 0%, #174f9d 100%)",
+  low: "linear-gradient(180deg, #4a93d8 0%, #1b5b9a 100%)",
+  normal: "linear-gradient(180deg, #2cb578 0%, #1b7a52 100%)",
+  elevated: "linear-gradient(180deg, #e2a223 0%, #a8690a 100%)",
+  high: "linear-gradient(180deg, #e54c46 0%, #a91e1a 100%)",
+};
+
+const READONLY_THUMB_SHADOW = {
+  default: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  low: "0 10px 18px rgba(36, 96, 173, 0.24)",
+  normal: "0 10px 18px rgba(27, 122, 82, 0.28)",
+  elevated: "0 10px 18px rgba(168, 105, 10, 0.28)",
+  high: "0 10px 18px rgba(169, 30, 26, 0.3)",
+};
+
+const getReadonlyClinicalAttrs = (label, value, min, max) => {
+  const ref = READONLY_CLINICAL_REFS[label];
+  if (!ref) return null;
+  const v = Number(value);
+  let tone = "default";
+  let statusLabel = "—";
+  if (Number.isFinite(v)) {
+    if (v < ref.normalMin) { tone = "low"; statusLabel = "Low"; }
+    else if (v <= ref.normalMax) { tone = "normal"; statusLabel = "Normal"; }
+    else if (v < ref.highAbove) { tone = "elevated"; statusLabel = "Elevated"; }
+    else { tone = "high"; statusLabel = "High"; }
+  }
+  const span = max > min ? max - min : 1;
+  const nMin = Math.max(0, Math.min(100, ((ref.normalMin - min) / span) * 100));
+  const nMax = Math.max(nMin, Math.min(100, ((ref.normalMax - min) / span) * 100));
+  const trackBg = `linear-gradient(90deg, rgba(155, 174, 196, 0.28) 0%, rgba(155, 174, 196, 0.28) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMax}%, rgba(155, 174, 196, 0.28) ${nMax}%, rgba(155, 174, 196, 0.28) 100%)`;
+  return {
+    tone,
+    statusLabel,
+    style: `--range-track-bg: ${trackBg}; --range-thumb-bg: ${READONLY_THUMB_BG[tone]}; --range-thumb-shadow: ${READONLY_THUMB_SHADOW[tone]}; background: ${trackBg};`,
+  };
+};
+
+const buildReadonlyRangeField = (label, rawValue, min, max, decimals, unit) => {
   const fallback = Number(rawValue);
   const value = Number.isFinite(fallback) ? fallback : min;
-  const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const displayValue = decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
+
+  const clinical = getReadonlyClinicalAttrs(label, value, min, max);
+  let inlineStyle;
+  let headerHtml;
+  if (clinical) {
+    inlineStyle = clinical.style;
+    headerHtml = `<div class="slider-field-header"><span>${escapePatientHtml(label)}</span><span class="range-status-badge" data-tone="${clinical.tone}">${clinical.statusLabel}</span></div>`;
+  } else {
+    const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
+    inlineStyle = `background: linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%);`;
+    headerHtml = `<span>${escapePatientHtml(label)}</span>`;
+  }
 
   return `
     <label class="field slider-field">
-      <span>${escapePatientHtml(label)}</span>
+      ${headerHtml}
       <div class="range-field-shell">
         <input
           class="range-input"
@@ -929,7 +1109,7 @@ const buildReadonlyRangeField = (label, rawValue, min, max, decimals, unit) => {
           step="${decimals > 0 ? "0.1" : "1"}"
           value="${value}"
           disabled
-          style="background: linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%);"
+          style="${inlineStyle}"
         />
         <div class="range-field-meta">
           <strong>${escapePatientHtml(displayValue)}</strong>
@@ -941,7 +1121,7 @@ const buildReadonlyRangeField = (label, rawValue, min, max, decimals, unit) => {
 };
 
 const buildReadonlyChipField = (label, rawValue, options, ariaLabel) => {
-  const selectedValue = patientDisplayValue(rawValue, options[0] || "");
+  const selectedValue = normalizePatientBiologyStatus(rawValue);
   return `
     <div class="field chip-select-field">
       <span>${escapePatientHtml(label)}</span>
@@ -1007,16 +1187,16 @@ const buildPatientDetailsMarkup = (patient) => {
       </div>
     </div>
 
-    <div class="form-section">
+    <div class="form-section patient-biology-section">
       <div class="form-section-title">Biology</div>
       <div class="form-grid form-grid-3">
-        ${buildReadonlyRangeField("TSH", values.tsh, 0, 5, 1, "mIU/L")}
-        ${buildReadonlyRangeField("FT4", values.ft4, 0.3, 4, 1, "ng/dL")}
-        ${buildReadonlyChipField("Anti-TPO", values.antiTpo, ["Not measured", "Negative", "Positive"], "Patient Anti-TPO status")}
-        ${buildReadonlyRangeField("Anti-TPO total", values.antiTpoTotal, 0, 1000, 0, "IU/mL")}
-        ${buildReadonlyChipField("Anti-Tg", values.antiTg, ["Not measured", "Negative", "Positive"], "Patient Anti-Tg status")}
-        ${buildReadonlyChipField("TSI", values.tsi, ["Not measured", "Negative", "Positive"], "Patient TSI status")}
-        ${buildReadonlyRangeField("TSI level", values.tsiLevel, 0, 5, 1, "index")}
+        ${buildReadonlyRangeField("TSH", values.tsh, 0, 50, 1, "mIU/L")}
+        ${buildReadonlyRangeField("FT4", values.ft4, 0, 10, 1, "ng/dL")}
+        ${buildReadonlyChipField("Anti-TPO", values.antiTpo, ["Negative", "Positive"], "Patient Anti-TPO status")}
+        ${buildReadonlyRangeField("Anti-TPO total", values.antiTpoTotal, 0, 3000, 0, "IU/mL")}
+        ${buildReadonlyChipField("Anti-Tg", values.antiTg, ["Negative", "Positive"], "Patient Anti-Tg status")}
+        ${buildReadonlyChipField("TSI", values.tsi, ["Negative", "Positive"], "Patient TSI status")}
+        ${buildReadonlyRangeField("TSI level", values.tsiLevel, 0, 10, 1, "index")}
       </div>
     </div>
 
@@ -1120,7 +1300,7 @@ const buildPatientsRow = (entry) => {
   const predictionAction = patientsCanRunPredictions()
     ? existingPrediction
       ? `<button class="mini-btn" type="button" data-view-prediction="${String(existingPrediction._id || existingPrediction.id || "")}">View Prediction</button>`
-      : `<button class="mini-btn" type="button" data-run-patient="${entry.id}">Run Prediction</button>`
+      : `<button class="mini-btn mini-btn-run-prediction" type="button" data-run-patient="${entry.id}">Run Prediction</button>`
     : "";
 
   const sourceClass = entry.source === "Manual" ? "pt-source-manual" : "pt-source-import";
@@ -1154,7 +1334,9 @@ const buildPatientsRow = (entry) => {
       <div class="patients-row-actions">
         <button class="mini-btn" type="button" data-view-patient="${entry.id}">View Clinical Entry</button>
         ${predictionAction}
-        <button class="mini-btn mini-btn-danger" type="button" data-delete-patient="${entry.id}">Delete</button>
+        <button class="mini-btn mini-btn-danger mini-btn-icon" type="button" data-delete-patient="${entry.id}" aria-label="Delete patient" title="Delete patient">
+          <img class="mini-btn-icon__img" src="assets/delete.png" alt="" aria-hidden="true" />
+        </button>
       </div>
     </td>
   `;
@@ -1265,12 +1447,18 @@ const renderPatients = () => {
 const openPatientDetails = (patientId) => {
   const patient = patientsRegistry.find((entry) => entry.id === patientId);
   if (!patient || !patientDetailsContent) return;
+  const isPredictionHistoryOnly = String(patient.source || "").trim().toLowerCase() === "prediction history";
 
   activePatientId = patientId;
 
   patientDetailsTitle.textContent = patient.patientName;
   patientDetailsCopy.textContent = `Saved ${formatDate(patient.createdAt, true)} by ${formatPredictedByDisplay(patient.savedByName)}.`;
   patientDetailsContent.innerHTML = buildPatientDetailsMarkup(patient);
+  if (editPatientButton) {
+    editPatientButton.hidden = isPredictionHistoryOnly;
+    editPatientButton.toggleAttribute("hidden", isPredictionHistoryOnly);
+    editPatientButton.style.display = isPredictionHistoryOnly ? "none" : "";
+  }
 
   openModal(patientDetailsModal);
 };
@@ -1406,6 +1594,10 @@ duplicatePatientPredictionCloseControls.forEach((control) => {
 patientDetailsCloseControls.forEach((control) => {
   control.addEventListener("click", () => {
     activePatientId = null;
+    if (editPatientButton) {
+      editPatientButton.hidden = false;
+      editPatientButton.style.display = "";
+    }
     closeModal(patientDetailsModal);
   });
 });
@@ -1424,6 +1616,10 @@ document.addEventListener("keydown", (event) => {
   closeModal(deleteModal);
   closeModal(duplicatePatientPredictionModal);
   activePatientId = null;
+  if (editPatientButton) {
+    editPatientButton.hidden = false;
+    editPatientButton.style.display = "";
+  }
 });
 
 editPatientButton?.addEventListener("click", () => {
@@ -1488,6 +1684,12 @@ addPatientForm?.addEventListener("submit", async (event) => {
   if (!addPatientForm.reportValidity()) return;
 
   try {
+    const isEditing = Boolean(editingPatientId);
+    if (savePatientButton) {
+      savePatientButton.disabled = true;
+      savePatientButton.textContent = isEditing ? "Updating..." : "Saving...";
+    }
+
     const payload = serializePatientForm();
 
     if (editingPatientId) {
@@ -1519,6 +1721,8 @@ addPatientForm?.addEventListener("submit", async (event) => {
           : "Unable to save patient entry.",
       "danger"
     );
+    updatePatientSubmitState();
+    syncPatientFormMode();
   }
 });
 
@@ -1580,7 +1784,6 @@ patientRangeInputs.forEach((input) => {
     updatePatientSubmitState();
   });
 });
-initPatientNotMeasuredOptions();
 initPatientManualRangeEditors();
 
 patientChipSelectGroups.forEach(initializePatientChipSelect);

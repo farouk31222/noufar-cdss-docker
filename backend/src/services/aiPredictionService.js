@@ -156,7 +156,11 @@ const requestFlaskJson = async (path, options = {}) => {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error = new Error(data.error || data.message || "La communication avec le service IA a echoue.");
+    const fallbackMessage =
+      response.status === 404
+        ? `AI service endpoint ${path} is unavailable. Rebuild and restart the ai-server container.`
+        : `AI service request ${path} failed with status ${response.status}.`;
+    const error = new Error(data.error || data.message || fallbackMessage);
     error.code = "FLASK_REQUEST_FAILED";
     error.status = response.status >= 500 ? 502 : response.status;
     throw error;
@@ -242,8 +246,37 @@ const requestPrediction = async (formData = {}, options = {}) => {
   };
 };
 
+const requestModelRetraining = async ({ runId, realCases = [], activeModelKey = "" } = {}) => {
+  return requestFlaskJson("/retrain", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      runId,
+      realCases,
+      activeModelKey,
+    }),
+  });
+};
+
+const requestModelVersionActivation = async ({ runId, modelKey } = {}) => {
+  return requestFlaskJson("/models/activate-version", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      runId,
+      modelKey,
+    }),
+  });
+};
+
 module.exports = {
   buildFlaskPayload,
   getPredictionModelCatalog,
   requestPrediction,
+  requestModelRetraining,
+  requestModelVersionActivation,
 };

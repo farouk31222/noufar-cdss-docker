@@ -127,34 +127,73 @@ const stampLastUpdated = (value = new Date()) => {
   accountLastUpdated.textContent = formatted;
 };
 
-const showBanner = (message, state = "neutral") => {
-  if (!accountSaveBanner) return;
+const accountToastStack = document.querySelector("#account-toast-stack");
+let accountProgressToast = null;
 
+const TOAST_ICONS = {
+  success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5m0 3h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3Z"/></svg>`,
+  progress: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" opacity="0.25"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>`,
+  neutral: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>`,
+};
+
+const TOAST_TITLES = {
+  success: "Saved successfully",
+  error: "Could not save",
+  progress: "Saving...",
+  neutral: "Notice",
+};
+
+const dismissAccountToast = (toast) => {
+  if (!toast || toast.dataset.dismissing === "true") return;
+  toast.dataset.dismissing = "true";
+  toast.classList.add("is-leaving");
+  setTimeout(() => toast.remove(), 280);
+  if (accountProgressToast === toast) accountProgressToast = null;
+};
+
+const showAccountToast = (message, state = "neutral", { duration } = {}) => {
   const resolvedState =
     typeof state === "string" ? state : state === false ? "error" : "success";
+  const stack = accountToastStack || document.body;
 
-  accountSaveBanner.textContent = message;
-  accountSaveBanner.classList.remove("is-neutral", "is-progress", "is-success", "is-error");
-  accountSaveBanner.classList.add(`is-${resolvedState}`);
-
-  if (accountStatusIndicator) {
-    accountStatusIndicator.classList.remove("is-neutral", "is-progress", "is-success", "is-error");
-    accountStatusIndicator.classList.add(`is-${resolvedState}`);
+  if (accountProgressToast && resolvedState !== "progress") {
+    dismissAccountToast(accountProgressToast);
   }
 
-  if (accountStatusTitle) {
-    accountStatusTitle.textContent =
-      resolvedState === "success"
-        ? "Saved successfully"
-        : resolvedState === "error"
-          ? "Attention needed"
-          : resolvedState === "progress"
-            ? "Syncing changes"
-            : "Ready to save";
+  const toast = document.createElement("div");
+  toast.className = `account-toast is-${resolvedState}`;
+  toast.setAttribute("role", "status");
+  toast.innerHTML = `
+    <span class="account-toast-icon" aria-hidden="true">${TOAST_ICONS[resolvedState] || TOAST_ICONS.neutral}</span>
+    <div class="account-toast-copy">
+      <strong>${TOAST_TITLES[resolvedState] || TOAST_TITLES.neutral}</strong>
+      <span>${message || ""}</span>
+    </div>
+    <button class="account-toast-close" type="button" aria-label="Dismiss notification">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18"/>
+      </svg>
+    </button>
+  `;
+
+  stack.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+
+  toast.querySelector(".account-toast-close").addEventListener("click", () => dismissAccountToast(toast));
+
+  if (resolvedState === "progress") {
+    accountProgressToast = toast;
+  } else {
+    const lifeMs = typeof duration === "number" ? duration : resolvedState === "error" ? 5000 : 3500;
+    setTimeout(() => dismissAccountToast(toast), lifeMs);
   }
 
   stampLastUpdated();
+  return toast;
 };
+
+const showBanner = (message, state = "neutral") => showAccountToast(message, state);
 
 const setStrengthVisualState = (level, text) => {
   if (accountPasswordStrengthText) {

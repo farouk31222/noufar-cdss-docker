@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NOUFAR CDSS | My Imported Data</title>
+    <meta
+      name="description"
+      content="Review and manage privately imported Excel and CSV datasets for NOUFAR CDSS prediction workflows."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="assets/noufar-logo.png" />
+    <link rel="shortcut icon" href="assets/noufar-logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body class="app-body dataset-page-body my-imports-page-body" data-page="my-imports">
+    <div class="app-layout">
+      <aside class="sidebar" aria-label="Primary">
+        <a class="sidebar-logo" href="dashboard.html" aria-label="NOUFAR CDSS dashboard">
+          <img class="sidebar-logo-image" src="assets/noufar-logo.png" alt="NOUFAR CDSS logo" />
+          <span class="sidebar-logo-copy">
+            <strong>NOUFAR</strong>
+            <small>CDSS</small>
+          </span>
+        </a>
+
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" href="dashboard.html">
+            <img class="sidebar-icon-image" src="assets/sidebar-dashboard-icon.png" alt="" aria-hidden="true" />
+            <span>Dashboard</span>
+          </a>
+          <a class="sidebar-link" href="new-prediction.html">
+            <img class="sidebar-icon-image" src="assets/predictions.png" alt="" aria-hidden="true" />
+            <span>New Prediction</span>
+          </a>
+          <a class="sidebar-link" href="history.html">
+            <img class="sidebar-icon-image" src="assets/history.png" alt="" aria-hidden="true" />
+            <span>Predictions</span>
+          </a>
+          <a class="sidebar-link" href="patients.html">
+            <img class="sidebar-icon-image" src="assets/pattients.png" alt="" aria-hidden="true" />
+            <span>Patients</span>
+          </a>
+          <a class="sidebar-link" href="doctor-inbox.html">
+            <img class="sidebar-icon-image" src="assets/inbox.png" alt="" aria-hidden="true" />
+            <span>Inbox</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <button class="mobile-nav-button" type="button" aria-expanded="false" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+            </svg>
+          </button>
+
+          <div class="topbar-spacer"></div>
+
+          <div class="topbar-icons" aria-label="Toolbar">
+            <button class="icon-button" type="button" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3a4 4 0 0 0-4 4v2.3c0 .7-.2 1.39-.58 1.97L6 13.5h12l-1.42-2.23A3.7 3.7 0 0 1 16 9.3V7a4 4 0 0 0-4-4Zm-2 14a2 2 0 0 0 4 0" />
+              </svg>
+            </button>
+            <div class="profile-menu-shell">
+              <button
+                class="profile-trigger"
+                type="button"
+                aria-label="Open profile menu"
+                aria-expanded="false"
+                data-profile-toggle
+              >
+                <span class="profile-trigger-avatar">DC</span>
+              </button>
+
+              <section class="profile-menu-card" data-profile-menu hidden>
+                <div class="profile-menu-head">
+                  <div class="profile-menu-avatar">DC</div>
+                  <div class="profile-menu-copy">
+                    <strong>Dr. Clinical Lead</strong>
+                    <span>Endocrinology Unit</span>
+                  </div>
+                </div>
+
+                <nav class="profile-menu-links" aria-label="Profile menu">
+                  <a class="profile-menu-link" href="history.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
+                    </svg>
+                    <span>Prediction History</span>
+                  </a>
+                  <a class="profile-menu-link active" href="my-imports.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 7c0-1.66 3.13-3 7-3s7 1.34 7 3-3.13 3-7 3-7-1.34-7-3Zm0 0v10c0 1.66 3.13 3 7 3s7-1.34 7-3V7M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" />
+                    </svg>
+                    <span>My imported data</span>
+                  </a>
+                  <a class="profile-menu-link" href="account-settings.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5-2.1.7a6.8 6.8 0 0 1-.5 1.3l1.1 2-2 2-2-1.1a6.8 6.8 0 0 1-1.3.5L12 20l-1.2-2.1a6.8 6.8 0 0 1-1.3-.5l-2 1.1-2-2 1.1-2a6.8 6.8 0 0 1-.5-1.3L4 12l2.1-1.2a6.8 6.8 0 0 1 .5-1.3l-1.1-2 2-2 2 1.1a6.8 6.8 0 0 1 1.3-.5L12 4l1.2 2.1a6.8 6.8 0 0 1 1.3.5l2-1.1 2 2-1.1 2a6.8 6.8 0 0 1 .5 1.3L20 12Z" />
+                    </svg>
+                    <span>Account Settings</span>
+                  </a>
+                  <a class="profile-menu-link" href="index.html#support">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 12c0-4.42 3.58-8 8-8s8 3.58 8 8-3.58 8-8 8m0-4v.01M12 8a2.5 2.5 0 0 1 2.5 2.5c0 1.8-2.5 2.1-2.5 4" />
+                    </svg>
+                    <span>Support Center</span>
+                  </a>
+                </nav>
+
+                <div class="profile-menu-footer">
+                  <a class="profile-menu-link logout" href="index.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m10 17 5-5-5-5M15 12H4m7-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+                    </svg>
+                    <span>Logout</span>
+                  </a>
+                </div>
+              </section>
+            </div>
+          </div>
+        </header>
+
+        <main class="main-content" id="my-imports-main">
+          <section class="surface-card prediction-page-hero my-imports-hero">
+            <div class="prediction-page-hero-copy">
+              <span class="prediction-page-kicker">Private import registry</span>
+              <h1>My imported data</h1>
+              <p>
+                Review every Excel or CSV dataset imported under your doctor account, reopen clean cohorts for
+                prediction, and remove files you no longer need.
+              </p>
+              <div class="prediction-page-pills" aria-label="Import privacy highlights">
+                <span class="dashboard-pill">Doctor-scoped access</span>
+                <span class="dashboard-pill">Private MinIO storage</span>
+                <span class="dashboard-pill">Ready-to-predict cohorts</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="metrics-row my-imports-metrics" aria-label="Imported data summary">
+            <article class="stat-card stat-card-blue">
+              <div class="stat-card-head">
+                <span>Total imports</span>
+                <i class="stat-icon stat-icon-image">
+                  <img src="assets/database.png" alt="" aria-hidden="true" />
+                </i>
+              </div>
+              <strong class="stat-number" id="my-imports-total">0</strong>
+              <p class="stat-note">Private datasets available</p>
+            </article>
+
+            <article class="stat-card stat-card-navy">
+              <div class="stat-card-head">
+                <span>Imported rows</span>
+                <i class="stat-icon stat-icon-image">
+                  <img src="assets/row.png" alt="" aria-hidden="true" />
+                </i>
+              </div>
+              <strong class="stat-number" id="my-imports-rows">0</strong>
+              <p class="stat-note">Structured patient records</p>
+            </article>
+
+            <article class="stat-card stat-card-amber">
+              <div class="stat-card-head">
+                <span>Last import</span>
+                <i class="stat-icon stat-icon-image">
+                  <img src="assets/time.png" alt="" aria-hidden="true" />
+                </i>
+              </div>
+              <strong class="stat-number stat-number-text" id="my-imports-latest">Never</strong>
+              <p class="stat-note">Newest dataset update</p>
+            </article>
+          </section>
+
+          <section class="surface-card table-card my-imports-registry-card">
+            <div class="table-card-head my-imports-card-head">
+              <div>
+                <div class="section-title">Import registry</div>
+                <p class="section-note">
+                  Search by file name, sheet, or column name. Opening an import takes you directly to the patient table.
+                </p>
+              </div>
+              <span class="my-imports-count" id="my-imports-summary">Loading imports...</span>
+            </div>
+
+            <div class="my-imports-controls" aria-label="Imported dataset filters">
+              <label class="field">
+                <span>Search datasets</span>
+                <input id="my-imports-search" type="search" placeholder="Search file, sheet, or column..." autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>File type</span>
+                <select id="my-imports-type">
+                  <option value="all">All file types</option>
+                  <option value="excel">Excel files</option>
+                  <option value="csv">CSV files</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Sort by</span>
+                <select id="my-imports-sort">
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="largest">Largest cohort</option>
+                  <option value="name">File name</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="support-request-status my-imports-error" id="my-imports-error" role="alert" hidden></div>
+
+            <div class="table-shell my-imports-table-shell">
+              <table class="clinical-table my-imports-table">
+                <thead>
+                  <tr>
+                    <th>Dataset</th>
+                    <th>Rows</th>
+                    <th>Uploaded</th>
+                    <th>Sheet</th>
+                    <th>Size</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="my-imports-table-body">
+                  <tr>
+                    <td colspan="7">
+                      <div class="my-imports-loading">Loading your imported datasets...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="my-imports-empty my-imports-upload-empty" id="my-imports-empty" hidden>
+              <div class="my-imports-upload-zone">
+                <div class="upload-cloud-icon" aria-hidden="true">
+                  <img src="assets/upload-file.png" alt="" class="upload-cloud-img upload-cloud-default" />
+                </div>
+                <strong>Drag &amp; drop your file here</strong>
+                <p>Supports .xlsx, .xls, and .csv files.</p>
+                <div class="upload-or-divider"><span>or</span></div>
+                <label class="btn btn-primary upload-button">
+                  <span>Browse Files</span>
+                  <input type="file" id="my-imports-dataset-file" accept=".csv,.xlsx,.xls" hidden />
+                </label>
+              </div>
+
+              <div class="upload-status-bar my-imports-upload-status">
+                <small id="my-imports-file-name" class="upload-file-name">No file selected</small>
+                <div class="upload-error" id="my-imports-upload-error" hidden>
+                  Only <code>.csv</code>, <code>.xlsx</code>, or <code>.xls</code> files are supported.
+                </div>
+                <div class="upload-success" id="my-imports-upload-success" hidden>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
+                  </svg>
+                  <div>
+                    <strong>File imported</strong>
+                    <span id="my-imports-upload-success-text">Your dataset is now available in this registry.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="upload-security-notice my-imports-upload-notice">
+                <div class="upload-security-icon" aria-hidden="true">
+                  <img src="assets/shield.png" alt="" class="security-shield-img" />
+                </div>
+                <div class="upload-security-copy">
+                  <strong>Your data is secure and private to your doctor account.</strong>
+                  <p>Files are stored in private protected storage and are not visible to other doctors or admins.</p>
+                </div>
+              </div>
+
+              <div class="my-imports-supported-formats" aria-label="Supported file formats">
+                <span>Supported formats</span>
+                <strong>
+                  <img src="assets/excel-icon.png" alt="" />
+                  Excel (.xlsx, .xls)
+                </strong>
+                <strong>
+                  <img src="assets/csv-icon.png" alt="" />
+                  CSV (.csv)
+                </strong>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <section class="modal-shell" id="my-imports-delete-modal" hidden aria-labelledby="my-imports-delete-title" aria-modal="true" role="dialog">
+      <div class="modal-backdrop" data-close-my-imports-delete></div>
+      <div class="modal-card modal-card-compact modal-card-danger">
+        <div class="modal-card-head">
+          <div>
+            <h2 id="my-imports-delete-title">Delete imported dataset</h2>
+            <p id="my-imports-delete-summary">
+              This will remove the selected imported dataset from your private import registry.
+            </p>
+          </div>
+          <button class="modal-close-button" type="button" aria-label="Close delete dialog" data-close-my-imports-delete>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" type="button" data-close-my-imports-delete>Cancel</button>
+          <button class="btn btn-danger" type="button" id="my-imports-confirm-delete">Delete dataset</button>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" data-support-new-message hidden aria-hidden="true" tabindex="-1"></button>
+
+    <script src="config.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="noufar-app.js"></script>
+    <script src="data.js?v=20260501d"></script>
+    <script src="app-shell.js?v=20260513-my-imports"></script>
+    <script src="my-imports.js?v=20260513a"></script>
+  </body>
+</html>

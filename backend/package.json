@@ -10,6 +10,7 @@
     "migrate:users-to-doctors": "node scripts/migrateUsersToDoctorsCollection.js",
     "migrate:doctor-assigned-admin-id": "node scripts/backfillDoctorAssignedAdminId.js",
     "migrate:encrypt-patients": "node scripts/migrateEncryptPatients.js",
+    "migrate:encrypt-dataset-import-rows": "node scripts/migrateEncryptDatasetImportRows.js",
     "migrate:rotate-patient-key": "node scripts/migrateRotatePatientKey.js",
     "migrate:doctor-ownership": "node scripts/backfillDoctorOwnership.js",
     "audit:doctor-ownership": "node scripts/auditDoctorOwnership.js"

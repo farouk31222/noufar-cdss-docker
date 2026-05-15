@@ -2,6 +2,11 @@ const DatasetImport = require("../models/DatasetImport");
 const DatasetImportRow = require("../models/DatasetImportRow");
 const { storePrivateUpload, removeStoredFile } = require("../services/fileAccessService");
 const { logAuditEventSafe } = require("../services/auditLogService");
+const {
+  computeScopedBlindIndex,
+  encryptDatasetImportRowPayload,
+  decryptDatasetImportRowPayload,
+} = require("../services/patientDataProtectionService");
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const toSafeStorageSegment = (value = "") =>
@@ -45,6 +50,55 @@ const normalizeDatasetColumnKey = (value) =>
     .replace(/[^\w\s]/g, "")
     .replace(/\s+/g, " ");
 
+const CONSULTATION_REASON_OPTIONS = Object.freeze([
+  "DYSTHYROIDIE",
+  "Compression signs",
+  "Tumefaction",
+  "Other",
+]);
+
+const CONSULTATION_REASON_ERROR =
+  "Consultation reason must be DYSTHYROIDIE, Compression signs, Tumefaction, or Other.";
+
+const ANTI_TPO_TOTAL_ALIASES = [
+  "anti tpo total",
+  "anti-tpo total",
+  "anti_tpo_total",
+  "antiTpoTotal",
+  "antiTPOtotal",
+  "AntiTPOTOTAL",
+  "anti tpo taux",
+  "anti-tpo taux",
+  "anti_tpo_taux",
+  "AntiTPO taux",
+  "AntiTPOTAUX",
+  "AntiTPO_TAUX",
+  "anti tpo level",
+  "anti-tpo level",
+  "anti tpo value",
+  "anti tpo titer",
+  "anti tpo titre",
+  "anti tpo total ui ml",
+  "anti tpo total iu ml",
+  "anti tpo total ui/ml",
+  "anti tpo total iu/ml",
+];
+
+const TSI_LEVEL_ALIASES = [
+  "tsi level",
+  "tsiLevel",
+  "TSILevel",
+  "tsi_level",
+  "tsi taux",
+  "TSItaux",
+  "TSI_taux",
+  "tsi titer",
+  "tsi titre",
+  "tsi value",
+  "tsi total",
+  "tsi index",
+];
+
 const REQUIRED_DATASET_COLUMNS = [
   { label: "Name", aliases: ["name", "full name", "patient name", "nom", "patient"] },
   { label: "Age", aliases: ["age", "patient age", "AGE"] },
@@ -55,20 +109,11 @@ const REQUIRED_DATASET_COLUMNS = [
   { label: "Anti-TPO", aliases: ["anti tpo", "anti-tpo", "anti tpo status", "AntiTPO_POSITIFS", "AntiTPO_NEGATIFS"] },
   {
     label: "Anti-TPO total",
-    aliases: [
-      "anti tpo total",
-      "anti-tpo total",
-      "antiTpoTotal",
-      "anti_tpo_total",
-      "anti tpo taux",
-      "anti-tpo taux",
-      "AntiTPO taux",
-      "AntiTPOTAUX",
-    ],
+    aliases: ANTI_TPO_TOTAL_ALIASES,
   },
   { label: "Anti-Tg", aliases: ["anti tg", "anti-tg", "anti tg status", "AntiTg_POSITIFS", "AntiTg_NEGATIFS"] },
   { label: "TSI", aliases: ["tsi", "tsi status", "TSI_POSITIFS", "TSI_NEGATIFS"] },
-  { label: "TSI level", aliases: ["tsi level", "tsiLevel", "tsi_level", "tsi taux", "TSItaux", "tsi titer"] },
+  { label: "TSI level", aliases: TSI_LEVEL_ALIASES },
   { label: "Ultrasound", aliases: ["ultrasound", "thyroid ultrasound", "echographie"] },
   { label: "Scintigraphy", aliases: ["scintigraphy", "thyroid scintigraphy"] },
   { label: "Therapy", aliases: ["therapy", "treatment", "treatment type"] },
@@ -96,19 +141,10 @@ const DATASET_FIELD_ALIASES = {
   tsh: ["tsh", "tsh level"],
   ft4: ["ft4", "ft 4", "free t4", "freeT4", "free thyroxine"],
   antiTpo: ["anti tpo", "anti-tpo", "antiTpo"],
-  antiTpoTotal: [
-    "anti tpo total",
-    "anti-tpo total",
-    "antiTpoTotal",
-    "anti_tpo_total",
-    "anti tpo taux",
-    "anti-tpo taux",
-    "AntiTPO taux",
-    "AntiTPOTAUX",
-  ],
+  antiTpoTotal: ANTI_TPO_TOTAL_ALIASES,
   antiTg: ["anti tg", "anti-tg", "antiTg"],
   tsi: ["tsi"],
-  tsiLevel: ["tsi level", "tsiLevel", "tsi_level", "tsi taux", "TSItaux", "tsi titer"],
+  tsiLevel: TSI_LEVEL_ALIASES,
   ultrasound: ["ultrasound", "echographie"],
   scintigraphy: ["scintigraphy"],
   therapy: ["therapy", "treatment", "treatment type"],
@@ -155,6 +191,24 @@ const isDatasetNotMeasured = (value) => {
     "non mesure",
   ].includes(normalized);
 };
+
+const normalizeDatasetConsultationReason = (value) => {
+  if (value === undefined || value === null || String(value).trim() === "" || isDatasetNotMeasured(value)) {
+    return "";
+  }
+
+  const normalized = normalizeDatasetColumnKey(value);
+  return (
+    CONSULTATION_REASON_OPTIONS.find(
+      (option) => normalizeDatasetColumnKey(option) === normalized
+    ) || String(value ?? "").trim()
+  );
+};
+
+const isAllowedDatasetConsultationReason = (value) =>
+  CONSULTATION_REASON_OPTIONS.some(
+    (option) => normalizeDatasetColumnKey(option) === normalizeDatasetColumnKey(value)
+  );
 
 const normalizeDatasetSex = (value) => {
   const normalized = normalizeDatasetColumnKey(value);
@@ -222,6 +276,7 @@ const normalizeDatasetTherapy = (value) => {
 
 const normalizeDatasetFieldValue = (field, value) => {
   if (field === "sex") return normalizeDatasetSex(value);
+  if (field === "consultationReason") return normalizeDatasetConsultationReason(value);
   if (["antiTpo", "antiTg", "tsi"].includes(field)) return normalizeDatasetClinicalStatus(value);
   if (field === "ultrasound") return normalizeDatasetUltrasound(value);
   if (field === "scintigraphy") return normalizeDatasetScintigraphy(value);
@@ -268,6 +323,11 @@ const getDatasetCellValidationMessage = (field, value) => {
   const normalizedValue = normalizeDatasetFieldValue(field, value);
   const raw = String(normalizedValue ?? "").trim();
   const normalized = normalizeDatasetColumnKey(raw);
+
+  if (field === "consultationReason") {
+    if (!raw || isDatasetNotMeasured(raw)) return "Consultation reason is required.";
+    if (!isAllowedDatasetConsultationReason(raw)) return CONSULTATION_REASON_ERROR;
+  }
 
   if (!raw || isDatasetNotMeasured(raw)) return "";
 
@@ -353,6 +413,120 @@ const buildRowSearchText = (rowData = {}) =>
     .filter(Boolean)
     .join(" ");
 
+const buildDatasetRowProtectionPayload = (rowData = {}) => {
+  const searchText = buildRowSearchText(rowData);
+  const consultationReason = normalizeDatasetConsultationReason(
+    getDatasetRowValue(rowData, ["Consultation reason", "Reason", "Motif consultation"])
+  );
+  const sex = normalizeDatasetSex(getDatasetRowValue(rowData, ["Sex", "Gender", "Sexe"]));
+  const ultrasound = normalizeDatasetUltrasound(
+    getDatasetRowValue(rowData, ["Ultrasound", "Thyroid ultrasound", "Echographie"])
+  );
+  const tsi = normalizeDatasetClinicalStatus(getDatasetRowValue(rowData, ["TSI", "TSI status"]));
+
+  return {
+    searchText,
+    consultationReason,
+    ultrasound,
+    tsi,
+    encrypted: encryptDatasetImportRowPayload({
+      rowData,
+      searchText,
+      consultationReason,
+      sex,
+      ultrasound,
+      tsi,
+    }),
+  };
+};
+
+const decryptDatasetRowForResponse = (entry = {}) => {
+  const plain = decryptDatasetImportRowPayload(entry);
+  const rowData = plain.rowData && typeof plain.rowData === "object" ? plain.rowData : {};
+
+  return {
+    __rowId: entry.rowId,
+    ...rowData,
+  };
+};
+
+const datasetValueMatchesFilter = (actual = "", expected = "") =>
+  !expected || String(actual || "").trim().toLowerCase() === String(expected || "").trim().toLowerCase();
+
+const datasetRowMatchesQuery = (entry = {}, plain = {}, query = {}) => {
+  const rowData = plain.rowData && typeof plain.rowData === "object" ? plain.rowData : {};
+  const searchText = String(plain.searchText || buildRowSearchText(rowData)).toLowerCase();
+
+  if (query.search && !searchText.includes(query.search)) {
+    return false;
+  }
+
+  if (query.consultationReason) {
+    const expectedValue = normalizeDatasetConsultationReason(query.consultationReason);
+    const expectedBlindIndex = computeScopedBlindIndex(
+      "dataset_import_row:consultationReason",
+      expectedValue
+    );
+    if (
+      String(entry.consultationReasonBlindIndex || "") !== expectedBlindIndex &&
+      !datasetValueMatchesFilter(
+        normalizeDatasetConsultationReason(
+          getDatasetRowValue(rowData, ["Consultation reason", "Reason", "Motif consultation"])
+        ),
+        expectedValue
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (query.sex) {
+    const expectedValue = normalizeDatasetSex(query.sex);
+    const expectedBlindIndex = computeScopedBlindIndex("dataset_import_row:sex", expectedValue);
+    if (
+      String(entry.sexBlindIndex || "") !== expectedBlindIndex &&
+      !datasetValueMatchesFilter(
+        normalizeDatasetSex(getDatasetRowValue(rowData, ["Sex", "Gender", "Sexe"])),
+        expectedValue
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (query.ultrasound) {
+    const expectedValue = normalizeDatasetUltrasound(query.ultrasound);
+    const expectedBlindIndex = computeScopedBlindIndex("dataset_import_row:ultrasound", expectedValue);
+    if (
+      String(entry.ultrasoundBlindIndex || "") !== expectedBlindIndex &&
+      !datasetValueMatchesFilter(
+        normalizeDatasetUltrasound(
+          getDatasetRowValue(rowData, ["Ultrasound", "Thyroid ultrasound", "Echographie"])
+        ),
+        expectedValue
+      )
+    ) {
+      return false;
+    }
+  }
+
+  if (query.tsi) {
+    const expectedValue = normalizeDatasetClinicalStatus(query.tsi);
+    const expectedBlindIndex = computeScopedBlindIndex("dataset_import_row:tsi", expectedValue);
+    if (
+      String(entry.tsiBlindIndex || "") !== expectedBlindIndex &&
+      !datasetValueMatchesFilter(
+        normalizeDatasetClinicalStatus(getDatasetRowValue(rowData, ["TSI", "TSI status"])),
+        expectedValue
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const getDatasetRowValue = (rowData = {}, aliases = []) => {
   const normalizedAliases = aliases.map(normalizeDatasetColumnKey);
   for (const [key, value] of Object.entries(rowData || {})) {
@@ -381,7 +555,7 @@ const sanitizeDatasetImport = (entry) => ({
   rowCount: Number(entry.totalRows) || 0,
   importedRows: Number(entry.importedRows) || 0,
   status: entry.status || "uploading",
-  consultationReasons: Array.isArray(entry.consultationReasons) ? entry.consultationReasons : [],
+  consultationReasons: CONSULTATION_REASON_OPTIONS,
   ultrasoundValues: Array.isArray(entry.ultrasoundValues) ? entry.ultrasoundValues : [],
   tsiValues: Array.isArray(entry.tsiValues) ? entry.tsiValues : [],
 });
@@ -426,9 +600,7 @@ const createDatasetImport = async (req, res, next) => {
     const name = String(req.body?.name || req.file.originalname || "").trim();
     const totalRows = Number(req.body?.totalRows || 0);
     const columns = normalizeStringArray(parseJsonArrayField(req.body?.columns, "Columns"));
-    const consultationReasons = normalizeStringArray(
-      parseJsonArrayField(req.body?.consultationReasons, "Consultation reasons")
-    );
+    const consultationReasons = CONSULTATION_REASON_OPTIONS;
     const ultrasoundValues = normalizeStringArray(
       parseJsonArrayField(req.body?.ultrasoundValues, "Ultrasound values")
     );
@@ -561,18 +733,38 @@ const appendDatasetImportRows = async (req, res, next) => {
         );
       });
 
+      // Validation errors are no longer blocking the import.
+      // Empty or invalid values are flagged visually on the row in the dataset table
+      // and enforced only at inline-edit save time.
+      // const validationErrors = getDatasetRowValidationErrors(datasetImport.columns, normalizedRowObject);
+      // if (validationErrors.length) {
+      //   const firstError = validationErrors[0];
+      //   const validationError = new Error(
+      //     `Import rejected on row ${startIndex + index + 1}, ${firstError.column}: ${firstError.message}`
+      //   );
+      //   validationError.statusCode = 400;
+      //   throw validationError;
+      // }
+
+      const protectedPayload = buildDatasetRowProtectionPayload(normalizedRowObject);
+
       return {
         datasetImport: datasetImport._id,
         doctor: req.user._id,
         rowId,
         rowIndex: startIndex + index,
-        rowData: normalizedRowObject,
-        searchText: buildRowSearchText(normalizedRowObject),
-        consultationReason: String(getDatasetRowValue(normalizedRowObject, ["Consultation reason", "Reason", "Motif consultation"])).trim(),
-        ultrasound: normalizeDatasetUltrasound(
-          getDatasetRowValue(normalizedRowObject, ["Ultrasound", "Thyroid ultrasound", "Echographie"])
-        ),
-        tsi: normalizeDatasetClinicalStatus(getDatasetRowValue(normalizedRowObject, ["TSI", "TSI status"])),
+        rowData: {},
+        searchText: "",
+        consultationReason: "",
+        ultrasound: "",
+        tsi: "",
+        encryptedRowData: protectedPayload.encrypted.encryptedRowData,
+        encryptedSearchText: protectedPayload.encrypted.encryptedSearchText,
+        encryptedRowDataKeyId: protectedPayload.encrypted.encryptedRowDataKeyId,
+        consultationReasonBlindIndex: protectedPayload.encrypted.consultationReasonBlindIndex,
+        sexBlindIndex: protectedPayload.encrypted.sexBlindIndex,
+        ultrasoundBlindIndex: protectedPayload.encrypted.ultrasoundBlindIndex,
+        tsiBlindIndex: protectedPayload.encrypted.tsiBlindIndex,
       };
     });
 
@@ -611,35 +803,35 @@ const listDatasetImportRows = async (req, res, next) => {
     const pageSize = Math.min(50, Math.max(1, Number(req.query?.pageSize) || 8));
     const search = String(req.query?.search || "").trim().toLowerCase();
     const consultationReason = String(req.query?.consultationReason || "").trim();
+    const sex = String(req.query?.sex || "").trim();
     const ultrasound = String(req.query?.ultrasound || "").trim();
     const tsi = String(req.query?.tsi || "").trim();
 
-    const filter = {
+    const baseFilter = {
       datasetImport: datasetImport._id,
       doctor: req.user._id,
     };
 
-    if (search) {
-      filter.searchText = { $regex: escapeRegex(search), $options: "i" };
-    }
-    if (consultationReason) {
-      filter.consultationReason = consultationReason;
-    }
-    if (ultrasound) {
-      filter.ultrasound = ultrasound;
-    }
-    if (tsi) {
-      filter.tsi = tsi;
-    }
+    const allRows = await DatasetImportRow.find(baseFilter).sort({ rowIndex: 1 }).lean();
+    const filteredRows = allRows
+      .map((entry) => ({
+        entry,
+        plain: decryptDatasetImportRowPayload(entry),
+      }))
+      .filter(({ entry, plain }) =>
+        datasetRowMatchesQuery(entry, plain, {
+          search,
+          consultationReason,
+          sex,
+          ultrasound,
+          tsi,
+        })
+      );
 
-    const totalItems = await DatasetImportRow.countDocuments(filter);
+    const totalItems = filteredRows.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const currentPage = Math.min(page, totalPages);
-    const rows = await DatasetImportRow.find(filter)
-      .sort({ rowIndex: 1 })
-      .skip((currentPage - 1) * pageSize)
-      .limit(pageSize)
-      .lean();
+    const rows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     res.status(200).json({
       datasetImport: sanitizeDatasetImport(datasetImport),
@@ -649,9 +841,9 @@ const listDatasetImportRows = async (req, res, next) => {
         totalItems,
         totalPages,
       },
-      rows: rows.map((entry) => ({
+      rows: rows.map(({ entry, plain }) => ({
         __rowId: entry.rowId,
-        ...entry.rowData,
+        ...(plain.rowData && typeof plain.rowData === "object" ? plain.rowData : {}),
       })),
     });
   } catch (error) {
@@ -694,25 +886,27 @@ const updateDatasetImportRow = async (req, res, next) => {
       throw new Error(`${validationErrors[0].column}: ${validationErrors[0].message}`);
     }
 
-    existingRow.rowData = normalizedRowData;
-    existingRow.searchText = buildRowSearchText(normalizedRowData);
-    existingRow.consultationReason = String(
-      getDatasetRowValue(normalizedRowData, ["Consultation reason", "Reason", "Motif consultation"])
-    ).trim();
-    existingRow.ultrasound = String(
-      getDatasetRowValue(normalizedRowData, ["Ultrasound", "Thyroid ultrasound", "Echographie"])
-    ).trim();
-    existingRow.tsi = String(getDatasetRowValue(normalizedRowData, ["TSI", "TSI status"])).trim();
+    const protectedPayload = buildDatasetRowProtectionPayload(normalizedRowData);
+
+    existingRow.rowData = {};
+    existingRow.searchText = "";
+    existingRow.consultationReason = "";
+    existingRow.ultrasound = "";
+    existingRow.tsi = "";
+    existingRow.encryptedRowData = protectedPayload.encrypted.encryptedRowData;
+    existingRow.encryptedSearchText = protectedPayload.encrypted.encryptedSearchText;
+    existingRow.encryptedRowDataKeyId = protectedPayload.encrypted.encryptedRowDataKeyId;
+    existingRow.consultationReasonBlindIndex = protectedPayload.encrypted.consultationReasonBlindIndex;
+    existingRow.sexBlindIndex = protectedPayload.encrypted.sexBlindIndex;
+    existingRow.ultrasoundBlindIndex = protectedPayload.encrypted.ultrasoundBlindIndex;
+    existingRow.tsiBlindIndex = protectedPayload.encrypted.tsiBlindIndex;
     await existingRow.save();
 
     datasetImport.updatedAt = new Date();
     await datasetImport.save();
 
     res.status(200).json({
-      row: {
-        __rowId: existingRow.rowId,
-        ...existingRow.rowData,
-      },
+      row: decryptDatasetRowForResponse(existingRow),
       datasetImport: sanitizeDatasetImport(datasetImport),
     });
 

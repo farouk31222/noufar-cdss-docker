@@ -2,8 +2,42 @@ const historySidebar = document.querySelector(".sidebar");
 const historyMobileButton = document.querySelector(".mobile-nav-button");
 const historyTotal = document.querySelector("#history-total");
 const historyRelapse = document.querySelector("#history-relapse");
+const historyNoRelapse = document.querySelector("#history-no-relapse");
 const historyManual = document.querySelector("#history-manual");
 const historyImported = document.querySelector("#history-imported");
+
+const historyCountAnimations = new WeakMap();
+const historyEaseOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+const animateHistoryCount = (node, target, duration = 1100) => {
+  if (!node) return;
+  const targetValue = Number(target) || 0;
+  const previousFrame = historyCountAnimations.get(node);
+  if (previousFrame) cancelAnimationFrame(previousFrame);
+
+  const formatter = new Intl.NumberFormat("en-US");
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion || duration <= 0) {
+    node.textContent = formatter.format(targetValue);
+    return;
+  }
+
+  const startTime = performance.now();
+  const step = (now) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const current = targetValue * historyEaseOutCubic(progress);
+    node.textContent = formatter.format(Math.round(current));
+    if (progress < 1) {
+      historyCountAnimations.set(node, requestAnimationFrame(step));
+    } else {
+      historyCountAnimations.delete(node);
+      node.textContent = formatter.format(targetValue);
+    }
+  };
+  node.textContent = "0";
+  historyCountAnimations.set(node, requestAnimationFrame(step));
+};
 const historyBody = document.querySelector("#history-body");
 const historySearchShell = document.querySelector("#history-search-shell");
 const historySearchToggle = document.querySelector("#history-search-toggle");
@@ -123,18 +157,29 @@ const refreshHistoryStats = () => {
         noRelapse: historyEntries.filter((entry) => entry.result !== "Relapse").length,
       };
 
-  if (historyTotal) historyTotal.textContent = stats.total.toLocaleString();
-  if (historyRelapse) historyRelapse.textContent = stats.relapse.toLocaleString();
-  if (historyManual) {
-    historyManual.textContent = historyEntries
-      .filter((entry) => entry.source === "Manual")
-      .length.toLocaleString();
-  }
-  if (historyImported) {
-    historyImported.textContent = historyEntries
-      .filter((entry) => entry.source !== "Manual")
-      .length.toLocaleString();
-  }
+  const manualCount = historyEntries.filter((entry) => entry.source === "Manual").length;
+  const importedCount = historyEntries.filter((entry) => entry.source !== "Manual").length;
+  const noRelapseCount = typeof stats.noRelapse === "number"
+    ? stats.noRelapse
+    : historyEntries.filter((entry) => entry.result !== "Relapse").length;
+
+  animateHistoryCount(historyTotal, stats.total);
+  animateHistoryCount(historyRelapse, stats.relapse);
+  animateHistoryCount(historyNoRelapse, noRelapseCount);
+  animateHistoryCount(historyManual, manualCount);
+  animateHistoryCount(historyImported, importedCount);
+
+  const total = stats.total || 0;
+  const pct = (value) => (total > 0 ? Math.max(2, Math.min(100, (value / total) * 100)) : 0);
+  const setBarWidth = (id, percent) => {
+    const node = document.getElementById(id);
+    if (node) node.style.width = `${percent}%`;
+  };
+  setBarWidth("history-total-bar", total > 0 ? 100 : 0);
+  setBarWidth("history-relapse-bar", pct(stats.relapse));
+  setBarWidth("history-no-relapse-bar", pct(noRelapseCount));
+  setBarWidth("history-manual-bar", pct(manualCount));
+  setBarWidth("history-imported-bar", pct(importedCount));
 };
 
 const paginateHistoryEntries = (items, page = 1, pageSize = HISTORY_PAGE_SIZE) => {

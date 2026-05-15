@@ -2,6 +2,14 @@ const nodemailer = require("nodemailer");
 
 let transporterPromise = null;
 
+const escapeEmailHtml = (value = "") =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 const getMailerConfig = () => {
   const {
     SMTP_HOST,
@@ -248,7 +256,7 @@ const buildDoctorDeletedEmail = (doctorName, deletionReason) => {
 
   const text = `Dear Doctor,
 
-We regret to inform you that your account has been deleted from the platform.
+We regret to inform you that your account has been blocked from the platform.
 
 Reason:
 ${safeReason}
@@ -263,11 +271,11 @@ NOUFAR CDSS`;
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #dbe4f0;">
         <div style="padding:28px 32px;background:linear-gradient(135deg,#b6283d,#df5968);color:#ffffff;">
           <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.9;">NOUFAR CDSS</div>
-          <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;">Account Deleted</h1>
+          <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;">Account blocked</h1>
         </div>
         <div style="padding:32px;">
           <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Dear ${safeName},</p>
-          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">We regret to inform you that your account has been deleted from the platform.</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">We regret to inform you that your account has been blocked from the platform.</p>
           <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#fff3f5;border:1px solid #f2c7cf;">
             <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b53d52;">Reason</div>
             <div style="font-size:16px;line-height:1.7;color:#6d2231;">${safeReason}</div>
@@ -280,7 +288,7 @@ NOUFAR CDSS`;
   `;
 
   return {
-    subject: "Your NOUFAR CDSS account has been deleted",
+    subject: "Your NOUFAR CDSS account has been blocked",
     text,
     html,
   };
@@ -510,6 +518,361 @@ const sendDoctorAccessUpgradeRefusedEmail = async (doctor, reason = "") => {
   return { skipped: false };
 };
 
+const buildDoctorAccountUnblockedEmail = (doctorName, note) => {
+  const safeName = doctorName?.trim() || "Doctor";
+  const safeNote = String(note || "").trim();
+
+  const text = `Dear ${safeName},
+
+Your NOUFAR CDSS account has been unblocked by the administration team.
+
+You can now sign in again and continue using the platform.
+
+${safeNote ? `Admin note:\n${safeNote}\n\n` : ""}If you did not request this review or need assistance, please contact noufar.cdss@gmail.com.
+
+Best regards,
+NOUFAR CDSS`;
+
+  const html = `
+    <div style="margin:0;padding:32px;background:#f4f7fb;font-family:Arial,sans-serif;color:#1b2b4a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #dbe4f0;">
+        <div style="padding:28px 32px;background:linear-gradient(135deg,#169164,#3bc486);color:#ffffff;">
+          <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.9;">NOUFAR CDSS</div>
+          <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;">Account Unblocked</h1>
+        </div>
+        <div style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Dear ${safeName},</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Your NOUFAR CDSS account has been <strong>unblocked</strong> by the administration team.</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">You can now sign in again and continue using the platform.</p>
+          ${
+            safeNote
+              ? `<div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#f4fff9;border:1px solid #cdeedc;">
+                   <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#21704b;">Admin note</div>
+                   <div style="font-size:16px;line-height:1.7;color:#1f513a;">${safeNote}</div>
+                 </div>`
+              : ""
+          }
+          <p style="margin:0;font-size:16px;line-height:1.7;">If you did not request this review or need assistance, please contact <a href="mailto:noufar.cdss@gmail.com" style="color:#168552;font-weight:700;text-decoration:none;">noufar.cdss@gmail.com</a>.</p>
+          <p style="margin:24px 0 0;font-size:16px;line-height:1.7;">Best regards,<br /><strong>NOUFAR CDSS</strong></p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: "Your NOUFAR CDSS account has been unblocked",
+    text,
+    html,
+  };
+};
+
+const sendDoctorAccountUnblockedEmail = async (doctor, note = "") => {
+  const config = getMailerConfig();
+
+  if (!config.isConfigured) {
+    console.warn(`Account unblock email skipped for ${doctor.email}: SMTP settings are incomplete.`);
+    return { skipped: true };
+  }
+
+  const transporter = await getTransporter();
+  const email = buildDoctorAccountUnblockedEmail(doctor.name, note);
+
+  await transporter.sendMail({
+    from: config.from,
+    to: doctor.email,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  });
+
+  return { skipped: false };
+};
+
+const buildDoctorAccountUnblockRefusedEmail = (doctorName, reason) => {
+  const safeName = doctorName?.trim() || "Doctor";
+  const safeReason = String(reason || "").trim() || "No additional reason was provided.";
+
+  const text = `Dear ${safeName},
+
+We reviewed your request to unblock your NOUFAR CDSS account.
+
+The request has been refused at this time.
+
+Reason:
+${safeReason}
+
+If you need more information, please contact noufar.cdss@gmail.com.
+
+Best regards,
+NOUFAR CDSS`;
+
+  const html = `
+    <div style="margin:0;padding:32px;background:#f4f7fb;font-family:Arial,sans-serif;color:#1b2b4a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #dbe4f0;">
+        <div style="padding:28px 32px;background:linear-gradient(135deg,#8f2f2f,#d86b47);color:#ffffff;">
+          <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.9;">NOUFAR CDSS</div>
+          <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;">Account Unblock Refused</h1>
+        </div>
+        <div style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Dear ${safeName},</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">We reviewed your request to unblock your NOUFAR CDSS account.</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">The request has been refused at this time.</p>
+          <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#fff6f3;border:1px solid #f0d2c8;">
+            <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a35536;">Reason</div>
+            <div style="font-size:16px;line-height:1.7;color:#5a2f1f;">${safeReason}</div>
+          </div>
+          <p style="margin:0;font-size:16px;line-height:1.7;">If you need more information, please contact <a href="mailto:noufar.cdss@gmail.com" style="color:#b05833;font-weight:700;text-decoration:none;">noufar.cdss@gmail.com</a>.</p>
+          <p style="margin:24px 0 0;font-size:16px;line-height:1.7;">Best regards,<br /><strong>NOUFAR CDSS</strong></p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: "Update on your NOUFAR CDSS account unblock request",
+    text,
+    html,
+  };
+};
+
+const sendDoctorAccountUnblockRefusedEmail = async (doctor, reason = "") => {
+  const config = getMailerConfig();
+
+  if (!config.isConfigured) {
+    console.warn(`Account unblock refusal email skipped for ${doctor.email}: SMTP settings are incomplete.`);
+    return { skipped: true };
+  }
+
+  const transporter = await getTransporter();
+  const email = buildDoctorAccountUnblockRefusedEmail(doctor.name, reason);
+
+  await transporter.sendMail({
+    from: config.from,
+    to: doctor.email,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  });
+
+  return { skipped: false };
+};
+
+const buildSupportReplyEmail = ({ recipientName, ticketSubject, replyBody, senderName, hasAttachment }) => {
+  const safeName = recipientName?.trim() || "Doctor";
+  const safeSubject = String(ticketSubject || "Support request").trim();
+  const safeSender = String(senderName || "NOUFAR CDSS support").trim();
+  const safeBody = String(replyBody || "").trim() || "The admin team sent you a new support update.";
+  const safeBodyHtml = escapeEmailHtml(safeBody).replace(/\n/g, "<br />");
+
+  const text = `Dear ${safeName},
+
+${safeSender} replied to your NOUFAR CDSS support request.
+
+Ticket:
+${safeSubject}
+
+Message:
+${safeBody}
+
+${hasAttachment ? "This reply includes an attachment. Please sign in to NOUFAR CDSS to view or download it securely.\n\n" : ""}Please sign in to NOUFAR CDSS to continue the conversation if needed.
+
+Best regards,
+NOUFAR CDSS`;
+
+  const html = `
+    <div style="margin:0;padding:32px;background:#f4f7fb;font-family:Arial,sans-serif;color:#1b2b4a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #dbe4f0;">
+        <div style="padding:28px 32px;background:linear-gradient(135deg,#0d4f90,#2f86e6);color:#ffffff;">
+          <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.9;">NOUFAR CDSS</div>
+          <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;">Support Reply</h1>
+        </div>
+        <div style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Dear ${escapeEmailHtml(safeName)},</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;"><strong>${escapeEmailHtml(safeSender)}</strong> replied to your NOUFAR CDSS support request.</p>
+          <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#f4f8ff;border:1px solid #d8e3f7;">
+            <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#496b98;">Ticket</div>
+            <div style="font-size:16px;line-height:1.7;color:#29456f;">${escapeEmailHtml(safeSubject)}</div>
+          </div>
+          <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#fbfdff;border:1px solid #dbe4f0;">
+            <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#496b98;">Message</div>
+            <div style="font-size:16px;line-height:1.7;color:#29456f;">${safeBodyHtml}</div>
+          </div>
+          ${
+            hasAttachment
+              ? '<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#5b7494;">This reply includes an attachment. Please sign in to NOUFAR CDSS to view or download it securely.</p>'
+              : ""
+          }
+          <p style="margin:0;font-size:16px;line-height:1.7;">Please sign in to NOUFAR CDSS to continue the conversation if needed.</p>
+          <p style="margin:24px 0 0;font-size:16px;line-height:1.7;">Best regards,<br /><strong>NOUFAR CDSS</strong></p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: `NOUFAR CDSS support reply: ${safeSubject}`,
+    text,
+    html,
+  };
+};
+
+const sendSupportReplyEmail = async ({ to, recipientName, ticketSubject, replyBody, senderName, hasAttachment = false }) => {
+  const config = getMailerConfig();
+
+  if (!config.isConfigured) {
+    console.warn(`Support reply email skipped for ${to}: SMTP settings are incomplete.`);
+    return { skipped: true };
+  }
+
+  const safeTo = String(to || "").trim();
+  if (!safeTo) {
+    return { skipped: true };
+  }
+
+  const transporter = await getTransporter();
+  const email = buildSupportReplyEmail({
+    recipientName,
+    ticketSubject,
+    replyBody,
+    senderName,
+    hasAttachment,
+  });
+
+  await transporter.sendMail({
+    from: config.from,
+    to: safeTo,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  });
+
+  return { skipped: false };
+};
+
+const buildSupportAdminNotificationEmail = ({
+  senderName,
+  senderEmail,
+  ticketSubject,
+  category,
+  priority,
+  messageBody,
+  hasAttachment,
+}) => {
+  const safeSender = String(senderName || "Support requester").trim();
+  const safeSenderEmail = String(senderEmail || "").trim();
+  const safeSubject = String(ticketSubject || "Support request").trim();
+  const safeCategory = String(category || "Support").trim();
+  const safePriority = String(priority || "Routine").trim();
+  const safeBody = String(messageBody || "").trim() || "A new support message was submitted.";
+  const safeBodyHtml = escapeEmailHtml(safeBody).replace(/\n/g, "<br />");
+
+  const text = `Hello NOUFAR CDSS admin team,
+
+A new support message has been submitted.
+
+From:
+${safeSender}${safeSenderEmail ? ` <${safeSenderEmail}>` : ""}
+
+Ticket:
+${safeSubject}
+
+Category: ${safeCategory}
+Priority: ${safePriority}
+
+Message:
+${safeBody}
+
+${hasAttachment ? "This message includes an attachment. Open the Support Center to review it securely.\n\n" : ""}Please open the admin Support Center to review and respond.
+
+Best regards,
+NOUFAR CDSS`;
+
+  const html = `
+    <div style="margin:0;padding:32px;background:#f4f7fb;font-family:Arial,sans-serif;color:#1b2b4a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #dbe4f0;">
+        <div style="padding:28px 32px;background:linear-gradient(135deg,#0d4f90,#2f86e6);color:#ffffff;">
+          <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.9;">NOUFAR CDSS</div>
+          <h1 style="margin:12px 0 0;font-size:28px;line-height:1.2;">New Support Message</h1>
+        </div>
+        <div style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Hello NOUFAR CDSS admin team,</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">A new support message has been submitted and needs review.</p>
+          <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#f4f8ff;border:1px solid #d8e3f7;">
+            <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#496b98;">Requester</div>
+            <div style="font-size:16px;line-height:1.7;color:#29456f;">${escapeEmailHtml(safeSender)}${safeSenderEmail ? ` &lt;${escapeEmailHtml(safeSenderEmail)}&gt;` : ""}</div>
+          </div>
+          <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#fbfdff;border:1px solid #dbe4f0;">
+            <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#496b98;">Ticket</div>
+            <div style="font-size:16px;line-height:1.7;color:#29456f;">${escapeEmailHtml(safeSubject)}</div>
+            <div style="margin-top:8px;font-size:14px;line-height:1.6;color:#5b7494;">Category: ${escapeEmailHtml(safeCategory)} · Priority: ${escapeEmailHtml(safePriority)}</div>
+          </div>
+          <div style="margin:0 0 16px;padding:16px 18px;border-radius:16px;background:#fbfdff;border:1px solid #dbe4f0;">
+            <div style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#496b98;">Message</div>
+            <div style="font-size:16px;line-height:1.7;color:#29456f;">${safeBodyHtml}</div>
+          </div>
+          ${
+            hasAttachment
+              ? '<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#5b7494;">This message includes an attachment. Open the Support Center to review it securely.</p>'
+              : ""
+          }
+          <p style="margin:0;font-size:16px;line-height:1.7;">Please open the admin Support Center to review and respond.</p>
+          <p style="margin:24px 0 0;font-size:16px;line-height:1.7;">Best regards,<br /><strong>NOUFAR CDSS</strong></p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return {
+    subject: `NOUFAR CDSS support: ${safeSubject}`,
+    text,
+    html,
+  };
+};
+
+const sendSupportAdminNotificationEmail = async ({
+  senderName,
+  senderEmail,
+  ticketSubject,
+  category,
+  priority,
+  messageBody,
+  hasAttachment = false,
+}) => {
+  const config = getMailerConfig();
+
+  if (!config.isConfigured) {
+    console.warn("Admin support notification email skipped: SMTP settings are incomplete.");
+    return { skipped: true };
+  }
+
+  const recipient = String(process.env.SUPPORT_EMAIL || config.user || "").trim();
+  if (!recipient) {
+    console.warn("Admin support notification email skipped: no support recipient configured.");
+    return { skipped: true };
+  }
+
+  const transporter = await getTransporter();
+  const email = buildSupportAdminNotificationEmail({
+    senderName,
+    senderEmail,
+    ticketSubject,
+    category,
+    priority,
+    messageBody,
+    hasAttachment,
+  });
+
+  await transporter.sendMail({
+    from: config.from,
+    to: recipient,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+  });
+
+  return { skipped: false };
+};
+
 const buildPasswordResetEmail = (doctorName, resetLink) => {
   const safeName = doctorName?.trim() || "Doctor";
   const safeLink = String(resetLink || "");
@@ -598,6 +961,10 @@ module.exports = {
   sendDoctorApprovedEmail,
   sendDoctorAccessUpgradeApprovedEmail,
   sendDoctorAccessUpgradeRefusedEmail,
+  sendDoctorAccountUnblockedEmail,
+  sendDoctorAccountUnblockRefusedEmail,
+  sendSupportReplyEmail,
+  sendSupportAdminNotificationEmail,
   sendDoctorActivatedEmail,
   sendDoctorDeletedEmail,
   sendDoctorRejectedEmail,

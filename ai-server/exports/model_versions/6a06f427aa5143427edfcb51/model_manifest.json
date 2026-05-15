@@ -1,0 +1,254 @@
+{
+  "runId": "6a06f427aa5143427edfcb51",
+  "candidateVersion": "6a06f427aa5143427edfcb51",
+  "syntheticRows": 500,
+  "realValidatedRows": 21,
+  "testRows": 105,
+  "trainRows": 416,
+  "results": [
+    {
+      "modelKey": "logistic_regression",
+      "modelLabel": "Logistic Regression",
+      "versionType": "old",
+      "status": "available",
+      "metrics": {
+        "accuracy": 0.904762,
+        "balancedAccuracy": 0.882431,
+        "precision": 0.875,
+        "recall": 0.984375,
+        "specificity": 0.780488,
+        "npv": 0.969697,
+        "f1Score": 0.926471,
+        "mcc": 0.803789,
+        "aucRoc": 0.967607,
+        "logLoss": 0.242664,
+        "confusionMatrix": {
+          "tn": 32,
+          "fp": 9,
+          "fn": 1,
+          "tp": 63
+        },
+        "trainExecutionTimeSeconds": null,
+        "testExecutionTimeSeconds": 4.513284,
+        "totalExecutionTimeSeconds": 4.513284,
+        "peakMemoryMb": 0.20752,
+        "trainEnergyKwh": null,
+        "trainEnergyJ": null,
+        "testEnergyKwh": 1.3e-05,
+        "testEnergyJ": 48.085433,
+        "energyPerPredictionJ": 0.457957,
+        "accuracyPerJoule": 0.018816,
+        "f1PerJoule": 0.019267,
+        "energyMeasurementStatus": "estimated"
+      },
+      "artifactPaths": {
+        "active": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\lr_pipeline.pkl"
+      }
+    },
+    {
+      "modelKey": "logistic_regression",
+      "modelLabel": "Logistic Regression",
+      "versionType": "new",
+      "status": "available",
+      "metrics": {
+        "accuracy": 0.857143,
+        "balancedAccuracy": 0.830221,
+        "precision": 0.835616,
+        "recall": 0.953125,
+        "specificity": 0.707317,
+        "npv": 0.90625,
+        "f1Score": 0.890511,
+        "mcc": 0.699971,
+        "aucRoc": 0.945503,
+        "logLoss": 0.29808,
+        "confusionMatrix": {
+          "tn": 29,
+          "fp": 12,
+          "fn": 3,
+          "tp": 61
+        },
+        "trainExecutionTimeSeconds": 2.904995,
+        "testExecutionTimeSeconds": 2.870753,
+        "totalExecutionTimeSeconds": 5.775748,
+        "peakMemoryMb": 0.352722,
+        "trainEnergyKwh": 1.2e-05,
+        "trainEnergyJ": 41.897302,
+        "testEnergyKwh": 1.3e-05,
+        "testEnergyJ": 47.381517,
+        "energyPerPredictionJ": 0.451253,
+        "accuracyPerJoule": 0.009601,
+        "f1PerJoule": 0.009974,
+        "energyMeasurementStatus": "estimated"
+      },
+      "artifactPaths": {
+        "pipeline": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\model_versions\\6a06f427aa5143427edfcb51\\lr_pipeline.pkl"
+      }
+    },
+    {
+      "modelKey": "random_forest",
+      "modelLabel": "Random Forest",
+      "versionType": "old",
+      "status": "available",
+      "metrics": {
+        "accuracy": 0.980952,
+        "balancedAccuracy": 0.979992,
+        "precision": 0.984375,
+        "recall": 0.984375,
+        "specificity": 0.97561,
+        "npv": 0.97561,
+        "f1Score": 0.984375,
+        "mcc": 0.959985,
+        "aucRoc": 0.998857,
+        "logLoss": 0.155829,
+        "confusionMatrix": {
+          "tn": 40,
+          "fp": 1,
+          "fn": 1,
+          "tp": 63
+        },
+        "trainExecutionTimeSeconds": null,
+        "testExecutionTimeSeconds": 2.975191,
+        "totalExecutionTimeSeconds": 2.975191,
+        "peakMemoryMb": 0.273931,
+        "trainEnergyKwh": null,
+        "trainEnergyJ": null,
+        "testEnergyKwh": 1.3e-05,
+        "testEnergyJ": 47.330009,
+        "energyPerPredictionJ": 0.450762,
+        "accuracyPerJoule": 0.020726,
+        "f1PerJoule": 0.020798,
+        "energyMeasurementStatus": "estimated"
+      },
+      "artifactPaths": {
+        "active": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\rf_pipeline.pkl"
+      }
+    },
+    {
+      "modelKey": "random_forest",
+      "modelLabel": "Random Forest",
+      "versionType": "new",
+      "status": "available",
+      "metrics": {
+        "accuracy": 0.809524,
+        "balancedAccuracy": 0.769245,
+        "precision": 0.782051,
+        "recall": 0.953125,
+        "specificity": 0.585366,
+        "npv": 0.888889,
+        "f1Score": 0.859155,
+        "mcc": 0.601078,
+        "aucRoc": 0.932355,
+        "logLoss": 0.429657,
+        "confusionMatrix": {
+          "tn": 24,
+          "fp": 17,
+          "fn": 3,
+          "tp": 61
+        },
+        "trainExecutionTimeSeconds": 5.227678,
+        "testExecutionTimeSeconds": 2.964347,
+        "totalExecutionTimeSeconds": 8.192026,
+        "peakMemoryMb": 0.993934,
+        "trainEnergyKwh": 5.2e-05,
+        "trainEnergyJ": 185.608581,
+        "testEnergyKwh": 1.6e-05,
+        "testEnergyJ": 57.439383,
+        "energyPerPredictionJ": 0.547042,
+        "accuracyPerJoule": 0.003331,
+        "f1PerJoule": 0.003535,
+        "energyMeasurementStatus": "estimated"
+      },
+      "artifactPaths": {
+        "pipeline": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\model_versions\\6a06f427aa5143427edfcb51\\rf_pipeline.pkl"
+      }
+    },
+    {
+      "modelKey": "deep_neural_network",
+      "modelLabel": "Deep Neural Network",
+      "versionType": "old",
+      "status": "available",
+      "metrics": {
+        "accuracy": 0.92381,
+        "balancedAccuracy": 0.915587,
+        "precision": 0.924242,
+        "recall": 0.953125,
+        "specificity": 0.878049,
+        "npv": 0.923077,
+        "f1Score": 0.938462,
+        "mcc": 0.839208,
+        "aucRoc": 0.990091,
+        "logLoss": 0.176279,
+        "confusionMatrix": {
+          "tn": 36,
+          "fp": 5,
+          "fn": 3,
+          "tp": 61
+        },
+        "mse": 0.048555,
+        "rmse": 0.220351,
+        "mae": 0.137133,
+        "r2": 0.795993,
+        "trainExecutionTimeSeconds": null,
+        "testExecutionTimeSeconds": 3.082432,
+        "totalExecutionTimeSeconds": 3.082432,
+        "peakMemoryMb": 0.843492,
+        "trainEnergyKwh": null,
+        "trainEnergyJ": null,
+        "testEnergyKwh": 1.7e-05,
+        "testEnergyJ": 61.56416,
+        "energyPerPredictionJ": 0.586325,
+        "accuracyPerJoule": 0.015006,
+        "f1PerJoule": 0.015244,
+        "energyMeasurementStatus": "estimated"
+      },
+      "artifactPaths": {
+        "active": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\dnn_model.keras"
+      }
+    },
+    {
+      "modelKey": "deep_neural_network",
+      "modelLabel": "Deep Neural Network",
+      "versionType": "new",
+      "status": "available",
+      "metrics": {
+        "accuracy": 0.857143,
+        "balancedAccuracy": 0.834604,
+        "precision": 0.84507,
+        "recall": 0.9375,
+        "specificity": 0.731707,
+        "npv": 0.882353,
+        "f1Score": 0.888889,
+        "mcc": 0.697708,
+        "aucRoc": 0.940549,
+        "logLoss": 0.325556,
+        "confusionMatrix": {
+          "tn": 30,
+          "fp": 11,
+          "fn": 4,
+          "tp": 60
+        },
+        "mse": 0.104125,
+        "rmse": 0.322684,
+        "mae": 0.223104,
+        "r2": 0.562509,
+        "trainExecutionTimeSeconds": 7.115999,
+        "testExecutionTimeSeconds": 3.028435,
+        "totalExecutionTimeSeconds": 10.144434,
+        "peakMemoryMb": 2.890723,
+        "trainEnergyKwh": 7.9e-05,
+        "trainEnergyJ": 283.295359,
+        "testEnergyKwh": 1.7e-05,
+        "testEnergyJ": 60.468642,
+        "energyPerPredictionJ": 0.575892,
+        "accuracyPerJoule": 0.002493,
+        "f1PerJoule": 0.002586,
+        "energyMeasurementStatus": "estimated"
+      },
+      "artifactPaths": {
+        "preprocessor": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\model_versions\\6a06f427aa5143427edfcb51\\dnn_preprocessor.pkl",
+        "model": "D:\\noufar cdss - Copy - Copy\\ai-server\\exports\\model_versions\\6a06f427aa5143427edfcb51\\dnn_model.keras"
+      }
+    }
+  ],
+  "generatedAt": "2026-05-15T10:24:10.847776+00:00"
+}

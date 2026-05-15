@@ -25,6 +25,7 @@ const {
   getDoctorPredictionQuery,
   logCrossDoctorDenied,
 } = require("../services/doctorOwnershipService");
+const { upsertValidatedCaseFromPrediction } = require("../services/modelLearningService");
 
 const findPatientNameConflict = async (
   patientName,
@@ -899,6 +900,9 @@ const updatePrediction = async (req, res, next) => {
 
     Object.assign(prediction, updates);
     await prediction.save();
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "actualOutcome")) {
+      await upsertValidatedCaseFromPrediction(prediction, req.user);
+    }
 
     res.status(200).json(mergePredictionForResponse(prediction));
   } catch (error) {

@@ -1,11 +1,13 @@
 const express = require("express");
 
 const {
+  createPublicSupportContact,
   createDoctorSupportTicket,
   listDoctorSupportTickets,
   markDoctorSupportTicketsRead,
   listAdminSupportTickets,
   reviewAccessUpgradeRequest,
+  reviewUnlockAccountRequest,
   updateSupportTicketStatus,
   replyToSupportTicket,
   markAdminSupportTicketsRead,
@@ -21,6 +23,8 @@ const { supportCreateLimiter, supportReplyLimiter } = require("../middleware/rat
 
 const router = express.Router();
 
+router.post("/contact", supportCreateLimiter, createPublicSupportContact);
+
 router.post(
   "/tickets",
   protect,
@@ -35,6 +39,7 @@ router.patch("/tickets/mine/read", protect, authorize("doctor"), markDoctorSuppo
 router.get("/admin/tickets", protect, authorize("admin"), listAdminSupportTickets);
 router.patch("/admin/tickets/read", protect, authorize("admin"), markAdminSupportTicketsRead);
 router.patch("/admin/tickets/:id/access-upgrade", protect, authorize("admin"), reviewAccessUpgradeRequest);
+router.patch("/admin/tickets/:id/unlock-account", protect, authorize("admin"), reviewUnlockAccountRequest);
 router.patch("/admin/tickets/:id/status", protect, authorize("admin"), updateSupportTicketStatus);
 router.post(
   "/tickets/:id/reply",

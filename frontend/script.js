@@ -39,6 +39,7 @@ const deactivatedAccountReason = document.querySelector("#deactivated-account-re
 const deactivatedAccountUnderstood = document.querySelector("#deactivated-account-understood");
 const deletedAccountReason = document.querySelector("#deleted-account-reason");
 const deletedAccountUnderstood = document.querySelector("#deleted-account-understood");
+const blockedAccountContactSupport = document.querySelector("#blocked-account-contact-support");
 const uploadFields = {
   medicalLicense: registerForm?.elements?.medicalLicense ?? null,
   nationalId: registerForm?.elements?.nationalId ?? null,
@@ -66,6 +67,13 @@ const passwordRuleFormat = document.querySelector("#password-rule-format");
 const passwordRuleMatch = document.querySelector("#password-rule-match");
 let lastTrigger = null;
 let currentDocumentPreviewUrl = "";
+let modalReturnTargetAfterPreview = null;
+let blockedAccountContext = {
+  name: "",
+  email: "",
+  institution: "",
+  reason: "",
+};
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const allowedUploadTypes = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp"]);
 const allowedUploadExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".webp"];
@@ -104,6 +112,76 @@ if (deletedAccountUnderstood) {
     clearDoctorSession();
     closeModals();
     window.location.href = "index.html";
+  });
+}
+
+const prefillSupportUnlockRequest = () => {
+  if (!contactForm) return;
+
+  const nameField = contactForm.elements.name;
+  const emailField = contactForm.elements.email;
+  const institutionField = contactForm.elements.institution;
+  const topicField = contactForm.elements.topic;
+  const priorityField = contactForm.elements.priority;
+  const messageField = contactForm.elements.message;
+  const privacyField = contactForm.elements.privacy;
+
+  if (nameField && blockedAccountContext.name) {
+    nameField.value = blockedAccountContext.name;
+  }
+  if (emailField && blockedAccountContext.email) {
+    emailField.value = blockedAccountContext.email;
+  }
+  if (institutionField && blockedAccountContext.institution) {
+    institutionField.value = blockedAccountContext.institution;
+  }
+  if (topicField) {
+    topicField.value = "Unlock account";
+  }
+  if (priorityField) {
+    priorityField.value = "High";
+  }
+  if (messageField) {
+    messageField.value = [
+      "Hello NOUFAR CDSS support team,",
+      "",
+      "My account is currently blocked and I would like to request an account unblock review.",
+      blockedAccountContext.reason ? `Blocked reason shown: ${blockedAccountContext.reason}` : "",
+      "",
+      "Thank you.",
+    ].filter(Boolean).join("\n");
+  }
+  if (privacyField) {
+    privacyField.checked = true;
+  }
+};
+
+const applySupportPrefillFromUrl = () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("support") !== "unlock") return;
+
+  blockedAccountContext = {
+    name: params.get("name") || "",
+    email: params.get("email") || "",
+    institution: params.get("institution") || "",
+    reason: params.get("reason") || "",
+  };
+  prefillSupportUnlockRequest();
+  window.setTimeout(() => {
+    document.querySelector("#support")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 120);
+};
+
+if (blockedAccountContactSupport) {
+  blockedAccountContactSupport.addEventListener("click", () => {
+    closeModals();
+    clearDoctorSession();
+    window.location.hash = "support";
+    window.setTimeout(() => {
+      prefillSupportUnlockRequest();
+      document.querySelector("#support")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      contactForm?.querySelector('input[name="name"]')?.focus({ preventScroll: true });
+    }, 80);
   });
 }
 
@@ -333,6 +411,7 @@ const openUploadPreview = (fieldName) => {
     return;
   }
 
+  modalReturnTargetAfterPreview = "register";
   openModal("documentPreview");
 };
 
@@ -730,9 +809,18 @@ window.addEventListener("load", () => {
 const closeModals = () => {
   if (!modalLayer) return;
 
+  if (!modals.documentPreview?.hidden && modalReturnTargetAfterPreview && modals[modalReturnTargetAfterPreview]) {
+    const returnTarget = modalReturnTargetAfterPreview;
+    modalReturnTargetAfterPreview = null;
+    resetDocumentPreview();
+    openModal(returnTarget);
+    return;
+  }
+
   modalLayer.classList.remove("is-open");
   modalLayer.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
+  modalReturnTargetAfterPreview = null;
 
   Object.values(modals).forEach((modal) => {
     if (modal) {
@@ -757,6 +845,10 @@ const closeModals = () => {
 const openModal = (name, trigger) => {
   const modal = modals[name];
   if (!modal || !modalLayer) return;
+
+  if (name !== "documentPreview") {
+    modalReturnTargetAfterPreview = null;
+  }
 
   if (name !== "twoStep") {
     clearPendingTwoStepLogin();
@@ -817,19 +909,46 @@ document.addEventListener("keydown", (event) => {
 });
 
 syncModalFromUrl();
+applySupportPrefillFromUrl();
 validateExistingDoctorSession();
 
 if (contactForm && formNote) {
-  contactForm.addEventListener("submit", (event) => {
+  contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (!contactForm.reportValidity()) {
-      formNote.textContent = "Please complete the required fields before sending your request.";
+      setFormMessage(formNote, "Please complete the required fields before sending your request.", "error");
       return;
     }
 
-    formNote.textContent = "Thank you. Your support request has been prepared for the NOUFAR CDSS team.";
-    contactForm.reset();
+    const formData = new FormData(contactForm);
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const institution = String(formData.get("institution") || "").trim();
+    const phone = String(formData.get("phone") || "").trim();
+    const topic = String(formData.get("topic") || "").trim();
+    const priority = String(formData.get("priority") || "").trim();
+    const message = String(formData.get("message") || "").trim();
+    try {
+      await requestJson("/support/contact", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          email,
+          institution,
+          phone,
+          topic,
+          priority,
+          message,
+          privacy: Boolean(formData.get("privacy")),
+        }),
+      });
+
+      setFormMessage(formNote, "Your support request has been sent. The admin team has been notified.", "success");
+      contactForm.reset();
+    } catch (error) {
+      setFormMessage(formNote, error.message || "Unable to send your support request right now.", "error");
+    }
   });
 }
 
@@ -937,9 +1056,15 @@ if (loginForm && loginNote) {
       }
       if (error.status === 403 && error.payload?.code === "ACCOUNT_DELETED") {
         setFormMessage(loginNote, "", "default");
+        blockedAccountContext = {
+          name: error.payload?.doctorName || "",
+          email: error.payload?.email || loginForm?.elements?.email?.value?.trim() || "",
+          institution: error.payload?.institution || "",
+          reason: error.payload?.reason || "",
+        };
         if (deletedAccountReason) {
           deletedAccountReason.textContent =
-            error.payload?.reason || "No reason was provided by the admin.";
+            error.payload?.reason || "No block reason was provided.";
         }
         openModal("deletedAccount");
         return;
@@ -1198,3 +1323,6 @@ if (registerForm && registerNote) {
     }
   });
 }
+  if (nameField && !nameField.value.trim()) {
+    nameField.value = "Blocked account user";
+  }

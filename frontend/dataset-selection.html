@@ -144,13 +144,11 @@
             <span>Dashboard</span>
           </a>
           <a class="sidebar-link active" href="new-prediction.html">
-            <img class="sidebar-icon-image" src="assets/sidebar-plus-icon.png" alt="" aria-hidden="true" />
+            <img class="sidebar-icon-image" src="assets/predictions.png" alt="" aria-hidden="true" />
             <span>New Prediction</span>
           </a>
           <a class="sidebar-link" href="history.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/history.png" alt="" aria-hidden="true" />
             <span>Predictions</span>
           </a>
           <a class="sidebar-link" href="patients.html">
@@ -158,9 +156,7 @@
             <span>Patients</span>
           </a>
           <a class="sidebar-link" href="doctor-inbox.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/inbox.png" alt="" aria-hidden="true" />
             <span>Inbox</span>
           </a>
         </nav>
@@ -295,13 +291,15 @@
                   </div>
 
                   <div class="dataset-toolbar-actions">
-                    <button class="btn btn-secondary btn-sm" type="button" id="dataset-expand-table" aria-label="Agrandir le tableau">
+                    <div class="dataset-search-shell" role="search">
+                      <svg class="dataset-search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <input type="search" id="dataset-search" placeholder="Search patient or ID..." aria-label="Search patient or ID" />
+                    </div>
+                    <button class="dataset-expand-button" type="button" id="dataset-expand-table" aria-label="Expand table" title="Expand table">
                       <img class="dataset-expand-icon" src="assets/agrandir.png?v=20260512" alt="" aria-hidden="true" />
                     </button>
-                    <label class="field">
-                      <span>Search patient or ID</span>
-                      <input type="search" id="dataset-search" placeholder="Search uploaded dataset..." />
-                    </label>
                   </div>
                 </div>
 
@@ -313,23 +311,18 @@
 
                   <div class="dataset-filter-grid">
                     <label class="field dataset-filter-field">
+                      <span>Sex</span>
+                      <select id="dataset-filter-sex">
+                        <option value="">All sexes</option>
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                      </select>
+                    </label>
+
+                    <label class="field dataset-filter-field">
                       <span>Consultation reason</span>
                       <select id="dataset-filter-consultation">
                         <option value="">All reasons</option>
-                      </select>
-                    </label>
-
-                    <label class="field dataset-filter-field">
-                      <span>Ultrasound</span>
-                      <select id="dataset-filter-ultrasound">
-                        <option value="">All ultrasound findings</option>
-                      </select>
-                    </label>
-
-                    <label class="field dataset-filter-field">
-                      <span>TSI status</span>
-                      <select id="dataset-filter-tsi">
-                        <option value="">All TSI profiles</option>
                       </select>
                     </label>
 
@@ -374,9 +367,7 @@
                 <div class="outcome-title">Prediction Outcome</div>
                 <div class="outcome-state awaiting" id="selection-outcome-state">
                   <div class="outcome-icon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3Z" />
-                    </svg>
+                    <img class="outcome-status-image outcome-status-image-awaiting" src="assets/Ia awaiting.png" alt="" aria-hidden="true" />
                   </div>
                   <strong id="selection-outcome-heading">Awaiting Data Input</strong>
                   <p id="selection-outcome-text">
@@ -401,8 +392,11 @@
                     <span>Probability and explanatory variables will appear after model execution.</span>
                   </div>
                   <div class="outcome-actions">
-                    <button class="btn btn-secondary btn-sm outcome-print-button" id="selection-print-report-button" type="button" hidden>
-                      Print Report
+                    <button class="btn btn-primary btn-sm outcome-details-button" id="selection-view-prediction-details-button" type="button" hidden>
+                      View prediction details
+                    </button>
+                    <button class="btn btn-secondary btn-sm outcome-print-button" id="selection-print-report-button" type="button" hidden aria-label="Print report" title="Print report">
+                      <img src="assets/printer.png" alt="" aria-hidden="true" />
                     </button>
                   </div>
                   <div class="impact-section">
@@ -506,6 +500,6 @@
     <script src="/config.js"></script>
     <script src="app-shell.js?v=20260507-sidebarfix"></script>
     <script src="/config.js"></script>
-    <script src="dataset-selection.js?v=20260502c"></script>
+    <script src="dataset-selection.js?v=20260514-outcome-actions"></script>
   </body>
 </html>

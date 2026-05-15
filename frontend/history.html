@@ -36,13 +36,11 @@
             <span>Dashboard</span>
           </a>
           <a class="sidebar-link" href="new-prediction.html">
-            <img class="sidebar-icon-image" src="assets/sidebar-plus-icon.png" alt="" aria-hidden="true" />
+            <img class="sidebar-icon-image" src="assets/predictions.png" alt="" aria-hidden="true" />
             <span>New Prediction</span>
           </a>
           <a class="sidebar-link active" href="history.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12a7 7 0 1 0 2-4.9M5 4v5h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/history.png" alt="" aria-hidden="true" />
             <span>Predictions</span>
           </a>
           <a class="sidebar-link" href="patients.html">
@@ -50,9 +48,7 @@
             <span>Patients</span>
           </a>
           <a class="sidebar-link" href="doctor-inbox.html">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 6.5h5l1.5 2h3L15 14h5" />
-            </svg>
+            <img class="sidebar-icon-image" src="assets/inbox.png" alt="" aria-hidden="true" />
             <span>Inbox</span>
           </a>
         </nav>
@@ -145,7 +141,14 @@
                 <span class="dashboard-pill">Manual and imported cases</span>
               </div>
               <div class="prediction-page-hero-actions">
-                <a class="btn btn-primary btn-sm" href="new-prediction.html">Add New Prediction</a>
+                <a class="btn-add-prediction" href="new-prediction.html">
+                  <span class="btn-add-prediction-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  <span>Add New Prediction</span>
+                </a>
               </div>
             </div>
           </section>
@@ -161,6 +164,9 @@
                 </i>
               </div>
               <strong class="stat-number" id="history-total">0</strong>
+              <div class="stat-progress-track" aria-hidden="true">
+                <i class="stat-progress-fill" id="history-total-bar"></i>
+              </div>
               <p class="stat-note">Indexed patient predictions</p>
             </article>
 
@@ -174,7 +180,26 @@
                 </i>
               </div>
               <strong class="stat-number" id="history-relapse">0</strong>
+              <div class="stat-progress-track" aria-hidden="true">
+                <i class="stat-progress-fill" id="history-relapse-bar"></i>
+              </div>
               <p class="stat-note stat-note-critical">Higher monitoring priority</p>
+            </article>
+
+            <article class="stat-card stat-card-green">
+              <div class="stat-card-head">
+                <span>Non-Relapse Cases</span>
+                <i class="stat-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m5 12 4 4L19 6" />
+                  </svg>
+                </i>
+              </div>
+              <strong class="stat-number" id="history-no-relapse">0</strong>
+              <div class="stat-progress-track" aria-hidden="true">
+                <i class="stat-progress-fill" id="history-no-relapse-bar"></i>
+              </div>
+              <p class="stat-note">Stable patient profiles</p>
             </article>
 
             <article class="stat-card stat-card-navy">
@@ -187,6 +212,9 @@
                 </i>
               </div>
               <strong class="stat-number" id="history-manual">0</strong>
+              <div class="stat-progress-track" aria-hidden="true">
+                <i class="stat-progress-fill" id="history-manual-bar"></i>
+              </div>
               <p class="stat-note">Captured during direct entry workflow</p>
             </article>
 
@@ -200,6 +228,9 @@
                 </i>
               </div>
               <strong class="stat-number" id="history-imported">0</strong>
+              <div class="stat-progress-track" aria-hidden="true">
+                <i class="stat-progress-fill" id="history-imported-bar"></i>
+              </div>
               <p class="stat-note">Excel and CSV upload records</p>
             </article>
           </section>

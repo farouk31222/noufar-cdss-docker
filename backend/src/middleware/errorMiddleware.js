@@ -46,6 +46,9 @@ const errorHandler = (err, req, res, next) => {
     message: err.message,
     code: err.code || null,
     reason: err.reason || null,
+    email: err.email || null,
+    doctorName: err.doctorName || null,
+    institution: err.institution || null,
     stack: process.env.NODE_ENV === "production" ? null : err.stack,
   });
 };

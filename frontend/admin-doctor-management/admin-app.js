@@ -3,6 +3,7 @@
   const AUTH_KEY = "noufar-admin-auth-v1";
   const UI_KEY = "noufar-admin-ui-v1";
   const API_BASE_URL = window.NOUFAR_API_BASE_URL || "http://localhost:5000/api";
+  const ADMIN_SUPPORT_AVATAR_URL = "../assets/Admin profileee.png";
   const DEFAULT_SYSTEM_MODEL = "Logistic Regression";
   const DEFAULT_SELECTION_POLICY = "manual";
   const SYSTEM_MODEL_OPTIONS = [
@@ -367,10 +368,11 @@
     }
 
     const normalizedPath = String(path || "").trim();
+    const apiOrigin = API_BASE_URL.replace(/\/api\/?$/i, "");
     const requestUrl = /^https?:/i.test(normalizedPath)
       ? normalizedPath
       : normalizedPath.startsWith("/api/")
-        ? `${window.NOUFAR_API_BASE_URL || "http://localhost:5000"}${normalizedPath}`
+        ? `${apiOrigin}${normalizedPath}`
         : `${API_BASE_URL}${normalizedPath}`;
 
     const makeRequest = async (token) =>
@@ -698,6 +700,7 @@
       supportTicketIds: Array.isArray(user.supportTicketIds) ? user.supportTicketIds : [],
       rejectionReason: user.rejectionReason || "",
       deletionReason: user.deletionReason || "",
+      profilePhoto: user.profilePhoto || "",
       avatarInitials: buildDoctorInitials(user.name),
       statusHistory:
         Array.isArray(user.statusHistory) && user.statusHistory.length
@@ -796,6 +799,9 @@
     return {
       id: ticket.id,
       doctorId: ticket.doctorId,
+      doctorName: ticket.doctorName || ticket.contactRequest?.name || "Public contact",
+      doctorEmail: ticket.doctorEmail || ticket.contactRequest?.email || "",
+      contactRequest: ticket.contactRequest || null,
       subject: ticket.subject,
       category: ticket.category,
       priority: ticket.priority,
@@ -811,6 +817,14 @@
             reviewedAt: ticket.accessUpgradeRequest.reviewedAt || "",
             reviewedBy: ticket.accessUpgradeRequest.reviewedBy || "",
             reviewedReason: ticket.accessUpgradeRequest.reviewedReason || "",
+          }
+        : null,
+      unlockAccountRequest: ticket.unlockAccountRequest
+        ? {
+            decision: ticket.unlockAccountRequest.decision || "pending",
+            reviewedAt: ticket.unlockAccountRequest.reviewedAt || "",
+            reviewedBy: ticket.unlockAccountRequest.reviewedBy || "",
+            reviewedReason: ticket.unlockAccountRequest.reviewedReason || "",
           }
         : null,
       lastDoctorMessageAt: ticket.lastDoctorMessageAt,
@@ -877,10 +891,10 @@
           ${metaParts.length ? `<span>${escapeAdminHtml(metaParts.join(" • "))}</span>` : ""}
         </div>
         <div class="support-attachment-actions">
-          <button type="button" data-admin-support-attachment-open="${escapeAdminHtml(fileUrl)}" data-admin-support-attachment-name="${escapeAdminHtml(fileName)}" aria-label="Open file" title="Open file">
+          <button class="support-attachment-action support-attachment-action-open" type="button" data-admin-support-attachment-open="${escapeAdminHtml(fileUrl)}" data-admin-support-attachment-name="${escapeAdminHtml(fileName)}" aria-label="Open file" title="Open file">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.5h5.5L19 9v10.5A1.5 1.5 0 0 1 17.5 21h-9A1.5 1.5 0 0 1 7 19.5v-14A1.5 1.5 0 0 1 8.5 4h4.5"></path><path d="M13 4v5h5"></path><path d="M10 13h4"></path><path d="M10 16h4"></path></svg>
           </button>
-          <button type="button" data-admin-support-attachment-download="${escapeAdminHtml(fileUrl)}" data-admin-support-attachment-name="${escapeAdminHtml(fileName)}" aria-label="Download file" title="Download file">
+          <button class="support-attachment-action support-attachment-action-download" type="button" data-admin-support-attachment-download="${escapeAdminHtml(fileUrl)}" data-admin-support-attachment-name="${escapeAdminHtml(fileName)}" aria-label="Download file" title="Download file">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 19h14"></path></svg>
           </button>
         </div>
@@ -1224,7 +1238,19 @@
         body: JSON.stringify({ reason: finalReason }),
       });
 
-      state.doctors = state.doctors.filter((entry) => entry.id !== id);
+      const updatedDoctor = response?.user ? mapBackendUserToDoctor(response.user) : null;
+      if (updatedDoctor) {
+        const index = state.doctors.findIndex((entry) => entry.id === id);
+        if (index > -1) {
+          state.doctors[index] = {
+            ...state.doctors[index],
+            ...updatedDoctor,
+            approvalStatus: "Rejected",
+            accountStatus: "Inactive",
+            rejectionReason: finalReason,
+          };
+        }
+      }
 
       addAuditLog("Rejected doctor registration", id);
       persistState();
@@ -1291,6 +1317,7 @@
   async function reactivateDoctor(id) {
     const doctor = getDoctorById(id);
     if (!doctor) return false;
+    const wasBlocked = doctor.accountStatus === "Deleted";
 
     try {
       const response = await requestAdminJson(`/auth/admin/users/${id}/activate`, {
@@ -1309,7 +1336,7 @@
             statusHistory: [
               {
                 date: new Date().toISOString(),
-                label: "Doctor account activated",
+                label: wasBlocked ? "Doctor account unblocked" : "Doctor account activated",
                 by: "Admin Sarah M."
               },
               ...(state.doctors[index].statusHistory || []),
@@ -1318,22 +1345,22 @@
         }
       }
 
-      addAuditLog("Activated doctor account", id);
+      addAuditLog(wasBlocked ? "Unblocked doctor account" : "Activated doctor account", id);
       persistState();
 
       if (response?.emailStatus === "sent") {
-        showToast(`${doctor.name} activated and email sent.`);
+        showToast(`${doctor.name} ${wasBlocked ? "unblocked" : "activated"} and email sent.`);
       } else if (response?.emailStatus === "skipped") {
-        showToast(`${doctor.name} activated. Configure SMTP to send the email.`, "danger");
+        showToast(`${doctor.name} ${wasBlocked ? "unblocked" : "activated"}. Configure SMTP to send the email.`, "danger");
       } else if (response?.emailStatus === "failed") {
-        showToast(`${doctor.name} activated, but the email could not be delivered.`, "danger");
+        showToast(`${doctor.name} ${wasBlocked ? "unblocked" : "activated"}, but the email could not be delivered.`, "danger");
       } else {
-        showToast(`${doctor.name} activated.`);
+        showToast(`${doctor.name} ${wasBlocked ? "unblocked" : "activated"}.`);
       }
 
       return true;
     } catch (error) {
-      showToast(error.message || "Unable to activate this doctor right now.", "danger");
+      showToast(error.message || `Unable to ${wasBlocked ? "unblock" : "activate"} this doctor right now.`, "danger");
       return false;
     }
   }
@@ -1384,7 +1411,7 @@
     if (!doctor) return false;
 
     try {
-      const finalReason = String(reason || "").trim() || "No deletion reason was provided.";
+      const finalReason = String(reason || "").trim() || "No block reason was provided.";
       const response = await requestAdminJson(`/auth/admin/users/${id}/delete`, {
         method: "PATCH",
         body: JSON.stringify({ reason: finalReason }),
@@ -1402,7 +1429,7 @@
             statusHistory: [
               {
                 date: new Date().toISOString(),
-                label: `Doctor account deleted: ${finalReason}`,
+                label: `Doctor account blocked: ${finalReason}`,
                 by: "Admin Sarah M."
               },
               ...(state.doctors[index].statusHistory || []),
@@ -1411,22 +1438,22 @@
         }
       }
 
-      addAuditLog("Deleted doctor account", id);
+      addAuditLog("Blocked doctor account", id);
       persistState();
 
       if (response?.emailStatus === "sent") {
-        showToast(`${doctor.name} deleted and email sent.`, "danger");
+        showToast(`${doctor.name} blocked and email sent.`, "danger");
       } else if (response?.emailStatus === "skipped") {
-        showToast(`${doctor.name} deleted. Configure SMTP to send the email.`, "danger");
+        showToast(`${doctor.name} blocked. Configure SMTP to send the email.`, "danger");
       } else if (response?.emailStatus === "failed") {
-        showToast(`${doctor.name} deleted, but the email could not be delivered.`, "danger");
+        showToast(`${doctor.name} blocked, but the email could not be delivered.`, "danger");
       } else {
-        showToast(`${doctor.name} deleted.`, "danger");
+        showToast(`${doctor.name} blocked.`, "danger");
       }
 
       return true;
     } catch (error) {
-      showToast(error.message || "Unable to delete this doctor account right now.", "danger");
+      showToast(error.message || "Unable to block this doctor account right now.", "danger");
       return false;
     }
   }
@@ -1469,7 +1496,10 @@
       }
       addAuditLog("Replied to doctor support ticket", id);
       persistState();
-      showToast("Support reply sent.");
+      showToast(
+        response?.message || "Support reply sent.",
+        response?.emailStatus === "failed" || response?.emailStatus === "skipped" ? "warning" : "success"
+      );
       return nextTicket;
     }
 
@@ -1518,6 +1548,51 @@
     }
 
     throw new Error("Access upgrade request could not be reviewed.");
+  }
+
+  async function reviewUnlockAccount(id, decision, reason = "") {
+    const response = await requestAdminJson(`/support/admin/tickets/${id}/unlock-account`, {
+      method: "PATCH",
+      body: JSON.stringify({ decision, reason }),
+    });
+
+    if (response?.ticket) {
+      const nextTicket = mapBackendTicketToTicket(response.ticket);
+      const ticketIndex = state.tickets.findIndex((ticket) => ticket.id === id);
+      if (ticketIndex > -1) {
+        state.tickets[ticketIndex] = nextTicket;
+      } else {
+        state.tickets.unshift(nextTicket);
+      }
+
+      if (response?.doctor?.id) {
+        const doctorIndex = state.doctors.findIndex((doctor) => doctor.id === response.doctor.id);
+        if (doctorIndex > -1) {
+          state.doctors[doctorIndex] = {
+            ...state.doctors[doctorIndex],
+            accountStatus: response.doctor.accountStatus || state.doctors[doctorIndex].accountStatus,
+            deletionReason: decision === "approve" ? "" : state.doctors[doctorIndex].deletionReason,
+            deactivationReason: decision === "approve" ? "" : state.doctors[doctorIndex].deactivationReason,
+          };
+        }
+      }
+
+      addAuditLog(
+        decision === "approve" ? "Approved doctor account unblock request" : "Refused doctor account unblock request",
+        id
+      );
+      persistState();
+      showToast(
+        response?.message ||
+          (decision === "approve"
+            ? "Doctor account unblocked successfully."
+            : "Doctor account unblock request refused."),
+        decision === "approve" ? "success" : "warning"
+      );
+      return nextTicket;
+    }
+
+    throw new Error("Account unblock request could not be reviewed.");
   }
 
   async function deleteSupportThread(id) {
@@ -1857,10 +1932,10 @@
     if (!points.length) return;
     const max = Math.max(...points.map((entry) => entry.value), 1);
     const width = 900;
-    const height = 300;
+    const height = 320;
     const chartLeft = 72;
     const chartRight = width - 32;
-    const chartTop = 34;
+    const chartTop = 40;
     const chartBottom = height - 40;
     const chartWidth = chartRight - chartLeft;
     const step = chartWidth / (points.length - 1 || 1);
@@ -1872,10 +1947,70 @@
         return { ...entry, x, y };
       });
 
-    const pointString = chartPoints.map((entry) => `${entry.x},${entry.y}`).join(" ");
-    const areaPath = `M ${chartPoints[0].x} ${chartBottom} L ${chartPoints
-      .map((entry) => `${entry.x} ${entry.y}`)
-      .join(" L ")} L ${chartPoints[chartPoints.length - 1].x} ${chartBottom} Z`;
+    // Monotone cubic interpolation (Fritsch-Carlson) — prevents overshoot below 0
+    const buildMonotonePath = (pts) => {
+      if (pts.length < 2) return "";
+      const n = pts.length;
+      const dx = new Array(n - 1);
+      const dy = new Array(n - 1);
+      const m = new Array(n - 1); // segment slopes
+
+      for (let i = 0; i < n - 1; i++) {
+        dx[i] = pts[i + 1].x - pts[i].x;
+        dy[i] = pts[i + 1].y - pts[i].y;
+        m[i] = dx[i] === 0 ? 0 : dy[i] / dx[i];
+      }
+
+      // Initial tangents at each point
+      const tangents = new Array(n);
+      tangents[0] = m[0];
+      tangents[n - 1] = m[n - 2];
+      for (let i = 1; i < n - 1; i++) {
+        if (m[i - 1] * m[i] <= 0) {
+          tangents[i] = 0; // local extremum or flat → no slope
+        } else {
+          tangents[i] = (m[i - 1] + m[i]) / 2;
+        }
+      }
+
+      // Adjust tangents to ensure monotonicity (no overshoot)
+      for (let i = 0; i < n - 1; i++) {
+        if (m[i] === 0) {
+          tangents[i] = 0;
+          tangents[i + 1] = 0;
+        } else {
+          const a = tangents[i] / m[i];
+          const b = tangents[i + 1] / m[i];
+          const r = a * a + b * b;
+          if (r > 9) {
+            const factor = 3 / Math.sqrt(r);
+            tangents[i] = factor * a * m[i];
+            tangents[i + 1] = factor * b * m[i];
+          }
+        }
+      }
+
+      // Build cubic Bezier path from Hermite tangents
+      let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+      for (let i = 0; i < n - 1; i++) {
+        const x0 = pts[i].x;
+        const y0 = pts[i].y;
+        const x1 = pts[i + 1].x;
+        const y1 = pts[i + 1].y;
+        const m0 = tangents[i];
+        const m1 = tangents[i + 1];
+        const h = (x1 - x0) / 3;
+        const cp1x = x0 + h;
+        const cp1y = y0 + m0 * h;
+        const cp2x = x1 - h;
+        const cp2y = y1 - m1 * h;
+        d += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+      }
+      return d;
+    };
+
+    const smoothPath = buildMonotonePath(chartPoints);
+    const areaPath = `${smoothPath} L ${chartPoints[chartPoints.length - 1].x.toFixed(2)} ${chartBottom} L ${chartPoints[0].x.toFixed(2)} ${chartBottom} Z`;
     const maxLabel = Math.max(...points.map((entry) => entry.value), 0);
     const gridLabels = [0, 0.25, 0.5, 0.75, 1]
       .map((ratio) => Math.round(maxLabel * ratio))
@@ -1886,50 +2021,69 @@
       latestNonZeroIndex === -1 ? null : chartPoints[chartPoints.length - 1 - latestNonZeroIndex];
 
     host.innerHTML = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" class="pro-line-chart" role="img" aria-label="Registration activity chart">
         <defs>
           <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#67f0ff"></stop>
-            <stop offset="100%" stop-color="#3a83ff"></stop>
+            <stop offset="0%" stop-color="#76ebff"></stop>
+            <stop offset="50%" stop-color="#4ba0ff"></stop>
+            <stop offset="100%" stop-color="#3a6ff5"></stop>
           </linearGradient>
           <linearGradient id="line-fill" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="rgba(87,159,255,0.28)"></stop>
-            <stop offset="100%" stop-color="rgba(87,159,255,0)"></stop>
+            <stop offset="0%" stop-color="rgba(118, 235, 255, 0.32)"></stop>
+            <stop offset="60%" stop-color="rgba(75, 160, 255, 0.12)"></stop>
+            <stop offset="100%" stop-color="rgba(75, 160, 255, 0)"></stop>
           </linearGradient>
+          <radialGradient id="point-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(118, 235, 255, 0.85)"></stop>
+            <stop offset="100%" stop-color="rgba(118, 235, 255, 0)"></stop>
+          </radialGradient>
           <filter id="chartGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="6" result="glow" />
+            <feGaussianBlur stdDeviation="4" result="glow" />
             <feMerge>
               <feMergeNode in="glow" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" />
+          </filter>
         </defs>
-        ${gridLabels
-          .map((label, index) => {
-            const ratio = maxLabel ? label / maxLabel : index / (gridLabels.length - 1 || 1);
-            const y = chartBottom - ratio * (chartBottom - chartTop);
-            return `
-              <line x1="${chartLeft}" y1="${y}" x2="${chartRight}" y2="${y}" stroke="rgba(134, 154, 196, 0.12)" stroke-dasharray="6 6"></line>
-              <text x="18" y="${y + 4}" fill="#7f90b4" font-size="14" font-weight="600">${label}</text>
-            `;
-          })
-          .join("")}
-        <path d="${areaPath}" fill="url(#line-fill)"></path>
-        <polyline fill="none" stroke="url(#line-gradient)" filter="url(#chartGlow)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" points="${pointString}"></polyline>
-        ${chartPoints
-          .map(
-            (entry) => `
-              <g>
-                <circle cx="${entry.x}" cy="${entry.y}" r="8" fill="#0f1524" stroke="#4b93ff" stroke-width="4"></circle>
-                ${
-                  entry.value > 0 && (entry.value === peakValue || entry === latestNonZeroPoint)
-                    ? `<text x="${entry.x - (entry === latestNonZeroPoint ? 8 : 0)}" y="${entry.y - 18}" text-anchor="${entry === latestNonZeroPoint ? "end" : "middle"}" fill="#ffffff" font-size="14" font-weight="800">${entry.value}</text>`
-                    : ""
-                }
-              </g>
-            `
-          )
-          .join("")}
+        <g class="chart-grid">
+          ${gridLabels
+            .map((label, index) => {
+              const ratio = maxLabel ? label / maxLabel : index / (gridLabels.length - 1 || 1);
+              const y = chartBottom - ratio * (chartBottom - chartTop);
+              return `
+                <line x1="${chartLeft}" y1="${y}" x2="${chartRight}" y2="${y}" stroke="rgba(134, 154, 196, 0.1)" stroke-dasharray="4 6"></line>
+                <text x="${chartLeft - 14}" y="${y + 4}" fill="#7f90b4" font-size="13" font-weight="600" text-anchor="end">${label}</text>
+              `;
+            })
+            .join("")}
+        </g>
+        <path d="${areaPath}" fill="url(#line-fill)" class="chart-area"></path>
+        <path d="${smoothPath}" fill="none" stroke="url(#line-gradient)" filter="url(#chartGlow)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="chart-line"></path>
+        <g class="chart-points">
+          ${chartPoints
+            .map((entry) => {
+              const isPeak = entry.value > 0 && entry.value === peakValue;
+              const isLatest = entry === latestNonZeroPoint;
+              const showLabel = isPeak || isLatest;
+              const labelY = entry.y - 22;
+              return `
+                <g class="chart-point${isPeak ? " is-peak" : ""}${isLatest ? " is-latest" : ""}">
+                  ${isPeak || isLatest ? `<circle cx="${entry.x}" cy="${entry.y}" r="16" fill="url(#point-glow)" opacity="0.55"></circle>` : ""}
+                  <circle cx="${entry.x}" cy="${entry.y}" r="6" fill="#0f1524" stroke="#76ebff" stroke-width="2.5"></circle>
+                  ${showLabel ? `
+                    <g transform="translate(${entry.x}, ${labelY})">
+                      <rect x="-22" y="-13" width="44" height="22" rx="11" fill="rgba(15, 21, 36, 0.95)" stroke="rgba(118, 235, 255, 0.4)" stroke-width="1"></rect>
+                      <text x="0" y="3" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">${entry.value}</text>
+                    </g>
+                  ` : ""}
+                </g>
+              `;
+            })
+            .join("")}
+        </g>
       </svg>
     `;
 
@@ -2112,7 +2266,8 @@
   }
 
   function createBadgeMarkup(value, neutralFallback = false) {
-    return `<span class="badge ${slugifyBadge(value)}${neutralFallback ? " neutral" : ""}">${value}</span>`;
+    const label = value === "Deleted" ? "Blocked" : value;
+    return `<span class="badge ${slugifyBadge(value)}${neutralFallback ? " neutral" : ""}">${label}</span>`;
   }
 
   function formatSecurityEventAction(action = "") {
@@ -2206,8 +2361,8 @@
 
   function getDoctorRoleLabel(doctor) {
     return doctor?.doctorAccountType === "standard"
-      ? "Standard doctor"
-      : "Doctor with prediction";
+      ? "Standard"
+      : "Advanced";
   }
 
   function getSystemPredictionRecords() {
@@ -2455,6 +2610,118 @@
 
   }
 
+  function renderModelComparison(records) {
+    const host = document.getElementById("system-comparison-grid");
+    if (!host) return;
+
+    const activeModel = adminUi.systemModel || DEFAULT_SYSTEM_MODEL;
+    const modelColorMap = {
+      "Logistic Regression": "blue",
+      "Random Forest": "green",
+      "Deep Neural Network": "violet",
+    };
+
+    const computeMetrics = (modelLabel) => {
+      const modelRecords = records.filter(
+        (entry) => formatModelName(entry.modelName) === modelLabel
+      );
+      const validated = modelRecords.filter(
+        (entry) => entry.actualOutcome && entry.validationStatus !== "Pending"
+      );
+      const totalCount = modelRecords.length;
+      const validatedCount = validated.length;
+
+      const tp = validated.filter(
+        (e) => e.result === "Relapse" && e.actualOutcome === "Relapse"
+      ).length;
+      const fp = validated.filter(
+        (e) => e.result === "Relapse" && e.actualOutcome === "No Relapse"
+      ).length;
+      const fn = validated.filter(
+        (e) => e.result === "No Relapse" && e.actualOutcome === "Relapse"
+      ).length;
+      const tn = validated.filter(
+        (e) => e.result === "No Relapse" && e.actualOutcome === "No Relapse"
+      ).length;
+
+      // Accuracy = (TP + TN) / (TP + TN + FP + FN)
+      const accuracy = validatedCount ? Math.round(((tp + tn) / validatedCount) * 100) : 0;
+      // Precision = TP / (TP + FP)
+      const precisionRaw = tp + fp > 0 ? tp / (tp + fp) : 0;
+      const precision = tp + fp > 0 ? Math.round(precisionRaw * 100) : 0;
+      // Recall (Sensitivity) = TP / (TP + FN)
+      const recallRaw = tp + fn > 0 ? tp / (tp + fn) : 0;
+      const recall = tp + fn > 0 ? Math.round(recallRaw * 100) : 0;
+      // Specificity = TN / (TN + FP)
+      const specificity = tn + fp > 0 ? Math.round((tn / (tn + fp)) * 100) : 0;
+      // F1 Score = 2 * (precision * recall) / (precision + recall)
+      const f1Raw = precisionRaw + recallRaw > 0
+        ? (2 * precisionRaw * recallRaw) / (precisionRaw + recallRaw)
+        : 0;
+      const f1Score = Math.round(f1Raw * 100);
+
+      return {
+        label: modelLabel,
+        totalCount,
+        validatedCount,
+        accuracy,
+        precision,
+        recall,
+        specificity,
+        f1Score,
+      };
+    };
+
+    const stats = SYSTEM_MODEL_OPTIONS.map((option) => computeMetrics(option.label));
+
+    const bestOf = (key) => {
+      const max = Math.max(...stats.map((s) => s[key]));
+      return max > 0 ? max : -1;
+    };
+    const bestAccuracy = bestOf("accuracy");
+    const bestPrecision = bestOf("precision");
+    const bestRecall = bestOf("recall");
+    const bestSpecificity = bestOf("specificity");
+    const bestF1 = bestOf("f1Score");
+
+    const buildRow = (label, value, isBest, isPrimary) => `
+      <div class="comparison-row${isBest ? " is-best" : ""}${isPrimary ? " is-primary" : ""}">
+        <span class="comparison-row-label">${label}</span>
+        <strong>${value}%</strong>
+        ${isBest ? '<span class="comparison-row-badge">Top</span>' : ""}
+      </div>
+    `;
+
+    host.innerHTML = stats
+      .map((s) => {
+        const colorClass = modelColorMap[s.label] || "blue";
+        const isActive = s.label === activeModel;
+        return `
+          <article class="comparison-card comparison-card-${colorClass}${isActive ? " is-active" : ""}">
+            <header class="comparison-card-head">
+              <div>
+                <span class="comparison-card-kicker">${isActive ? "Active model" : "Available model"}</span>
+                <strong>${escapeAdminHtml(s.label)}</strong>
+              </div>
+              ${isActive ? '<span class="comparison-card-badge">In production</span>' : ""}
+            </header>
+            <div class="comparison-card-body">
+              ${buildRow("Accuracy", s.accuracy, s.accuracy === bestAccuracy && s.accuracy > 0, true)}
+              ${buildRow("Precision", s.precision, s.precision === bestPrecision && s.precision > 0)}
+              ${buildRow("Recall", s.recall, s.recall === bestRecall && s.recall > 0)}
+              ${buildRow("Specificity", s.specificity, s.specificity === bestSpecificity && s.specificity > 0)}
+              ${buildRow("F1 Score", s.f1Score, s.f1Score === bestF1 && s.f1Score > 0)}
+            </div>
+            <footer class="comparison-card-foot">
+              <span><b>${s.validatedCount}</b> validated</span>
+              <span><b>${s.totalCount}</b> total</span>
+            </footer>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
   function populateSystemPage() {
     const tableBody = document.getElementById("system-table-body");
     if (!tableBody) return;
@@ -2472,17 +2739,20 @@
     const updateMetrics = (records) => {
       const validatedCount = records.filter((entry) => entry.actualOutcome && entry.validationStatus !== "Pending").length;
       const correctCount = records.filter((entry) => entry.validationStatus === "Correct").length;
+      const incorrectCount = records.filter((entry) => entry.validationStatus === "Incorrect").length;
       const pendingCount = records.filter((entry) => !entry.actualOutcome || entry.validationStatus === "Pending").length;
       const accuracy = validatedCount ? Math.round((correctCount / validatedCount) * 100) : 0;
 
       const metricTotal = document.getElementById("system-total-predictions");
       const metricPending = document.getElementById("system-pending-corrections");
-      const metricValidated = document.getElementById("system-validated-predictions");
+      const metricCorrect = document.getElementById("system-correct-predictions");
+      const metricIncorrect = document.getElementById("system-incorrect-predictions");
       const metricAccuracy = document.getElementById("system-validation-accuracy");
 
       if (metricTotal) metricTotal.textContent = String(records.length);
       if (metricPending) metricPending.textContent = String(pendingCount);
-      if (metricValidated) metricValidated.textContent = String(validatedCount);
+      if (metricCorrect) metricCorrect.textContent = String(correctCount);
+      if (metricIncorrect) metricIncorrect.textContent = String(incorrectCount);
       if (metricAccuracy) metricAccuracy.textContent = `${accuracy}%`;
     };
 
@@ -2591,6 +2861,7 @@
       updateMetrics(filtered);
       renderSystemComparison(filtered);
       renderSystemReadiness(filtered);
+      renderModelComparison(getSystemPredictionRecords());
       renderTable(filtered);
     };
 
@@ -3070,6 +3341,7 @@
     const approvalFilter = document.getElementById("approval-filter");
     const accountFilter = document.getElementById("account-filter");
     const specialtyFilter = document.getElementById("specialty-filter");
+    const accessFilter = document.getElementById("access-filter");
     const dateFilter = document.getElementById("date-filter");
     const exportButton = document.getElementById("export-doctors");
     const summary = document.getElementById("doctor-table-summary");
@@ -3119,6 +3391,7 @@
       const approval = approvalFilter?.value || "all";
       const account = accountFilter?.value || "all";
       const specialty = specialtyFilter?.value || "all";
+      const access = accessFilter?.value || "all";
       const dateRange = dateFilter?.value || "all";
       const now = new Date("2026-04-20T12:00:00");
 
@@ -3129,6 +3402,7 @@
         const matchesApproval = approval === "all" || doctor.approvalStatus === approval;
         const matchesAccount = account === "all" || doctor.accountStatus === account;
         const matchesSpecialty = specialty === "all" || doctor.specialty === specialty;
+        const matchesAccess = access === "all" || doctor.doctorAccountType === access;
         let matchesDate = true;
         if (dateRange !== "all") {
           const registrationDate = new Date(doctor.registrationDate);
@@ -3137,7 +3411,7 @@
           if (dateRange === "30") matchesDate = diff <= 30;
           if (dateRange === "90") matchesDate = diff <= 90;
         }
-        return matchesKeyword && matchesApproval && matchesAccount && matchesSpecialty && matchesDate;
+        return matchesKeyword && matchesApproval && matchesAccount && matchesSpecialty && matchesAccess && matchesDate;
       });
 
       const totalItems = filtered.length;
@@ -3191,7 +3465,7 @@
       renderPagination(filtered.length);
     };
 
-    [search, approvalFilter, accountFilter, specialtyFilter, dateFilter].forEach((element) => {
+    [search, approvalFilter, accountFilter, specialtyFilter, accessFilter, dateFilter].forEach((element) => {
       if (!element) return;
       element.addEventListener("input", () => applyFilters(true));
       element.addEventListener("change", () => applyFilters(true));
@@ -3211,12 +3485,14 @@
         const approval = approvalFilter?.value || "all";
         const account = accountFilter?.value || "all";
         const specialty = specialtyFilter?.value || "all";
+        const access = accessFilter?.value || "all";
         const dateRange = dateFilter?.value || "all";
 
         if (keyword) query.set("search", keyword);
         if (approval && approval !== "all") query.set("approvalStatus", approval);
         if (account && account !== "all") query.set("accountStatus", account);
         if (specialty && specialty !== "all") query.set("specialty", specialty);
+        if (access && access !== "all") query.set("doctorAccountType", access);
         if (dateRange && dateRange !== "all") query.set("dateRange", dateRange);
 
         try {
@@ -3326,7 +3602,16 @@
           <span class="ctx-icon ctx-icon-danger">
             <svg viewBox="0 0 24 24"><path d="M9 3.75h6a1 1 0 0 1 1 1v1.25h3a.75.75 0 0 1 0 1.5h-1.05l-.82 11.04A2.25 2.25 0 0 1 14.89 20.75H9.11a2.25 2.25 0 0 1-2.24-2.21L6.05 7.5H5a.75.75 0 0 1 0-1.5h3V4.75a1 1 0 0 1 1-1Z" fill="currentColor"/></svg>
           </span>
-          <span class="ctx-label ctx-label-danger">Delete account</span>
+          <span class="ctx-label ctx-label-danger">Block account</span>
+        </button>`);
+      }
+
+      if (isApproved && isDeleted) {
+        items.push(`<button class="ctx-item" data-ctx-action="reactivate">
+          <span class="ctx-icon ctx-icon-success">
+            <svg viewBox="0 0 24 24"><path d="M9.55 17.05 4.5 12l1.4-1.4 3.65 3.65 8.55-8.55L19.5 7.1l-9.95 9.95Z" fill="currentColor"/></svg>
+          </span>
+          <span class="ctx-label ctx-label-success">Unblock account</span>
         </button>`);
       }
 
@@ -3368,8 +3653,21 @@
           return;
         }
         if (action === "reactivate") {
-          const ok = await reactivateDoctor(doctor.id);
-          if (ok) applyFilters();
+          if (doctor.accountStatus === "Deleted") {
+            openConfirmation({
+              title: "Unblock doctor account",
+              message: "This will restore platform access for this doctor account.",
+              confirmLabel: "Unblock account",
+              variant: "success",
+              onConfirm: async () => {
+                const ok = await reactivateDoctor(doctor.id);
+                if (ok) applyFilters();
+              }
+            });
+          } else {
+            const ok = await reactivateDoctor(doctor.id);
+            if (ok) applyFilters();
+          }
           return;
         }
         if (action === "toggle-access") {
@@ -3380,7 +3678,7 @@
               ? "This will allow the doctor to manage patients and launch predictions."
               : "This will keep the doctor in patient-management mode without prediction workflows.",
             confirmLabel: nextAccess === "prediction" ? "Grant access" : "Set standard access",
-            variant: nextAccess === "prediction" ? "success" : "warning",
+            variant: nextAccess === "prediction" ? "purple" : "blue",
             onConfirm: async () => {
               const ok = await updateDoctorAccessType(doctor.id, nextAccess);
               if (ok) applyFilters();
@@ -3418,9 +3716,9 @@
         }
         if (action === "delete") {
           openConfirmation({
-            title: "Delete doctor account",
-            message: "Add the reason for deleting this account. The doctor will receive it by email.",
-            confirmLabel: "Delete account",
+            title: "Block doctor account",
+            message: "Add the reason for blocking this account. The doctor will receive it by email and see it when trying to log in.",
+            confirmLabel: "Block account",
             reasonField: true,
             variant: "danger",
             onConfirm: async (reason) => {
@@ -3540,7 +3838,6 @@
       approveButton?.remove();
       rejectButton?.remove();
       deactivateButton?.remove();
-      reactivateButton?.remove();
     }
 
     if (doctor.approvalStatus !== "Approved" || doctor.accountStatus !== "Active") {
@@ -3550,7 +3847,15 @@
     if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Active") {
       reactivateButton?.remove();
     } else if (reactivateButton) {
-      reactivateButton.textContent = "Activate";
+      const strong = reactivateButton.querySelector("strong");
+      const small = reactivateButton.querySelector("small");
+      if (doctor.accountStatus === "Deleted") {
+        if (strong) strong.textContent = "Unblock account";
+        if (small) small.textContent = "Restore this doctor account access";
+      } else {
+        if (strong) strong.textContent = "Activate";
+        if (small) small.textContent = "Restore this doctor account";
+      }
     }
 
     if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Deleted") {
@@ -3574,8 +3879,21 @@
         return;
       }
       if (action === "reactivate") {
-        const didActivate = await reactivateDoctor(doctor.id);
-        if (didActivate) window.location.reload();
+        if (doctor.accountStatus === "Deleted") {
+          openConfirmation({
+            title: "Unblock doctor account",
+            message: "This will restore platform access for this doctor account.",
+            confirmLabel: "Unblock account",
+            variant: "success",
+            onConfirm: async () => {
+              const didActivate = await reactivateDoctor(doctor.id);
+              if (didActivate) window.location.reload();
+            }
+          });
+        } else {
+          const didActivate = await reactivateDoctor(doctor.id);
+          if (didActivate) window.location.reload();
+        }
         return;
       }
       if (action === "toggle-access") {
@@ -3587,7 +3905,7 @@
               ? "This will allow the doctor to manage patients and launch predictions."
               : "This will keep the doctor in patient-management mode without prediction workflows.",
           confirmLabel: nextAccess === "prediction" ? "Grant access" : "Set standard access",
-          variant: nextAccess === "prediction" ? "success" : "warning",
+          variant: nextAccess === "prediction" ? "purple" : "blue",
           onConfirm: async () => {
             const didUpdate = await updateDoctorAccessType(doctor.id, nextAccess);
             if (didUpdate) window.location.reload();
@@ -3625,9 +3943,9 @@
       }
       if (action === "delete") {
         openConfirmation({
-          title: "Delete doctor account",
-          message: "Add the reason for deleting this account. The doctor will receive it by email and see it when trying to log in.",
-          confirmLabel: "Delete account",
+          title: "Block doctor account",
+          message: "Add the reason for blocking this account. The doctor will receive it by email and see it when trying to log in.",
+          confirmLabel: "Block account",
           reasonField: true,
           variant: "danger",
           onConfirm: async (reason) => {
@@ -3666,6 +3984,11 @@
     const accessUpgradeApprove = document.getElementById("access-upgrade-approve");
     const accessUpgradeRefuse = document.getElementById("access-upgrade-refuse");
     const accessUpgradeState = document.getElementById("access-upgrade-state");
+    const unlockAccountPanel = document.getElementById("unlock-account-panel");
+    const unlockAccountReason = document.getElementById("unlock-account-reason");
+    const unlockAccountApprove = document.getElementById("unlock-account-approve");
+    const unlockAccountRefuse = document.getElementById("unlock-account-refuse");
+    const unlockAccountState = document.getElementById("unlock-account-state");
     const params = new URLSearchParams(window.location.search);
     let currentTicketId = params.get("ticket") || null;
     let selectedTicketIds = new Set();
@@ -3750,12 +4073,31 @@
         .trim()
         .toLowerCase() === "access upgrade request";
 
+    const isUnlockAccountCategory = (category) =>
+      String(category || "")
+        .trim()
+        .toLowerCase() === "unlock account";
+
+    const isPredictionAccessRequestTicket = (ticket) =>
+      Boolean(ticket?.doctorId) &&
+      Boolean(ticket?.accessUpgradeRequest) &&
+      isAccessUpgradeCategory(ticket.category);
+
+    const isUnlockAccountRequestTicket = (ticket) =>
+      Boolean(ticket?.unlockAccountRequest) && isUnlockAccountCategory(ticket.category);
+
+    const getTicketRequesterName = (ticket) => {
+      const doctor = getDoctorById(ticket.doctorId);
+      return doctor?.name || ticket.doctorName || ticket.contactRequest?.name || "Public contact";
+    };
+
     const renderDetail = (ticket) => {
       if (!ticket) return;
       currentTicketId = ticket.id;
       const doctor = getDoctorById(ticket.doctorId);
+      const requesterName = getTicketRequesterName(ticket);
       document.getElementById("ticket-subject").textContent = ticket.subject;
-      document.getElementById("ticket-meta").textContent = `${doctor ? doctor.name : "Unknown doctor"} - ${ticket.category}`;
+      document.getElementById("ticket-meta").textContent = `${requesterName} - ${ticket.category}`;
       document.getElementById("ticket-status-badge").innerHTML = createBadgeMarkup(ticket.status);
       document.getElementById("ticket-priority-badge").innerHTML = createBadgeMarkup(ticket.priority);
       document.getElementById("ticket-assigned").textContent = ticket.assignedAdmin;
@@ -3764,28 +4106,32 @@
       statusSelect.value = ticket.status;
       resolveButton.textContent = ticket.status === "Resolved" ? "Mark unresolved" : "Mark resolved";
 
-      const isAccessUpgradeTicket = isAccessUpgradeCategory(ticket.category);
+      const isAccessUpgradeTicket = isPredictionAccessRequestTicket(ticket);
+      const isUnlockAccountTicket = isUnlockAccountRequestTicket(ticket);
       const upgradeDecision = ticket.accessUpgradeRequest?.decision || "pending";
+      const unlockDecision = ticket.unlockAccountRequest?.decision || "pending";
+      const shouldShowAccessUpgradePanel = isAccessUpgradeTicket && upgradeDecision === "pending";
+      const shouldShowUnlockAccountPanel = isUnlockAccountTicket && unlockDecision === "pending";
       if (workflowControlPanel) {
-        workflowControlPanel.hidden = isAccessUpgradeTicket;
+        workflowControlPanel.hidden = shouldShowAccessUpgradePanel || shouldShowUnlockAccountPanel;
       }
       if (accessUpgradePanel) {
-        accessUpgradePanel.hidden = !isAccessUpgradeTicket;
+        accessUpgradePanel.hidden = !shouldShowAccessUpgradePanel;
       }
       if (accessUpgradeReason) {
         accessUpgradeReason.value = ticket.accessUpgradeRequest?.reviewedReason || "";
-        accessUpgradeReason.disabled = !isAccessUpgradeTicket || upgradeDecision !== "pending";
+        accessUpgradeReason.disabled = !shouldShowAccessUpgradePanel;
       }
       if (accessUpgradeApprove) {
-        accessUpgradeApprove.hidden = !isAccessUpgradeTicket;
+        accessUpgradeApprove.hidden = !shouldShowAccessUpgradePanel;
         accessUpgradeApprove.disabled = upgradeDecision !== "pending";
       }
       if (accessUpgradeRefuse) {
-        accessUpgradeRefuse.hidden = !isAccessUpgradeTicket;
+        accessUpgradeRefuse.hidden = !shouldShowAccessUpgradePanel;
         accessUpgradeRefuse.disabled = upgradeDecision !== "pending";
       }
       if (accessUpgradeState) {
-        accessUpgradeState.hidden = !isAccessUpgradeTicket;
+        accessUpgradeState.hidden = !shouldShowAccessUpgradePanel;
         if (isAccessUpgradeTicket) {
           if (upgradeDecision === "approved") {
             accessUpgradeState.textContent = `Approved by ${ticket.accessUpgradeRequest?.reviewedBy || "Admin"} on ${formatDate(ticket.accessUpgradeRequest?.reviewedAt, true)}.`;
@@ -3796,25 +4142,106 @@
           }
         }
       }
+      if (unlockAccountPanel) {
+        unlockAccountPanel.hidden = !shouldShowUnlockAccountPanel;
+      }
+      if (unlockAccountReason) {
+        unlockAccountReason.value = ticket.unlockAccountRequest?.reviewedReason || "";
+        unlockAccountReason.disabled = !shouldShowUnlockAccountPanel;
+      }
+      if (unlockAccountApprove) {
+        unlockAccountApprove.hidden = !shouldShowUnlockAccountPanel;
+        unlockAccountApprove.disabled = unlockDecision !== "pending";
+      }
+      if (unlockAccountRefuse) {
+        unlockAccountRefuse.hidden = !shouldShowUnlockAccountPanel;
+        unlockAccountRefuse.disabled = unlockDecision !== "pending";
+      }
+      if (unlockAccountState) {
+        unlockAccountState.hidden = !shouldShowUnlockAccountPanel;
+        if (isUnlockAccountTicket) {
+          if (unlockDecision === "approved") {
+            unlockAccountState.textContent = `Unblocked by ${ticket.unlockAccountRequest?.reviewedBy || "Admin"} on ${formatDate(ticket.unlockAccountRequest?.reviewedAt, true)}.`;
+          } else if (unlockDecision === "refused") {
+            unlockAccountState.textContent = `Unblock refused by ${ticket.unlockAccountRequest?.reviewedBy || "Admin"} on ${formatDate(ticket.unlockAccountRequest?.reviewedAt, true)}.`;
+          } else {
+            unlockAccountState.textContent = "Pending admin decision.";
+          }
+        }
+      }
 
       const conversation = document.getElementById("conversation-thread");
+      const conversationDoctor = getDoctorById(ticket.doctorId);
+      const doctorPhoto = conversationDoctor?.profilePhoto || "";
+      const getInitials = (name) => {
+        if (!name) return "?";
+        const parts = String(name).trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return "?";
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      };
+      const buildAvatarMarkup = (isAdmin, message, hidden) => {
+        const photoUrl = isAdmin ? ADMIN_SUPPORT_AVATAR_URL : doctorPhoto;
+        const initials = getInitials(message.author);
+        if (photoUrl) {
+          return `<span class="message-bubble-avatar has-photo${hidden ? " is-hidden" : ""}" aria-hidden="true" data-avatar-photo="${encodeURIComponent(photoUrl)}"></span>`;
+        }
+        return `<span class="message-bubble-avatar${hidden ? " is-hidden" : ""}" aria-hidden="true">${escapeAdminHtml(initials)}</span>`;
+      };
       conversation.innerHTML = ticket.messages
-        .map(
-          (message) => `
-            <article class="message-bubble ${message.role === "admin" ? "admin" : ""}">
-              <strong>${escapeAdminHtml(message.author)}</strong>
-              ${message.body ? `<p>${escapeAdminHtml(message.body)}</p>` : ""}
-              ${buildSupportAttachmentMarkup(message.attachment, message.role === "admin" ? "admin" : "doctor")}
-              <time>${formatDate(message.date, true)}</time>
+        .map((message, idx, arr) => {
+          const isAdmin = message.role === "admin";
+          const prev = arr[idx - 1];
+          const isGrouped =
+            prev && (prev.role === "admin") === isAdmin &&
+            (new Date(message.date) - new Date(prev.date)) < 5 * 60 * 1000;
+          const avatarHtml = buildAvatarMarkup(isAdmin, message, isGrouped);
+          return `
+            <article class="message-bubble ${isAdmin ? "admin" : "doctor"}${isGrouped ? " is-grouped" : ""}">
+              ${!isAdmin ? avatarHtml : ""}
+              <div class="message-bubble-card">
+                ${!isGrouped ? `
+                <div class="message-bubble-head">
+                  <strong>${escapeAdminHtml(message.author)}</strong>
+                  <time>${formatDate(message.date, true)}</time>
+                </div>` : ""}
+                ${message.body ? `<p>${escapeAdminHtml(message.body)}</p>` : ""}
+                ${buildSupportAttachmentMarkup(message.attachment, isAdmin ? "admin" : "doctor")}
+                ${isGrouped ? `<time class="message-bubble-foot-time">${formatDate(message.date, true)}</time>` : ""}
+              </div>
+              ${isAdmin ? avatarHtml : ""}
             </article>
-          `
-        )
+          `;
+        })
         .join("");
+
+      // Apply photo backgrounds via JS (data URLs are too long for inline style attribute)
+      conversation.querySelectorAll("[data-avatar-photo]").forEach((node) => {
+        const photo = node.getAttribute("data-avatar-photo");
+        if (!photo) return;
+        try {
+          const decoded = decodeURIComponent(photo);
+          node.style.backgroundImage = `url("${decoded.replace(/"/g, '\\"')}")`;
+          node.style.backgroundSize = "cover";
+          node.style.backgroundPosition = "center";
+          node.style.backgroundRepeat = "no-repeat";
+        } catch (e) {
+          // Ignore decoding errors
+        }
+      });
+
       scrollConversationToBottom();
 
       list.querySelectorAll(".ticket-item").forEach((item) => {
         item.classList.toggle("active", item.dataset.ticketId === ticket.id);
       });
+    };
+
+    const getDoctorInitialsFromName = (name) => {
+      const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return "?";
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     };
 
     const renderTickets = () => {
@@ -3825,60 +4252,77 @@
         ? filtered
             .map((ticket) => {
               const doctor = getDoctorById(ticket.doctorId);
+              const requesterName = getTicketRequesterName(ticket);
               const ticketId = String(ticket.id);
               const isSelected = selectedTicketIds.has(ticketId);
+              const isActive = ticket.id === currentTicketId;
               const latestMessage = ticket.messages?.[ticket.messages.length - 1];
               const previewText = getTicketMessagePreview(
                 latestMessage,
-                `${doctor ? doctor.name : "Unknown doctor"} needs support follow-up.`
+                `${requesterName} needs support follow-up.`
               );
+              const priorityTone = String(ticket.priority || "Routine").toLowerCase().replace(/\s+/g, "-");
+              const doctorPhoto = doctor?.profilePhoto || "";
+              const initials = getDoctorInitialsFromName(requesterName);
+              const avatarMarkup = doctorPhoto
+                ? `<span class="admin-inbox-thread-avatar has-photo" aria-hidden="true" data-avatar-photo="${encodeURIComponent(doctorPhoto)}"></span>`
+                : `<span class="admin-inbox-thread-avatar" aria-hidden="true">${escapeAdminHtml(initials)}</span>`;
               return `
-                <article class="ticket-item admin-inbox-thread${ticket.id === currentTicketId ? " active" : ""}" data-ticket-id="${ticketId}">
+                <article class="ticket-item admin-inbox-thread${isActive ? " active" : ""}" data-ticket-id="${ticketId}" data-priority-tone="${priorityTone}">
                   <div class="admin-inbox-thread-head">
-                    <div class="admin-inbox-thread-head-main">
-                      <label class="ticket-thread-select admin-inbox-thread-select" for="ticket-select-${ticketId}">
-                        <input
-                          id="ticket-select-${ticketId}"
-                          class="ticket-thread-checkbox"
-                          type="checkbox"
-                          data-ticket-select-id="${ticketId}"
-                          ${isSelected ? "checked" : ""}
-                        />
-                        <span>Select</span>
-                      </label>
-                      <div class="admin-inbox-thread-copy">
-                        <strong>${ticket.subject}</strong>
-                        <small>${doctor ? doctor.name : "Unknown doctor"} - ${ticket.category}</small>
+                    ${avatarMarkup}
+                    <div class="admin-inbox-thread-headline">
+                      <div class="admin-inbox-thread-headline-row">
+                        <strong class="admin-inbox-thread-doctor">${escapeAdminHtml(requesterName)}</strong>
+                        <time class="admin-inbox-thread-date">${formatDate(ticket.updatedAt, true)}</time>
                       </div>
+                      <span class="admin-inbox-thread-subject">${ticket.subject}</span>
                     </div>
-                    <div class="admin-inbox-thread-head-meta">
-                      <time class="ticket-thread-date">${formatDate(ticket.updatedAt, true)}</time>
-                    </div>
+                    <label class="admin-inbox-thread-checkbox-wrap" for="ticket-select-${ticketId}" title="Select ticket">
+                      <input
+                        id="ticket-select-${ticketId}"
+                        class="ticket-thread-checkbox admin-inbox-thread-checkbox"
+                        type="checkbox"
+                        data-ticket-select-id="${ticketId}"
+                        ${isSelected ? "checked" : ""}
+                      />
+                    </label>
                   </div>
 
                   <button class="ticket-item-main admin-inbox-thread-main" type="button" data-open-ticket="${ticketId}">
-                    <div class="admin-inbox-thread-preview">${previewText}</div>
+                    <p class="admin-inbox-thread-preview">${previewText}</p>
                   </button>
 
                   <div class="admin-inbox-thread-footer">
                     <div class="admin-inbox-thread-meta">
                       <span class="admin-inbox-thread-pill admin-inbox-thread-category">${ticket.category}</span>
-                      <span class="admin-inbox-thread-pill admin-inbox-thread-priority admin-inbox-thread-priority-${String(ticket.priority).toLowerCase().replace(/\s+/g, "-")}">${ticket.priority}</span>
+                      <span class="admin-inbox-thread-pill admin-inbox-thread-priority admin-inbox-thread-priority-${priorityTone}">${ticket.priority}</span>
                       <span class="admin-inbox-thread-pill admin-inbox-thread-status admin-inbox-thread-status-${String(ticket.status).toLowerCase().replace(/\s+/g, "-")}">${ticket.status}</span>
                     </div>
-                    <div class="admin-inbox-thread-card-actions">
-                      <div class="ticket-item-actions admin-inbox-thread-actions">
-                        <button class="ticket-icon-button ticket-delete admin-inbox-thread-icon" type="button" data-delete-ticket="${ticketId}" aria-label="Delete support thread" title="Delete">
-                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M8 10v8"></path><path d="M12 10v8"></path><path d="M16 10v8"></path><path d="M6 7l1 13h10l1-13"></path></svg>
-                        </button>
-                      </div>
-                    </div>
+                    <button class="ticket-icon-button ticket-delete admin-inbox-thread-icon" type="button" data-delete-ticket="${ticketId}" aria-label="Delete support thread" title="Delete">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M8 10v8"></path><path d="M12 10v8"></path><path d="M16 10v8"></path><path d="M6 7l1 13h10l1-13"></path></svg>
+                    </button>
                   </div>
                 </article>
               `;
             })
             .join("")
         : `<div class="empty-state">No support tickets match the current filters.</div>`;
+
+      // Apply photo backgrounds via JS (data URLs are too long for inline style)
+      list.querySelectorAll(".admin-inbox-thread-avatar[data-avatar-photo]").forEach((node) => {
+        const photo = node.getAttribute("data-avatar-photo");
+        if (!photo) return;
+        try {
+          const decoded = decodeURIComponent(photo);
+          node.style.backgroundImage = `url("${decoded.replace(/"/g, '\\"')}")`;
+          node.style.backgroundSize = "cover";
+          node.style.backgroundPosition = "center";
+          node.style.backgroundRepeat = "no-repeat";
+        } catch (e) {
+          // Ignore decoding errors
+        }
+      });
 
       const candidate = filtered.find((ticket) => ticket.id === currentTicketId) || filtered[0];
       if (candidate) {
@@ -3890,6 +4334,9 @@
         document.getElementById("ticket-status-badge").innerHTML = createBadgeMarkup("Open", true);
         document.getElementById("ticket-priority-badge").innerHTML = createBadgeMarkup("Routine", true);
         document.getElementById("conversation-thread").innerHTML = `<div class="empty-state">No messages available.</div>`;
+        if (workflowControlPanel) workflowControlPanel.hidden = false;
+        if (accessUpgradePanel) accessUpgradePanel.hidden = true;
+        if (unlockAccountPanel) unlockAccountPanel.hidden = true;
       }
     };
 
@@ -4090,6 +4537,46 @@
       });
     });
 
+    unlockAccountApprove?.addEventListener("click", async () => {
+      if (!currentTicketId) return;
+      try {
+        const updatedTicket = await reviewUnlockAccount(
+          currentTicketId,
+          "approve",
+          unlockAccountReason?.value?.trim() || ""
+        );
+        renderTickets();
+        if (updatedTicket) renderDetail(updatedTicket);
+      } catch (error) {
+        showToast(error.message || "Unable to unblock this account.", "danger");
+      }
+    });
+
+    unlockAccountRefuse?.addEventListener("click", async () => {
+      if (!currentTicketId) return;
+      openConfirmation({
+        title: "Refuse account unblock",
+        message: "Add the reason that explains why this doctor account will remain blocked.",
+        confirmLabel: "Refuse unblock",
+        reasonField: true,
+        reasonRequired: true,
+        variant: "danger",
+        onConfirm: async (reason) => {
+          try {
+            const updatedTicket = await reviewUnlockAccount(
+              currentTicketId,
+              "refuse",
+              reason
+            );
+            renderTickets();
+            if (updatedTicket) renderDetail(updatedTicket);
+          } catch (error) {
+            showToast(error.message || "Unable to refuse this unblock request.", "danger");
+          }
+        }
+      });
+    });
+
     deleteTicketButton?.addEventListener("click", () => {
       if (!currentTicketId) return;
       openConfirmation({
@@ -4209,6 +4696,10 @@
     document.getElementById("confirmation-form").addEventListener("submit", (event) => {
       event.preventDefault();
       const reason = document.getElementById("confirmation-reason").value.trim();
+      if (pendingConfirmation?.reasonRequired && !reason) {
+        showToast("Please provide a reason before confirming.", "danger");
+        return;
+      }
       if (pendingConfirmation?.onConfirm) pendingConfirmation.onConfirm(reason);
       closeConfirmation();
     });
@@ -4350,8 +4841,14 @@
     submitButton.textContent = options.confirmLabel || "Confirm";
     card.classList.toggle("danger", options.variant === "danger");
     card.classList.toggle("warning", options.variant === "warning");
-    submitButton.classList.toggle("btn-danger", options.variant !== "warning");
     submitButton.classList.toggle("btn-warning", options.variant === "warning");
+    submitButton.classList.toggle("btn-success", options.variant === "success");
+    submitButton.classList.toggle("btn-purple", options.variant === "purple");
+    submitButton.classList.toggle("btn-blue", options.variant === "blue");
+    submitButton.classList.toggle(
+      "btn-danger",
+      options.variant !== "warning" && options.variant !== "success" && options.variant !== "purple" && options.variant !== "blue"
+    );
     reasonWrap.hidden = !options.reasonField;
     reasonInput.value = "";
     cancelButton.hidden = Boolean(options.hideCancel);
@@ -4823,6 +5320,12 @@
       const session = getAuthSession();
       const profileName = session?.user?.name || "Admin";
       const profileEmail = session?.user?.email || "Admin account";
+      const getProfileInitials = (n) => {
+        const p = String(n || "").trim().split(/\s+/).filter(Boolean);
+        if (!p.length) return "A";
+        if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+        return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+      };
       setProfileExpanded(false);
 
       const profilePopover = document.createElement("div");
@@ -4830,15 +5333,29 @@
       profilePopover.id = "admin-profile-popover";
       profilePopover.hidden = true;
       profilePopover.innerHTML = `
-        <div class="topbar-popover-head">
+        <div class="topbar-popover-head topbar-popover-head-rich">
+          <span class="topbar-popover-avatar" aria-hidden="true">
+            <img src="${ADMIN_SUPPORT_AVATAR_URL}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+            <span class="topbar-popover-avatar-fallback" style="display:none">${escapeAdminHtml(getProfileInitials(profileName))}</span>
+          </span>
           <div class="topbar-popover-profile-copy">
-            <strong>${profileName}</strong>
-            <p>${profileEmail}</p>
+            <strong>${escapeAdminHtml(profileName)}</strong>
+            <p>${escapeAdminHtml(profileEmail)}</p>
+            <span class="topbar-popover-role-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span>Administrator</span>
+            </span>
           </div>
         </div>
         <div class="topbar-popover-actions">
-          <button class="btn btn-secondary topbar-create-admin-button" type="button">Create Admin</button>
-          <button class="btn btn-secondary topbar-logout-button" type="button">Logout</button>
+          <button class="topbar-popover-action topbar-popover-action-primary topbar-create-admin-button" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M3 21v-1.5A5.5 5.5 0 0 1 8.5 14h1A5.5 5.5 0 0 1 15 19.5V21"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+            <span>Create Admin</span>
+          </button>
+          <button class="topbar-popover-action topbar-popover-action-logout topbar-logout-button" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Logout</span>
+          </button>
         </div>
       `;
       actions.appendChild(profilePopover);

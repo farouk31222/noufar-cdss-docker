@@ -82,6 +82,16 @@ const computePatientNameBlindIndex = (name = "") => {
   return crypto.createHmac("sha256", blindIndexKeyBuffer).update(normalized).digest("hex");
 };
 
+const computeScopedBlindIndex = (scope = "", value = "") => {
+  const { blindIndexKeyBuffer } = resolveConfig();
+  const normalizedScope = String(scope || "").trim().toLowerCase();
+  const normalizedValue = String(value || "").trim().toLowerCase();
+  return crypto
+    .createHmac("sha256", blindIndexKeyBuffer)
+    .update(`${normalizedScope}:${normalizedValue}`)
+    .digest("hex");
+};
+
 const encryptFieldValue = ({ entity, field, value, keyId } = {}) => {
   const { keys } = resolveConfig();
   const key = keys[keyId];
@@ -320,13 +330,79 @@ const mergePredictionForResponse = (predictionDocument) => {
   };
 };
 
+const encryptDatasetImportRowPayload = ({
+  rowData = {},
+  searchText = "",
+  consultationReason = "",
+  sex = "",
+  ultrasound = "",
+  tsi = "",
+} = {}) => {
+  const { activeKeyId } = resolveConfig();
+
+  return {
+    encryptedRowData: encryptFieldValue({
+      entity: "dataset_import_row",
+      field: "rowData",
+      value: rowData && typeof rowData === "object" ? rowData : {},
+      keyId: activeKeyId,
+    }),
+    encryptedSearchText: encryptFieldValue({
+      entity: "dataset_import_row",
+      field: "searchText",
+      value: String(searchText || ""),
+      keyId: activeKeyId,
+    }),
+    encryptedRowDataKeyId: activeKeyId,
+    consultationReasonBlindIndex: consultationReason
+      ? computeScopedBlindIndex("dataset_import_row:consultationReason", consultationReason)
+      : "",
+    sexBlindIndex: sex ? computeScopedBlindIndex("dataset_import_row:sex", sex) : "",
+    ultrasoundBlindIndex: ultrasound ? computeScopedBlindIndex("dataset_import_row:ultrasound", ultrasound) : "",
+    tsiBlindIndex: tsi ? computeScopedBlindIndex("dataset_import_row:tsi", tsi) : "",
+  };
+};
+
+const decryptDatasetImportRowPayload = (rowLike = {}) => {
+  const hasEncryptedRowData =
+    rowLike?.encryptedRowData &&
+    typeof rowLike.encryptedRowData === "object" &&
+    Object.keys(rowLike.encryptedRowData).length > 0;
+
+  if (hasEncryptedRowData) {
+    return {
+      rowData:
+        decryptFieldValue({
+          entity: "dataset_import_row",
+          field: "rowData",
+          encryptedValue: rowLike.encryptedRowData,
+        }) || {},
+      searchText: String(
+        decryptFieldValue({
+          entity: "dataset_import_row",
+          field: "searchText",
+          encryptedValue: rowLike.encryptedSearchText,
+        }) || ""
+      ),
+    };
+  }
+
+  return {
+    rowData: rowLike?.rowData && typeof rowLike.rowData === "object" ? rowLike.rowData : {},
+    searchText: String(rowLike?.searchText || ""),
+  };
+};
+
 module.exports = {
   SENSITIVE_PATIENT_FIELDS,
   computePatientNameBlindIndex,
+  computeScopedBlindIndex,
   encryptPatientPayload,
   decryptPatientPayload,
   mergePatientForResponse,
   encryptPredictionPatientSnapshot,
   decryptPredictionPatientSnapshot,
   mergePredictionForResponse,
+  encryptDatasetImportRowPayload,
+  decryptDatasetImportRowPayload,
 };

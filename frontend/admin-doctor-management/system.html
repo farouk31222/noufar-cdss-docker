@@ -32,23 +32,23 @@
           <div class="sidebar-nav-group sidebar-nav-group-main">
             <span class="sidebar-nav-label">Workspace</span>
             <a class="sidebar-link" href="index.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h7V4H4v8Zm9 8h7v-6h-7v6Zm0-16v8h7V4h-7ZM4 20h7v-6H4v6Z" /></svg>
+              <img class="sidebar-link-image" src="assets/dashborad.png" alt="" aria-hidden="true" />
               <span>Overview</span>
             </a>
             <a class="sidebar-link" href="doctors.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Zm-6.5 8a6.5 6.5 0 0 1 13 0" /></svg>
+              <img class="sidebar-link-image" src="assets/doc.png" alt="" aria-hidden="true" />
               <span>Doctors</span>
             </a>
             <a class="sidebar-link" href="support-center.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5m-7 6 2.2-2H18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" /></svg>
+              <img class="sidebar-link-image" src="assets/sup.png" alt="" aria-hidden="true" />
               <span>Support Center</span>
             </a>
             <a class="sidebar-link" href="security-events.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.9 8.8 7 10 4.1-1.2 7-5.5 7-10V6l-7-3Zm0 5v4m0 4h.01" /></svg>
+              <img class="sidebar-link-image" src="assets/suc.png" alt="" aria-hidden="true" />
               <span>Security Events</span>
             </a>
             <a class="sidebar-link active" href="system.html">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6.5 16V9m5 7V5m5 11v-6M4 8l4-3 4 3 4-3 4 3" /></svg>
+              <img class="sidebar-link-image" src="assets/sys.png" alt="" aria-hidden="true" />
               <span>System</span>
             </a>
           </div>
@@ -112,35 +112,50 @@
 
           <section class="metrics-grid metrics-grid-system">
             <article class="metric-card metric-card-total">
+              <span class="metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/><path d="M14 9h6v6"/></svg>
+              </span>
               <span class="metric-label">Total predictions</span>
               <strong id="system-total-predictions">0</strong>
               <small>All prediction runs currently available for admin system review.</small>
+              <span class="metric-meta-chip">Dataset</span>
             </article>
             <article class="metric-card metric-card-pending">
+              <span class="metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
               <span class="metric-label">Pending corrections</span>
               <strong id="system-pending-corrections">0</strong>
               <small>Predictions that still need the doctor to record the real outcome.</small>
+              <span class="metric-meta-chip">Awaiting outcome</span>
             </article>
             <article class="metric-card metric-card-active">
-              <span class="metric-label">Validated predictions</span>
-              <strong id="system-validated-predictions">0</strong>
-              <small>Predictions already compared with a doctor-reported real result.</small>
+              <span class="metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg>
+              </span>
+              <span class="metric-label">Outcome matched</span>
+              <strong id="system-correct-predictions">0</strong>
+              <small>Real doctor outcome matched the system output.</small>
+              <span class="metric-meta-chip">Matched</span>
+            </article>
+            <article class="metric-card metric-card-rejected">
+              <span class="metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </span>
+              <span class="metric-label">Correction differs</span>
+              <strong id="system-incorrect-predictions">0</strong>
+              <small>Doctor correction differs from the system output.</small>
+              <span class="metric-meta-chip">Mismatch</span>
             </article>
             <article class="metric-card metric-card-response">
+              <span class="metric-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="m4 13 5 5 11-11"/><path d="M4 4h7"/></svg>
+              </span>
               <span class="metric-label">Current accuracy</span>
               <strong id="system-validation-accuracy">0%</strong>
               <small>Share of validated predictions currently marked as correct.</small>
+              <span class="metric-meta-chip">Quality</span>
             </article>
-          </section>
-
-          <section class="content-card section-card">
-            <div class="card-header">
-              <div>
-                <h3>Validation summary</h3>
-                <p>Quick read on how many predictions were confirmed, corrected, or still pending.</p>
-              </div>
-            </div>
-            <div class="system-summary-stack" id="system-summary-stack"></div>
           </section>
 
           <section class="content-card section-card system-readiness-card">
@@ -174,6 +189,20 @@
                 <div class="system-matrix-grid" id="system-matrix-grid"></div>
               </article>
             </div>
+          </section>
+
+          <section class="content-card section-card system-comparison-card">
+            <div class="card-header">
+              <div>
+                <h3>Model comparison</h3>
+                <p>Side-by-side performance across the three available models — based on doctor-confirmed validations.</p>
+              </div>
+              <div class="system-comparison-legend" aria-hidden="true">
+                <span class="comparison-legend-dot is-best"></span>
+                <span>Best in metric</span>
+              </div>
+            </div>
+            <div class="system-comparison-grid" id="system-comparison-grid"></div>
           </section>
 
           <section class="content-card section-card filter-card">
