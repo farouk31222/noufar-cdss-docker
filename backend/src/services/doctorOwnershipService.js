@@ -2,11 +2,25 @@ const { logAuditEventSafe } = require("./auditLogService");
 
 const isDoctorUser = (user) => user?.role === "doctor";
 
-const getDoctorPatientQuery = (user, extra = {}) =>
-  isDoctorUser(user) ? { ...extra, doctorId: user._id } : extra;
+const getPredictionChiefDoctorEmails = () => {
+  const configured = String(process.env.PREDICTION_CHIEF_DOCTOR_EMAILS || "zakifarouk78@gmail.com")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set(configured);
+};
+
+const isPredictionChiefDoctor = (user) =>
+  isDoctorUser(user) &&
+  getPredictionChiefDoctorEmails().has(String(user?.email || "").trim().toLowerCase());
+
+// Clinical workspace policy:
+// Patients remain shared in the clinical registry. Predictions are private per
+// Doctor with prediction, except explicitly configured chief doctors.
+const getDoctorPatientQuery = (_user, extra = {}) => extra;
 
 const getDoctorPredictionQuery = (user, extra = {}) =>
-  isDoctorUser(user) ? { ...extra, predictedBy: user._id } : extra;
+  isDoctorUser(user) && !isPredictionChiefDoctor(user) ? { ...extra, predictedBy: user._id } : extra;
 
 const getDoctorSupportTicketQuery = (user, extra = {}) =>
   isDoctorUser(user) ? { ...extra, doctor: user._id } : extra;
@@ -16,10 +30,10 @@ const idsMatch = (left, right) => String(left || "") === String(right || "");
 const getRecordId = (record) => record?._id || record?.id || "";
 
 const isPatientOwnedByDoctor = (patient, user) =>
-  !isDoctorUser(user) || idsMatch(patient?.doctorId, user?._id);
+  !isDoctorUser(user) || Boolean(patient);
 
 const isPredictionOwnedByDoctor = (prediction, user) =>
-  !isDoctorUser(user) || idsMatch(prediction?.predictedBy, user?._id);
+  !isDoctorUser(user) || isPredictionChiefDoctor(user) || idsMatch(prediction?.predictedBy, user?._id);
 
 const isSupportTicketOwnedByDoctor = (ticket, user) =>
   !isDoctorUser(user) || idsMatch(ticket?.doctor?._id || ticket?.doctor, user?._id);
@@ -47,6 +61,7 @@ const logCrossDoctorDenied = async ({ req, action, targetType, targetId, metadat
 
 module.exports = {
   isDoctorUser,
+  isPredictionChiefDoctor,
   getDoctorPatientQuery,
   getDoctorPredictionQuery,
   getDoctorSupportTicketQuery,

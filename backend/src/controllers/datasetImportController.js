@@ -2,6 +2,7 @@ const DatasetImport = require("../models/DatasetImport");
 const DatasetImportRow = require("../models/DatasetImportRow");
 const { storePrivateUpload, removeStoredFile } = require("../services/fileAccessService");
 const { logAuditEventSafe } = require("../services/auditLogService");
+const { isPredictionChiefDoctor } = require("../services/doctorOwnershipService");
 const {
   computeScopedBlindIndex,
   encryptDatasetImportRowPayload,
@@ -37,6 +38,14 @@ const parseJsonArrayField = (value, fieldLabel) => {
 
 const normalizeStringArray = (values = []) =>
   [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+
+const getDatasetImportReadQuery = (user, extra = {}) =>
+  isPredictionChiefDoctor(user) ? extra : { ...extra, doctor: user?._id };
+
+const getDatasetImportWriteQuery = (user, extra = {}) => ({
+  ...extra,
+  doctor: user?._id,
+});
 
 const normalizeDatasetColumnKey = (value) =>
   String(value ?? "")
@@ -545,6 +554,9 @@ const getDatasetRowValue = (rowData = {}, aliases = []) => {
 const sanitizeDatasetImport = (entry) => ({
   id: String(entry._id),
   name: entry.name,
+  doctorId: entry.doctor ? String(entry.doctor?._id || entry.doctor) : "",
+  doctorName: entry.doctor?.name || "",
+  doctorEmail: entry.doctor?.email || "",
   fileName: entry.fileName,
   mimeType: entry.mimeType || "",
   fileSize: entry.fileSize || 0,
@@ -560,11 +572,35 @@ const sanitizeDatasetImport = (entry) => ({
   tsiValues: Array.isArray(entry.tsiValues) ? entry.tsiValues : [],
 });
 
-const getOwnedDatasetImport = async (datasetId, doctorId) => {
-  const datasetImport = await DatasetImport.findOne({
-    _id: datasetId,
-    doctor: doctorId,
+const getDatasetImportIdentityKey = (entry = {}) =>
+  [
+    normalizeDatasetColumnKey(entry.name || entry.fileName || ""),
+    Number(entry.fileSize) || 0,
+    Number(entry.totalRows) || 0,
+    (Array.isArray(entry.columns) ? entry.columns : [])
+      .map(normalizeDatasetColumnKey)
+      .filter(Boolean)
+      .join(","),
+  ].join("|");
+
+const dedupeDatasetImportsForChief = (items = []) => {
+  const seen = new Set();
+  return items.filter((entry) => {
+    const key = getDatasetImportIdentityKey(entry);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
+};
+
+const getAccessibleDatasetImport = async (datasetId, user, options = {}) => {
+  const query = options.write
+    ? getDatasetImportWriteQuery(user, { _id: datasetId })
+    : getDatasetImportReadQuery(user, { _id: datasetId });
+  const finder = DatasetImport.findOne(query);
+  const datasetImport = options.write
+    ? await finder
+    : await finder.populate("doctor", "name email");
 
   if (!datasetImport) {
     const error = new Error("Imported dataset not found.");
@@ -577,12 +613,13 @@ const getOwnedDatasetImport = async (datasetId, doctorId) => {
 
 const listDatasetImports = async (req, res, next) => {
   try {
-    const items = await DatasetImport.find({
-      doctor: req.user._id,
-      status: "ready",
-    }).sort({ updatedAt: -1 });
+    const query = getDatasetImportReadQuery(req.user, { status: "ready" });
+    const items = await DatasetImport.find(query).sort({ updatedAt: -1 }).populate("doctor", "name email");
+    const visibleItems = isPredictionChiefDoctor(req.user)
+      ? dedupeDatasetImportsForChief(items)
+      : items;
 
-    res.status(200).json(items.map((entry) => sanitizeDatasetImport(entry)));
+    res.status(200).json(visibleItems.map((entry) => sanitizeDatasetImport(entry)));
   } catch (error) {
     next(error);
   }
@@ -641,7 +678,7 @@ const createDatasetImport = async (req, res, next) => {
 
     if (duplicate) {
       res.status(409);
-      throw new Error("A dataset with this file name already exists in your private imports.");
+      throw new Error("A dataset with this file name already exists in your imports.");
     }
 
     const storedFile = await storePrivateUpload({
@@ -706,7 +743,7 @@ const createDatasetImport = async (req, res, next) => {
 
 const appendDatasetImportRows = async (req, res, next) => {
   try {
-    const datasetImport = await getOwnedDatasetImport(req.params.id, req.user._id);
+    const datasetImport = await getAccessibleDatasetImport(req.params.id, req.user, { write: true });
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
 
     if (!rows.length) {
@@ -787,7 +824,7 @@ const appendDatasetImportRows = async (req, res, next) => {
 
 const getDatasetImport = async (req, res, next) => {
   try {
-    const datasetImport = await getOwnedDatasetImport(req.params.id, req.user._id);
+    const datasetImport = await getAccessibleDatasetImport(req.params.id, req.user);
     res.status(200).json({
       datasetImport: sanitizeDatasetImport(datasetImport),
     });
@@ -798,7 +835,7 @@ const getDatasetImport = async (req, res, next) => {
 
 const listDatasetImportRows = async (req, res, next) => {
   try {
-    const datasetImport = await getOwnedDatasetImport(req.params.id, req.user._id);
+    const datasetImport = await getAccessibleDatasetImport(req.params.id, req.user);
     const page = Math.max(1, Number(req.query?.page) || 1);
     const pageSize = Math.min(50, Math.max(1, Number(req.query?.pageSize) || 8));
     const search = String(req.query?.search || "").trim().toLowerCase();
@@ -809,7 +846,6 @@ const listDatasetImportRows = async (req, res, next) => {
 
     const baseFilter = {
       datasetImport: datasetImport._id,
-      doctor: req.user._id,
     };
 
     const allRows = await DatasetImportRow.find(baseFilter).sort({ rowIndex: 1 }).lean();
@@ -853,7 +889,7 @@ const listDatasetImportRows = async (req, res, next) => {
 
 const updateDatasetImportRow = async (req, res, next) => {
   try {
-    const datasetImport = await getOwnedDatasetImport(req.params.id, req.user._id);
+    const datasetImport = await getAccessibleDatasetImport(req.params.id, req.user, { write: true });
     const rowData = req.body?.rowData && typeof req.body.rowData === "object" ? req.body.rowData : null;
 
     if (!rowData || Array.isArray(rowData)) {
@@ -863,7 +899,6 @@ const updateDatasetImportRow = async (req, res, next) => {
 
     const existingRow = await DatasetImportRow.findOne({
       datasetImport: datasetImport._id,
-      doctor: req.user._id,
       rowId: req.params.rowId,
     });
 
@@ -931,11 +966,10 @@ const updateDatasetImportRow = async (req, res, next) => {
 const deleteDatasetImport = async (req, res, next) => {
   let datasetImport = null;
   try {
-    datasetImport = await getOwnedDatasetImport(req.params.id, req.user._id);
+    datasetImport = await getAccessibleDatasetImport(req.params.id, req.user, { write: true });
 
     await DatasetImportRow.deleteMany({
       datasetImport: datasetImport._id,
-      doctor: req.user._id,
     });
 
     await removeStoredFile(datasetImport);

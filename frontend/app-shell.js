@@ -211,7 +211,16 @@ const hideDoctorSupportCenterProfileLink = () => {
     .forEach((link) => link.remove());
 };
 
+const isPredictionChiefSession = (sessionOrUser) => {
+  const user = sessionOrUser?.user || sessionOrUser || {};
+  return (
+    String(user.predictionAccessScope || "").toLowerCase() === "global" ||
+    String(user.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com"
+  );
+};
+
 const getDoctorAccountType = (sessionOrUser) => {
+  if (isPredictionChiefSession(sessionOrUser)) return "prediction";
   const rawType = sessionOrUser?.user?.doctorAccountType ?? sessionOrUser?.doctorAccountType;
   return rawType === "standard" ? "standard" : "prediction";
 };
@@ -638,8 +647,7 @@ const applyDoctorAccessMode = (session) => {
 
   document
     .querySelectorAll(
-      '.sidebar-link[href="dashboard.html"], .sidebar-link[href="new-prediction.html"], .sidebar-link[href="history.html"], .profile-menu-link[href="history.html"]'
-        + ', .profile-menu-link[href="my-imports.html"]'
+      '.sidebar-link[href="dashboard.html"], .sidebar-link[href="new-prediction.html"], .sidebar-link[href="history.html"], .profile-menu-link[href="history.html"], .profile-menu-link[href="my-imports.html"]'
     )
     .forEach((node) => {
       const shouldHide = !canRunPredictions;
@@ -783,10 +791,15 @@ if (doctorSession?.user) {
     const profileName = document.querySelector(".profile-menu-copy strong");
     const profileMeta = document.querySelector(".profile-menu-copy span");
     const profileCopy = document.querySelector(".profile-menu-copy");
+    const isChiefPredictionDoctor =
+      isPredictionChiefSession(sessionUser);
     const accountTypeLabel =
-      (sessionUser.doctorAccountType || "prediction") === "standard"
-        ? "Standard doctor"
-        : "Doctor with prediction";
+      isChiefPredictionDoctor
+        ? "Doctor with prediction chef"
+        : (sessionUser.doctorAccountType || "prediction") === "standard"
+          ? "Standard doctor"
+          : "Doctor with prediction";
+    const importedDataLabel = isChiefPredictionDoctor ? "Imported data" : "My imported data";
 
     if (profileName) profileName.textContent = formatDoctorDisplayName(sessionUser.name);
     if (profileMeta) profileMeta.textContent = sessionUser.specialty || sessionUser.hospital || "Doctor account";
@@ -798,9 +811,18 @@ if (doctorSession?.user) {
         profileCopy.appendChild(badge);
       }
       const isPrediction = (sessionUser.doctorAccountType || "prediction") !== "standard";
-      badge.className = "profile-access-badge" + (isPrediction ? " badge-prediction" : "");
+      badge.className =
+        "profile-access-badge" +
+        (isPrediction ? " badge-prediction" : "") +
+        (isChiefPredictionDoctor ? " badge-chief" : "");
       badge.textContent = accountTypeLabel;
     }
+
+    document
+      .querySelectorAll('.profile-menu-link[href="my-imports.html"] span')
+      .forEach((node) => {
+        node.textContent = importedDataLabel;
+      });
   };
 
   applyDoctorIdentity(doctorSession.user);
@@ -2370,7 +2392,9 @@ const ensureDoctorInboxNavigation = () => {
   }
 
   document.querySelectorAll(".profile-menu-links").forEach((menu) => {
-    if (!menu.querySelector('a[href="my-imports.html"]')) {
+    const canAccessImportedData = doctorCanRunPredictions(doctorSession);
+
+    if (canAccessImportedData && !menu.querySelector('a[href="my-imports.html"]')) {
       const importsLink = document.createElement("a");
       importsLink.className = "profile-menu-link";
       if (document.body?.dataset.page === "my-imports") {
@@ -2381,7 +2405,7 @@ const ensureDoctorInboxNavigation = () => {
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M5 7c0-1.66 3.13-3 7-3s7 1.34 7 3-3.13 3-7 3-7-1.34-7-3Zm0 0v10c0 1.66 3.13 3 7 3s7-1.34 7-3V7M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" />
         </svg>
-        <span>My imported data</span>
+        <span>${isPredictionChiefSession(doctorSession?.user) ? "Imported data" : "My imported data"}</span>
       `;
       const accountLink = menu.querySelector('a[href="account-settings.html"]');
       menu.insertBefore(importsLink, accountLink || null);
@@ -2389,10 +2413,9 @@ const ensureDoctorInboxNavigation = () => {
 
     const importsLink = menu.querySelector('a[href="my-imports.html"]');
     if (importsLink) {
-      const shouldHideImportsLink = !doctorCanRunPredictions(doctorSession);
-      importsLink.hidden = shouldHideImportsLink;
-      importsLink.toggleAttribute("hidden", shouldHideImportsLink);
-      importsLink.style.display = shouldHideImportsLink ? "none" : "";
+      importsLink.hidden = !canAccessImportedData;
+      importsLink.toggleAttribute("hidden", !canAccessImportedData);
+      importsLink.style.display = canAccessImportedData ? "" : "none";
     }
 
     if (!menu.querySelector('a[href="doctor-inbox.html"]')) {

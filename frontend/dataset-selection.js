@@ -234,6 +234,17 @@ const getDatasetSelectionDoctorSession = () => {
   }
 };
 
+const getCurrentDatasetDoctorId = () => {
+  const session = datasetDoctorSessionBridge?.getSession?.() || getDatasetSelectionDoctorSession() || {};
+  const user = session.user || {};
+  return String(user._id || user.id || "").trim();
+};
+
+const canManageCurrentDataset = () => {
+  const ownerId = String(dataset?.doctorId || "").trim();
+  return !ownerId || ownerId === getCurrentDatasetDoctorId();
+};
+
 const normalizeDatasetKey = (value) =>
   String(value ?? "")
     .replace(/^\uFEFF/, "")
@@ -984,7 +995,8 @@ const setSelectionPredictionLoadingState = (isLoading) => {
   runSelectedPredictionButton.disabled = isLoading || !selectedRowId;
   runSelectedPredictionButton.textContent = isLoading ? "Running..." : "Run Prediction";
   if (editSelectedRowButton) {
-    editSelectedRowButton.disabled = isLoading || !selectedRowId;
+    editSelectedRowButton.hidden = !canManageCurrentDataset();
+    editSelectedRowButton.disabled = isLoading || !selectedRowId || !canManageCurrentDataset();
   }
 };
 
@@ -1535,6 +1547,7 @@ const renderSelectionSummary = (row) => {
     `;
     runSelectedPredictionButton.disabled = true;
     if (editSelectedRowButton) {
+      editSelectedRowButton.hidden = !canManageCurrentDataset();
       editSelectedRowButton.disabled = true;
     }
     return;
@@ -1573,11 +1586,16 @@ const renderSelectionSummary = (row) => {
   setSelectionPredictionLoadingState(false);
   runSelectedPredictionButton.disabled = hasValidationErrors;
   if (editSelectedRowButton) {
-    editSelectedRowButton.disabled = false;
+    editSelectedRowButton.hidden = !canManageCurrentDataset();
+    editSelectedRowButton.disabled = !canManageCurrentDataset();
   }
 };
 
 const renderDatasetTable = async () => {
+  if (!canManageCurrentDataset()) {
+    editingRowId = "";
+  }
+
   const response = await getPrivateDatasetImportRows(dataset.id, {
     page: currentPage,
     pageSize: 8,
@@ -1590,11 +1608,12 @@ const renderDatasetTable = async () => {
   currentPageRows = Array.isArray(response?.rows) ? response.rows : [];
   currentPage = Number(pagination.page) || 1;
   updateDatasetFilterStatus(Number(pagination.totalItems) || 0);
+  const canEditDataset = canManageCurrentDataset();
 
   datasetHead.innerHTML = `
     <tr>
       <th class="radio-cell">Select</th>
-      <th class="dataset-row-action-cell">Actions</th>
+      ${canEditDataset ? `<th class="dataset-row-action-cell">Actions</th>` : ""}
       ${dataset.columns.map((column) => `<th>${column}</th>`).join("")}
     </tr>
   `;
@@ -1602,7 +1621,7 @@ const renderDatasetTable = async () => {
   if (!currentPageRows.length) {
     datasetBody.innerHTML = `
       <tr>
-        <td colspan="${dataset.columns.length + 2}">
+        <td colspan="${dataset.columns.length + (canEditDataset ? 2 : 1)}">
           <div class="dataset-empty">No patients match the current search.</div>
         </td>
       </tr>
@@ -1626,18 +1645,22 @@ const renderDatasetTable = async () => {
                 aria-label="Select patient row"
               />
             </td>
-            <td class="dataset-row-action-cell">
-              ${
-                isEditing
-                  ? `
-                    <div class="dataset-inline-actions">
-                      <button class="dataset-inline-save" type="button" data-inline-save="${row.__rowId}" ${inlineEditSaving ? "disabled" : ""}>Save</button>
-                      <button class="dataset-inline-cancel" type="button" data-inline-cancel="${row.__rowId}" ${inlineEditSaving ? "disabled" : ""}>Cancel</button>
-                    </div>
-                  `
-                  : `<button class="dataset-row-edit-button" type="button" data-inline-edit="${row.__rowId}">Edit</button>`
-              }
-            </td>
+            ${
+              canEditDataset
+                ? `<td class="dataset-row-action-cell">
+                    ${
+                      isEditing
+                        ? `
+                          <div class="dataset-inline-actions">
+                            <button class="dataset-inline-save" type="button" data-inline-save="${row.__rowId}" ${inlineEditSaving ? "disabled" : ""}>Save</button>
+                            <button class="dataset-inline-cancel" type="button" data-inline-cancel="${row.__rowId}" ${inlineEditSaving ? "disabled" : ""}>Cancel</button>
+                          </div>
+                        `
+                        : `<button class="dataset-row-edit-button" type="button" data-inline-edit="${row.__rowId}">Edit</button>`
+                    }
+                  </td>`
+                : ""
+            }
             ${dataset.columns
               .map((column) => renderDatasetCell(row, column))
               .join("")}
@@ -1840,6 +1863,10 @@ if (datasetBody) {
   datasetBody.addEventListener("click", (event) => {
     const inlineEditButton = event.target.closest("[data-inline-edit]");
     if (inlineEditButton) {
+      if (!canManageCurrentDataset()) {
+        showDatasetSelectionToast("You can only edit dataset rows created by your own doctor account.", "danger");
+        return;
+      }
       selectedRowId = inlineEditButton.dataset.inlineEdit || "";
       latestSelectedRow =
         currentPageRows.find((entry) => String(entry.__rowId) === String(selectedRowId)) || null;
@@ -1933,6 +1960,10 @@ window.addEventListener("keydown", (event) => {
 
 if (editSelectedRowButton) {
   editSelectedRowButton.addEventListener("click", () => {
+    if (!canManageCurrentDataset()) {
+      showDatasetSelectionToast("You can only edit dataset rows created by your own doctor account.", "danger");
+      return;
+    }
     const selectedRow =
       latestSelectedRow ||
       currentPageRows.find((row) => String(row.__rowId) === String(selectedRowId)) ||

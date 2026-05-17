@@ -31,6 +31,7 @@ const {
   rotateAuthSession,
   getSessionRecordById,
 } = require("../services/authSessionService");
+const { isPredictionChiefDoctor } = require("../services/doctorOwnershipService");
 
 const toSafeStorageSegment = (value = "") =>
   String(value || "")
@@ -193,7 +194,17 @@ const sanitizeUser = (user, options = {}) => ({
   name: user.name,
   email: user.email,
   role: user.role || "doctor",
-  doctorAccountType: user.doctorAccountType === "standard" ? "standard" : "prediction",
+  doctorAccountType: isPredictionChiefDoctor(user)
+    ? "prediction"
+    : user.doctorAccountType === "standard"
+      ? "standard"
+      : "prediction",
+  predictionAccessScope:
+    user.role === "doctor"
+      ? isPredictionChiefDoctor(user)
+        ? "global"
+        : "own"
+      : "admin",
   specialty: user.specialty || "",
   hospital: user.hospital || "",
   profilePhoto: user.profilePhoto || "",

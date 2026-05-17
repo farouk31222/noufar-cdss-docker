@@ -2360,9 +2360,13 @@
   }
 
   function getDoctorRoleLabel(doctor) {
-    return doctor?.doctorAccountType === "standard"
-      ? "Standard"
-      : "Advanced";
+    const isChiefPredictionDoctor =
+      (doctor?.predictionAccessScope || "").toLowerCase() === "global" ||
+      String(doctor?.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com";
+
+    if (isChiefPredictionDoctor) return "Advanced chief";
+    if (doctor?.doctorAccountType === "standard") return "Standard";
+    return "Advanced";
   }
 
   function getSystemPredictionRecords() {

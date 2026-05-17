@@ -22,6 +22,7 @@
     sort: document.getElementById("my-imports-sort"),
     refresh: document.getElementById("my-imports-refresh"),
     error: document.getElementById("my-imports-error"),
+    tableHeadRow: document.querySelector(".my-imports-table thead tr"),
     tableBody: document.getElementById("my-imports-table-body"),
     empty: document.getElementById("my-imports-empty"),
     deleteModal: document.getElementById("my-imports-delete-modal"),
@@ -33,6 +34,7 @@
     uploadError: document.getElementById("my-imports-upload-error"),
     uploadSuccess: document.getElementById("my-imports-upload-success"),
     uploadSuccessText: document.getElementById("my-imports-upload-success-text"),
+    heroTitle: document.querySelector(".my-imports-hero h1"),
   };
 
   const escapeHtml = (value) =>
@@ -50,6 +52,45 @@
     } catch (error) {
       return null;
     }
+  };
+
+  const getCurrentDoctorId = () => {
+    const session = bridge?.getSession?.() || loadSession() || {};
+    const user = session.user || {};
+    return String(user._id || user.id || "").trim();
+  };
+
+  const isPredictionChiefSession = () => {
+    const session = bridge?.getSession?.() || loadSession() || {};
+    const user = session.user || {};
+    return (
+      String(user.predictionAccessScope || "").toLowerCase() === "global" ||
+      String(user.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com"
+    );
+  };
+
+  const canManageDatasetImport = (item = {}) => {
+    const ownerId = String(item.doctorId || "").trim();
+    return !ownerId || ownerId === getCurrentDoctorId();
+  };
+
+  const formatDoctorImporter = (item = {}) => {
+    const rawName = String(item.doctorName || "").trim();
+    const email = String(item.doctorEmail || "").trim();
+    const name = rawName || email || "Unknown doctor";
+    return /^dr\.?\s+/i.test(name) ? name.replace(/^dr\.?\s+/i, "Dr. ") : `Dr. ${name}`;
+  };
+
+  const getTableColumnCount = () => (isPredictionChiefSession() ? 8 : 7);
+
+  const applyChiefImportCopy = () => {
+    if (!isPredictionChiefSession()) return;
+    if (elements.heroTitle) elements.heroTitle.textContent = "Imported data";
+    document
+      .querySelectorAll('.profile-menu-link[href="my-imports.html"] span')
+      .forEach((node) => {
+        node.textContent = "Imported data";
+      });
   };
 
   const requestDatasetImportsJson = async (path = "", options = {}) => {
@@ -218,15 +259,31 @@
 
   const isValidUploadFile = (file) => allowedUploadExtensions.includes(getFileExtension(file?.name));
 
+  const renderTableHeader = () => {
+    if (!elements.tableHeadRow) return;
+
+    elements.tableHeadRow.innerHTML = `
+      <th>Dataset</th>
+      <th>Rows</th>
+      ${isPredictionChiefSession() ? "<th>Dr.</th>" : ""}
+      <th>Uploaded</th>
+      <th>Sheet</th>
+      <th>Size</th>
+      <th>Status</th>
+      <th>Actions</th>
+    `;
+  };
+
   const setLoadingState = () => {
     state.loading = true;
     setError("");
     if (elements.summary) elements.summary.textContent = "Loading imports...";
     if (elements.empty) elements.empty.hidden = true;
+    renderTableHeader();
     if (elements.tableBody) {
       elements.tableBody.innerHTML = `
         <tr>
-          <td colspan="7">
+          <td colspan="${getTableColumnCount()}">
             <div class="my-imports-loading">Loading your imported datasets...</div>
           </td>
         </tr>
@@ -290,6 +347,7 @@
   const renderTable = () => {
     if (!elements.tableBody || !elements.empty) return;
 
+    renderTableHeader();
     elements.empty.hidden = state.imports.length !== 0 || state.loading;
 
     if (!state.imports.length) {
@@ -301,7 +359,7 @@
     if (!state.filtered.length) {
       elements.tableBody.innerHTML = `
         <tr>
-          <td colspan="7">
+          <td colspan="${getTableColumnCount()}">
             <div class="my-imports-loading">No imported datasets match the current filters.</div>
           </td>
         </tr>
@@ -317,6 +375,12 @@
         const statusClass = String(status).toLowerCase().replace(/[^a-z0-9_-]/g, "");
         const itemType = getFileType(item);
         const openUrl = `dataset-selection.html?upload=${encodeURIComponent(item.id)}`;
+        const deleteAction = canManageDatasetImport(item)
+          ? `<button class="btn btn-secondary btn-sm" type="button" data-delete-import="${escapeHtml(item.id)}">Delete</button>`
+          : "";
+        const importerColumn = isPredictionChiefSession()
+          ? `<td>${escapeHtml(formatDoctorImporter(item))}</td>`
+          : "";
 
         return `
           <tr>
@@ -332,6 +396,7 @@
               </div>
             </td>
             <td><strong>${formatNumber(item.rowCount)}</strong></td>
+            ${importerColumn}
             <td>${escapeHtml(formatDate(item.uploadedAt || item.updatedAt))}</td>
             <td>${escapeHtml(item.sheetName || "Default sheet")}</td>
             <td>${escapeHtml(formatFileSize(item.fileSize))}</td>
@@ -339,7 +404,7 @@
             <td>
               <div class="my-imports-actions">
                 <a class="btn btn-primary btn-sm" href="${openUrl}">Open</a>
-                <button class="btn btn-secondary btn-sm" type="button" data-delete-import="${escapeHtml(item.id)}">Delete</button>
+                ${deleteAction}
               </div>
             </td>
           </tr>
@@ -357,6 +422,10 @@
   const openDeleteModal = (datasetImportId) => {
     const target = state.imports.find((item) => item.id === datasetImportId);
     if (!target || !elements.deleteModal) return;
+    if (!canManageDatasetImport(target)) {
+      setError("You can only delete dataset imports created by your own doctor account.");
+      return;
+    }
     state.deleteTargetId = datasetImportId;
     if (elements.deleteSummary) {
       elements.deleteSummary.textContent = `This will remove "${getDatasetTitle(target)}" and its imported rows from your private import registry.`;
@@ -379,6 +448,10 @@
     elements.confirmDelete.textContent = "Deleting...";
 
     try {
+      const target = state.imports.find((item) => item.id === state.deleteTargetId);
+      if (target && !canManageDatasetImport(target)) {
+        throw new Error("You can only delete dataset imports created by your own doctor account.");
+      }
       await deletePrivateDatasetImport(state.deleteTargetId);
       state.imports = state.imports.filter((item) => item.id !== state.deleteTargetId);
       closeDeleteModal();
@@ -392,6 +465,7 @@
   };
 
   const loadImports = async () => {
+    applyChiefImportCopy();
     setLoadingState();
     if (elements.refresh) elements.refresh.disabled = true;
 

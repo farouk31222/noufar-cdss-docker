@@ -99,11 +99,9 @@ const ensurePatientPayloadIsValid = (payload, res) => {
 
 const findPatientNameConflict = async ({ patientName, currentPatientId = null, user = null } = {}) => {
   const blindIndex = computePatientNameBlindIndex(patientName);
-  const ownerFilter = isDoctorUser(user) ? { doctorId: user._id } : {};
-  const predictionOwnerFilter = isDoctorUser(user) ? { predictedBy: user._id } : {};
   const patientFilter = currentPatientId
-    ? { ...ownerFilter, _id: { $ne: currentPatientId }, patientNameBlindIndex: blindIndex }
-    : { ...ownerFilter, patientNameBlindIndex: blindIndex };
+    ? { _id: { $ne: currentPatientId }, patientNameBlindIndex: blindIndex }
+    : { patientNameBlindIndex: blindIndex };
 
   const existingPatient = await Patient.findOne(patientFilter).select("_id");
   if (existingPatient) {
@@ -111,7 +109,6 @@ const findPatientNameConflict = async ({ patientName, currentPatientId = null, u
   }
 
   const existingPrediction = await Prediction.findOne({
-    ...predictionOwnerFilter,
     patientNameBlindIndex: blindIndex,
   }).select("_id");
   if (existingPrediction) {
@@ -133,8 +130,7 @@ const syncPatientsFromPredictionHistory = async () => {
     existingPatients
       .map((entry) => {
         const blindIndex = String(entry.patientNameBlindIndex || "").trim();
-        const doctorId = String(entry.doctorId || "").trim();
-        return blindIndex && doctorId ? `${doctorId}:${blindIndex}` : "";
+        return blindIndex || "";
       })
       .filter(Boolean)
   );
@@ -143,23 +139,19 @@ const syncPatientsFromPredictionHistory = async () => {
   const patientMap = new Map();
   existingPatients.forEach((entry) => {
     const key = String(entry.patientNameBlindIndex || "").trim();
-    const doctorId = String(entry.doctorId || "").trim();
-    if (key && doctorId) patientMap.set(`${doctorId}:${key}`, String(entry._id));
+    if (key) patientMap.set(key, String(entry._id));
   });
 
   predictions.forEach((prediction) => {
     const patientName = String(prediction.patientName || "").trim();
     if (!patientName) return;
-    const doctorId = String(prediction.predictedBy || "").trim();
-    if (!doctorId) return;
     const blindIndex = String(
       prediction.patientNameBlindIndex || computePatientNameBlindIndex(patientName)
     ).trim();
     if (!blindIndex) return;
-    const ownershipKey = `${doctorId}:${blindIndex}`;
-    if (knownByBlindIndex.has(ownershipKey)) return;
+    if (knownByBlindIndex.has(blindIndex)) return;
 
-    knownByBlindIndex.add(ownershipKey);
+    knownByBlindIndex.add(blindIndex);
     const payload = {
       patientName,
       age: Number(prediction.age) || 0,
@@ -189,7 +181,7 @@ const syncPatientsFromPredictionHistory = async () => {
     const inserted = await Patient.insertMany(toInsert, { ordered: false });
     inserted.forEach((entry) => {
       if (entry.patientNameBlindIndex) {
-        patientMap.set(`${String(entry.doctorId || "")}:${String(entry.patientNameBlindIndex)}`, String(entry._id));
+        patientMap.set(String(entry.patientNameBlindIndex), String(entry._id));
       }
     });
   }
@@ -199,12 +191,10 @@ const syncPatientsFromPredictionHistory = async () => {
     if (prediction.patientId) return;
     const patientName = String(prediction.patientName || "").trim();
     if (!patientName) return;
-    const doctorId = String(prediction.predictedBy || "").trim();
-    if (!doctorId) return;
     const blindIndex = String(
       prediction.patientNameBlindIndex || computePatientNameBlindIndex(patientName)
     ).trim();
-    const patientId = patientMap.get(`${doctorId}:${blindIndex}`);
+    const patientId = patientMap.get(blindIndex);
     if (!patientId) return;
 
     bulk.push({

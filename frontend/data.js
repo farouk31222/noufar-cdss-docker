@@ -246,18 +246,24 @@ const getCurrentDoctorIdentity = () => {
 
 const formatPredictedByDisplay = (value) => {
   const rawName = String(value || "").trim();
-  if (!rawName) return "Unknown user";
-
   const current = getCurrentDoctorIdentity();
+  if (!rawName) return "Unknown doctor";
+
+  if (rawName.toLowerCase() === "me") {
+    const currentLabel = current.name || current.email;
+    return currentLabel ? formatPredictedByDisplay(currentLabel) : "Unknown doctor";
+  }
+
   const normalizedRaw = rawName.toLowerCase();
   const normalizedName = current.name.toLowerCase();
   const normalizedEmail = current.email.toLowerCase();
 
   if (
-    (normalizedName && normalizedRaw === normalizedName) ||
-    (normalizedEmail && normalizedRaw === normalizedEmail)
+    normalizedEmail &&
+    normalizedRaw === normalizedEmail &&
+    normalizedName
   ) {
-    return "Me";
+    return formatPredictedByDisplay(current.name);
   }
 
   if (/^dr\.?\s+/i.test(rawName)) {

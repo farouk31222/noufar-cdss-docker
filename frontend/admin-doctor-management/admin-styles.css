@@ -3423,6 +3423,13 @@ tbody tr:hover {
   border-color: rgba(153, 102, 255, 0.3);
 }
 
+.badge.advanced-chief {
+  background: linear-gradient(135deg, rgba(113, 76, 255, 0.26), rgba(45, 108, 255, 0.22));
+  color: #e7dcff;
+  border-color: rgba(153, 102, 255, 0.38);
+  box-shadow: 0 12px 26px rgba(72, 84, 220, 0.16);
+}
+
 .badge.standard {
   background: rgba(76, 156, 255, 0.16);
   color: #cfe7ff;

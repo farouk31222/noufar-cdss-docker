@@ -297,6 +297,17 @@ const getPredictionDoctorSession = () => {
   }
 };
 
+const getCurrentPredictionDoctorId = () => {
+  const session = predictionDoctorSessionBridge?.getSession?.() || getPredictionDoctorSession() || {};
+  const user = session.user || {};
+  return String(user._id || user.id || "").trim();
+};
+
+const canManageDatasetImport = (upload = {}) => {
+  const ownerId = String(upload.doctorId || "").trim();
+  return !ownerId || ownerId === getCurrentPredictionDoctorId();
+};
+
 const getRecentUploadById = (uploadId) =>
   recentUploadsCache.find((entry) => String(entry.id) === String(uploadId)) || null;
 
@@ -1676,6 +1687,10 @@ const closeModal = (modal) => {
 
 const openDeleteUploadModal = (uploadId) => {
   const upload = getRecentUploadById(uploadId);
+  if (upload && !canManageDatasetImport(upload)) {
+    showUploadDeleteToast("You can only delete dataset imports created by your own doctor account.", "danger");
+    return;
+  }
   deleteTargetId = uploadId;
 
   if (deleteFileCopy) {
@@ -1764,6 +1779,13 @@ const renderRecentUploads = () => {
       const fileIcon = isCsv
         ? `<img class="upload-file-img" src="assets/csv-icon.png" alt="CSV file" aria-label="CSV file"/>`
         : `<img class="upload-file-img" src="assets/excel-icon.png" alt="Excel file" aria-label="Excel file"/>`;
+      const deleteAction = canManageDatasetImport(upload)
+        ? `
+            <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+            </button>
+          `
+        : "";
       return `
         <article class="upload-item ${upload.id === latestUploadId ? "is-selected" : ""}" data-upload-select="${upload.id}">
           ${fileIcon}
@@ -1775,9 +1797,7 @@ const renderRecentUploads = () => {
             <button class="upload-icon-btn" type="button" data-action="consult" data-upload-id="${upload.id}" title="Consult">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-            <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-            </button>
+            ${deleteAction}
           </div>
         </article>
       `;
@@ -2186,6 +2206,13 @@ const renderAllUploadsModal = () => {
       ? `<img class="all-uploads-file-img" src="assets/csv-icon.png" alt="CSV"/>`
       : `<img class="all-uploads-file-img" src="assets/excel-icon.png" alt="Excel"/>`;
     const when = upload.uploadedAt ? timeAgo(upload.uploadedAt) : "";
+    const deleteAction = canManageDatasetImport(upload)
+      ? `
+          <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        `
+      : "";
     return `
       <div class="all-uploads-item" data-upload-select="${upload.id}">
         ${icon}
@@ -2198,9 +2225,7 @@ const renderAllUploadsModal = () => {
           <button class="upload-icon-btn" type="button" data-action="consult" data-upload-id="${upload.id}" title="Consult">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-          </button>
+          ${deleteAction}
         </div>
       </div>`;
   }).join("");
@@ -2246,6 +2271,10 @@ if (allUploadsList) {
       } else if (action === "delete") {
         deleteTargetId = uploadId;
         const upload = getRecentUploadById(uploadId);
+        if (upload && !canManageDatasetImport(upload)) {
+          showUploadDeleteToast("You can only delete dataset imports created by your own doctor account.", "danger");
+          return;
+        }
         if (deleteFileCopy) {
           deleteFileCopy.textContent = `Are you sure you want to permanently delete "${upload?.name || "this file"}"?`;
         }
@@ -2283,6 +2312,9 @@ if (confirmDeleteButton) {
       const upload = getRecentUploadById(deleteTargetId);
       if (!upload) {
         throw new Error("Unable to find this imported file.");
+      }
+      if (!canManageDatasetImport(upload)) {
+        throw new Error("You can only delete dataset imports created by your own doctor account.");
       }
 
       const deletedFileName = upload.name || "Imported file";

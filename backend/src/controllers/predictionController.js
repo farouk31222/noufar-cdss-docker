@@ -22,6 +22,7 @@ const {
 } = require("../services/patientDataProtectionService");
 const {
   isDoctorUser,
+  isPredictionChiefDoctor,
   getDoctorPredictionQuery,
   logCrossDoctorDenied,
 } = require("../services/doctorOwnershipService");
@@ -34,12 +35,10 @@ const findPatientNameConflict = async (
   user = null
 ) => {
   const blindIndex = computePatientNameBlindIndex(patientName);
-  const patientOwnerFilter = isDoctorUser(user) ? { doctorId: user._id } : {};
-  const predictionOwnerFilter = isDoctorUser(user) ? { predictedBy: user._id } : {};
 
   const patientFilter = currentPatientId
-    ? { ...patientOwnerFilter, _id: { $ne: currentPatientId }, patientNameBlindIndex: blindIndex }
-    : { ...patientOwnerFilter, patientNameBlindIndex: blindIndex };
+    ? { _id: { $ne: currentPatientId }, patientNameBlindIndex: blindIndex }
+    : { patientNameBlindIndex: blindIndex };
   const existingPatient = await Patient.findOne(patientFilter).select("_id");
 
   if (existingPatient) {
@@ -50,8 +49,8 @@ const findPatientNameConflict = async (
   }
 
   const predictionFilter = currentPredictionId
-    ? { ...predictionOwnerFilter, _id: { $ne: currentPredictionId }, patientNameBlindIndex: blindIndex }
-    : { ...predictionOwnerFilter, patientNameBlindIndex: blindIndex };
+    ? { _id: { $ne: currentPredictionId }, patientNameBlindIndex: blindIndex }
+    : { patientNameBlindIndex: blindIndex };
   const existingPrediction = await Prediction.findOne(predictionFilter).select("_id");
 
   if (existingPrediction) {
@@ -149,17 +148,14 @@ const resolveOrCreatePatient = async ({
   createdAt = new Date(),
   updatedAt = null,
 } = {}) => {
-  const ownerFilter = isDoctorUser(user) ? { doctorId: user._id } : {};
   const ownerId = isDoctorUser(user) ? user._id : predictedBy;
 
   if (patientId) {
-    const byId = await Patient.findOne({ _id: patientId, ...ownerFilter }).select("_id patientName doctorId");
+    const byId = await Patient.findOne({ _id: patientId }).select("_id patientName doctorId");
     if (byId) return byId;
-    if (isDoctorUser(user)) {
-      const error = new Error("Patient not found");
-      error.statusCode = 404;
-      throw error;
-    }
+    const error = new Error("Patient not found");
+    error.statusCode = 404;
+    throw error;
   }
 
   const normalizedPatientName = String(patientName || "").trim();
@@ -167,7 +163,6 @@ const resolveOrCreatePatient = async ({
   const blindIndex = computePatientNameBlindIndex(normalizedPatientName);
 
   const existingPatient = await Patient.findOne({
-    ...ownerFilter,
     patientNameBlindIndex: blindIndex,
   }).select("_id patientName doctorId");
 
@@ -228,6 +223,10 @@ const ensurePatientRegistryEntry = async (prediction) => {
 };
 
 const ensurePredictionAccess = (req, res) => {
+  if (isPredictionChiefDoctor(req.user)) {
+    return;
+  }
+
   const isStandardDoctor =
     req.user?.role === "doctor" &&
     (req.user?.doctorAccountType || "prediction") === "standard";
@@ -240,8 +239,18 @@ const ensurePredictionAccess = (req, res) => {
   throw new Error("This doctor account can manage patients but cannot run or access prediction workflows.");
 };
 // charger toutes les prédictions
-const findAccessiblePrediction = async (req, predictionId, projection = "") => {
-  const query = getDoctorPredictionQuery(req.user, { _id: predictionId });
+const getPredictionWriteQuery = (user, extra = {}) =>
+  isDoctorUser(user) && !isPredictionChiefDoctor(user) ? { ...extra, predictedBy: user._id } : extra;
+
+const isOutcomeOnlyUpdate = (payload = {}) => {
+  const keys = Object.keys(payload || {}).filter((key) => payload[key] !== undefined);
+  return keys.length === 1 && keys[0] === "actualOutcome";
+};
+
+const findAccessiblePrediction = async (req, predictionId, projection = "", options = {}) => {
+  const query = options.write
+    ? getPredictionWriteQuery(req.user, { _id: predictionId })
+    : getDoctorPredictionQuery(req.user, { _id: predictionId });
   const finder = Prediction.findOne(query);
   const prediction = projection ? await finder.select(projection) : await finder;
 
@@ -250,7 +259,7 @@ const findAccessiblePrediction = async (req, predictionId, projection = "") => {
     if (existingPrediction) {
       await logCrossDoctorDenied({
         req,
-        action: "prediction.access.denied",
+        action: options.write ? "prediction.write.denied" : "prediction.access.denied",
         targetType: "prediction",
         targetId: existingPrediction._id,
       });
@@ -676,14 +685,16 @@ const createPrediction = async (req, res, next) => {
 const updatePrediction = async (req, res, next) => {
   try {
     ensurePredictionAccess(req, res);
-    const prediction = await findAccessiblePrediction(req, req.params.id);
+    const updates = { ...req.body };
+    const outcomeOnlyUpdate = isOutcomeOnlyUpdate(updates);
+    const prediction = await findAccessiblePrediction(req, req.params.id, "", {
+      write: !outcomeOnlyUpdate,
+    });
 
     if (!prediction) {
       res.status(404);
       throw new Error("Prediction not found");
     }
-
-    const updates = { ...req.body };
 
     if (updates.rerunPrediction) {
       const previousPredictionSnapshot =
@@ -694,6 +705,12 @@ const updatePrediction = async (req, res, next) => {
       const age = Number(updates.age);
       const sex = String(updates.sex || currentPlain.sex || "").trim();
       const source = String(updates.source || prediction.source || "Manual").trim() || "Manual";
+      const nextPatientNameBlindIndex = computePatientNameBlindIndex(patientName);
+      const currentPatientNameBlindIndex =
+        prediction.patientNameBlindIndex || computePatientNameBlindIndex(currentPlain.patientName || "");
+      const patientNameUnchanged =
+        Boolean(nextPatientNameBlindIndex) &&
+        nextPatientNameBlindIndex === currentPatientNameBlindIndex;
 
       if (!patientName || !Number.isFinite(age) || !consultationReason || !sex) {
         res.status(400);
@@ -703,32 +720,24 @@ const updatePrediction = async (req, res, next) => {
       ensureRequiredBiologyFields(updates, res);
       ensureAllowedTherapy(updates, res);
 
-      const linkedPatient = prediction.patientId
-        ? await Patient.findOne(
-            isDoctorUser(req.user)
-              ? { _id: prediction.patientId, doctorId: req.user._id }
-              : { _id: prediction.patientId }
-          )
+      let linkedPatient = prediction.patientId
+        ? await Patient.findOne({ _id: prediction.patientId })
         : null;
-      if (prediction.patientId && isDoctorUser(req.user) && !linkedPatient) {
-        await logCrossDoctorDenied({
-          req,
-          action: "prediction.patient_link.denied",
-          targetType: "patient",
-          targetId: prediction.patientId,
-          metadata: {
-            predictionId: String(prediction._id),
-          },
-        });
-        res.status(404);
-        throw new Error("Prediction not found");
+
+      if (!linkedPatient && patientNameUnchanged) {
+        linkedPatient = await Patient.findOne({
+          patientNameBlindIndex: nextPatientNameBlindIndex,
+        }).sort({ updatedAt: -1 });
       }
-      const nameConflict = await findPatientNameConflict(
-        patientName,
-        prediction._id,
-        linkedPatient?._id || null,
-        req.user
-      );
+
+      const nameConflict = patientNameUnchanged
+        ? null
+        : await findPatientNameConflict(
+            patientName,
+            prediction._id,
+            linkedPatient?._id || null,
+            req.user
+          );
 
       if (nameConflict) {
         res.status(409);
@@ -767,7 +776,7 @@ const updatePrediction = async (req, res, next) => {
           consultationReason,
           duration: updates.duration,
           inputData: updates,
-          predictedBy: req.user?._id || prediction.predictedBy || null,
+          predictedBy: prediction.predictedBy || req.user?._id || null,
           predictedByName: req.user?.name || req.user?.email || prediction.predictedByName || "",
           user: req.user,
         });
@@ -821,7 +830,7 @@ const updatePrediction = async (req, res, next) => {
       prediction.selectionReason = runtimeSelection.selectionReason;
       prediction.topFactors = aiResult.topFactors;
       prediction.inputData = {};
-      prediction.predictedBy = req.user?._id || prediction.predictedBy || null;
+      prediction.predictedBy = prediction.predictedBy || req.user?._id || null;
       prediction.predictedByName = req.user?.name || req.user?.email || prediction.predictedByName || "";
 
       if (prediction.actualOutcome) {
@@ -917,7 +926,7 @@ const deletePrediction = async (req, res, next) => {
   try {
     //  pour supprimer une prédiction
     ensurePredictionAccess(req, res);
-    const prediction = await findAccessiblePrediction(req, req.params.id, "_id");
+    const prediction = await findAccessiblePrediction(req, req.params.id, "_id", { write: true });
 
     if (!prediction) {
       res.status(404);
@@ -935,7 +944,7 @@ const deletePrediction = async (req, res, next) => {
 const deletePredictionHistoryEntry = async (req, res, next) => {
   try {
     ensurePredictionAccess(req, res);
-    const prediction = await findAccessiblePrediction(req, req.params.id, "_id history");
+    const prediction = await findAccessiblePrediction(req, req.params.id, "_id history", { write: true });
 
     if (!prediction) {
       res.status(404);

@@ -1021,6 +1021,11 @@
   box-shadow: 0 2px 6px rgba(19, 72, 160, 0.28);
 }
 
+.profile-access-badge.badge-chief {
+  background: linear-gradient(135deg, #6d3dff 0%, #234dc5 100%);
+  box-shadow: 0 2px 8px rgba(83, 74, 226, 0.32);
+}
+
 /* Nav links section */
 .profile-menu-links,
 .profile-menu-footer {
