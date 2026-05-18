@@ -223,6 +223,7 @@ const getDashboardValidationSummary = () => {
   };
 };
 
+
 const renderDashboardValidationStats = () => {
   const validation = getDashboardValidationSummary();
   const total = validation.total || 0;
@@ -248,6 +249,7 @@ const renderDashboardValidationStats = () => {
   if (validationPendingBarNode) validationPendingBarNode.style.width = `${pendingPercent}%`;
   if (validationIncorrectBarNode) validationIncorrectBarNode.style.width = `${incorrectPercent}%`;
 };
+
 
 const renderDashboardRecentActivity = () => {
   if (!recentHost) return;

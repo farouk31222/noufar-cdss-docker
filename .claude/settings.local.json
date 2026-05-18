@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(head -20)",
+      "PowerShell(Test-Path \"d:\\\\noufar cdss - Copy - Copy\\\\frontend\\\\assets\"; if \\(\\(Test-Path \"d:\\\\noufar cdss - Copy - Copy\\\\frontend\\\\assets\"\\)\\) { Get-ChildItem \"d:\\\\noufar cdss - Copy - Copy\\\\frontend\\\\assets\\\\\" | Select-Object Name, Length | Format-Table }else { Write-Host \"Folder does not exist\" })",
+      "Bash(findstr /n \"addEventListener.*auth-file-meta\\\\|querySelector.*auth-file-meta\" script.js)"
+    ]
+  }
+}

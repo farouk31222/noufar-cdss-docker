@@ -53,8 +53,8 @@ const uploadNames = {
   nationalId: document.querySelector('[data-file-name="nationalId"]'),
 };
 const uploadPreviewButtons = {
-  medicalLicense: document.querySelector('[data-file-preview="medicalLicense"]'),
-  nationalId: document.querySelector('[data-file-preview="nationalId"]'),
+  medicalLicense: null,
+  nationalId: null,
 };
 const documentPreviewTitle = document.querySelector("#document-preview-title");
 const documentPreviewMeta = document.querySelector("#document-preview-meta");
@@ -1204,9 +1204,11 @@ const validateUploadField = (field, label) => {
   }
 
   if (uploadNames[field.name]) {
-    uploadNames[field.name].textContent = field.validationMessage
-      ? "No file selected"
-      : formatUploadName(file.name);
+    const hasFile = !field.validationMessage;
+    uploadNames[field.name].textContent = hasFile
+      ? formatUploadName(file.name)
+      : "No file selected";
+    uploadNames[field.name].classList.toggle("has-file", hasFile);
   }
 
   syncUploadPreviewButton(field.name, !field.validationMessage);
@@ -1232,6 +1234,50 @@ Object.entries(uploadPreviewButtons).forEach(([name, button]) => {
     event.preventDefault();
     event.stopPropagation();
     openUploadPreview(name);
+  });
+});
+
+// Add click handlers to filename badges for preview
+Object.entries(uploadMeta).forEach(([name, metaElement]) => {
+  if (!metaElement) return;
+
+  metaElement.addEventListener("click", (event) => {
+    if (metaElement.classList.contains("is-selected")) {
+      event.preventDefault();
+      event.stopPropagation();
+      openUploadPreview(name);
+    }
+  });
+});
+
+// Update button text when file is selected
+const getUploadButton = (fieldName) => {
+  const field = uploadFields[fieldName];
+  if (!field) return null;
+  const label = field.closest('label.auth-file-field');
+  return label?.querySelector('.auth-file-button');
+};
+
+const updateButtonText = (fieldName) => {
+  const field = uploadFields[fieldName];
+  const button = getUploadButton(fieldName);
+
+  if (!button || !field) return;
+
+  const hasFile = field.files?.length > 0 && !field.validationMessage;
+  const newText = hasFile ? 'another file' : 'Choose File';
+
+  const svgElement = button.querySelector('svg');
+  const svgHTML = svgElement ? svgElement.outerHTML : '';
+
+  button.innerHTML = svgHTML + newText;
+};
+
+Object.entries(uploadFields).forEach(([name, field]) => {
+  if (!field) return;
+
+  field.addEventListener("change", () => {
+    updateButtonText(name);
   });
 });
 
@@ -1322,7 +1368,10 @@ if (registerForm && registerNote) {
       setFormMessage(registerNote, error.message || "Unable to create the account right now.", "error");
     }
   });
-}
+
+  const nameField = document.querySelector("#deactivated-account-message")?.closest("form")?.querySelector("input[name='name']");
   if (nameField && !nameField.value.trim()) {
     nameField.value = "Blocked account user";
   }
+}
+

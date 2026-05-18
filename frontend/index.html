@@ -91,84 +91,22 @@
           </div>
         </div>
 
-        <div class="hero-visual" aria-hidden="true">
-          <article class="hero-risk-card">
-            <span class="hero-risk-alert">AI high relapse risk detected</span>
-            <div class="hero-risk-head">
-              <div>
-                <p class="mockup-label">Patient Risk Profile</p>
-                <strong>#CD-98231-A</strong>
-              </div>
-              <span class="hero-risk-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 7h10v10H7zM9.5 4h5M12 9v5m0 0 2-2m-2 2-2-2" />
-                </svg>
-              </span>
-            </div>
-            <div class="hero-risk-score">
-              <span>Relapse Probability</span>
-              <strong>84%</strong>
-            </div>
-            <dl class="hero-risk-metrics">
-              <div>
-                <dt>TSH Results</dt>
-                <dd>4.91 mIU/L</dd>
-              </div>
-              <div>
-                <dt>FT4</dt>
-                <dd>1.90 ng/dL</dd>
-              </div>
-              <div>
-                <dt>TRAb</dt>
-                <dd>4.5 IU/L</dd>
-              </div>
-            </dl>
-          </article>
-        </div>
       </div>
     </section>
 
     <section class="section section-dark-band" id="about">
       <div class="container">
-        <div class="section-heading section-heading-split">
-          <div>
-            <p class="eyebrow">About</p>
-            <h2>Designed specifically for endocrinology workflows that demand speed and clarity.</h2>
-            <p>
-              Purpose-built for doctor-only use, NOUFAR CDSS reduces cognitive load during review by
-              connecting structured intake, predictive scoring, and explainable variables in one
-              clinical environment.
-            </p>
-          </div>
-
-          <aside class="section-summary-card">
-            <strong>Clinical overview</strong>
-            <ul class="summary-list">
-              <li>
-                <span>Secure doctor-only platform</span>
-                <strong>Verified access</strong>
-              </li>
-              <li>
-                <span>Prediction-ready patient intake</span>
-                <strong>Manual or file upload</strong>
-              </li>
-              <li>
-                <span>Explainable clinical outputs</span>
-                <strong>Probability + variable impact</strong>
-              </li>
-            </ul>
-          </aside>
+        <div class="section-heading narrow">
+          <p class="eyebrow">About</p>
+          <h2>Designed specifically for endocrinology workflows that demand speed and clarity.</h2>
+          <p>
+            Purpose-built for doctor-only use, NOUFAR CDSS reduces cognitive load during review by
+            connecting structured intake, predictive scoring, and explainable variables in one
+            clinical environment.
+          </p>
         </div>
 
         <div class="about-grid">
-          <figure class="about-visual-card">
-            <img src="assets/about.png" alt="Doctor reviewing the NOUFAR CDSS platform on a clinical workstation" />
-            <figcaption>
-              <strong>Doctor-centered clinical review</strong>
-              <span>Structured relapse analysis, explainable outputs, and a workspace designed for real consultation flow.</span>
-            </figcaption>
-          </figure>
-
           <div class="about-insights-grid">
             <article class="info-card">
               <span class="icon-badge">
@@ -203,6 +141,14 @@
               </p>
             </article>
           </div>
+
+          <figure class="about-visual-card">
+            <img src="assets/about2.png" alt="Doctor reviewing the NOUFAR CDSS platform on a clinical workstation" />
+            <figcaption>
+              <strong>Doctor-centered clinical review</strong>
+              <span>Structured relapse analysis, explainable outputs, and a workspace designed for real consultation flow.</span>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>
@@ -277,9 +223,16 @@
 
     <section class="section section-muted" id="features">
       <div class="container">
-        <div class="section-heading">
-          <p class="eyebrow">Features</p>
-          <h2>Everything needed for a professional prediction workflow in one organized environment.</h2>
+        <div class="section-heading features-heading-with-image">
+          <div class="features-heading-content">
+            <p class="eyebrow">Features</p>
+            <h2>Everything needed for a professional prediction workflow in one organized environment.</h2>
+          </div>
+          <div class="features-heading-image">
+            <figure class="features-image-figure">
+              <img src="assets/medical2.png" alt="Medical professional using NOUFAR CDSS prediction system" />
+            </figure>
+          </div>
         </div>
 
         <div class="feature-highlight feature-highlight-pro">
@@ -398,12 +351,9 @@
             <p class="eyebrow">Benefits</p>
             <h2>Clinical decision support that helps teams move faster without losing context.</h2>
           </div>
-          <div class="benefits-note">
-            <p>
-              Designed to support day-to-day endocrine review with less friction, more structure,
-              and clearer interpretation of predicted relapse risk.
-            </p>
-          </div>
+          <figure class="benefits-visual">
+            <img src="assets/proba.png" alt="NOUFAR CDSS probability prediction visualization and clinical benefits" />
+          </figure>
         </div>
 
         <div class="benefits-layout">
@@ -775,7 +725,7 @@
           </label>
           <label>
             Specialty
-            <input type="text" name="specialty" placeholder="Endocrinology" required />
+            <input type="text" name="specialty" value="Endocrinology" placeholder="Endocrinology" required />
           </label>
         </div>
         <div class="auth-grid">
@@ -853,15 +803,17 @@
               <input class="auth-file-input" type="file" name="medicalLicense" accept=".pdf,.png,.jpg,.jpeg,.webp"
                 required />
               <span class="auth-file-trigger">
-                <span class="auth-file-button">Choose File</span>
+                <span class="auth-file-button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" class="auth-file-button-icon">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                    <polyline points="13 2 13 9 20 9"/>
+                    <polyline points="9 17 12 14 15 17"/>
+                    <line x1="12" y1="14" x2="12" y2="21"/>
+                  </svg>
+                  Choose File
+                </span>
                 <span class="auth-file-actions">
                   <span class="auth-file-name" data-file-name="medicalLicense">No file selected</span>
-                  <button class="auth-file-view" type="button" data-file-preview="medicalLicense" aria-label="Preview medical license" hidden>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z" />
-                      <circle cx="12" cy="12" r="3.2" />
-                    </svg>
-                  </button>
                 </span>
               </span>
               <small class="auth-file-meta" data-file-meta="medicalLicense">
@@ -873,15 +825,17 @@
               <input class="auth-file-input" type="file" name="nationalId" accept=".pdf,.png,.jpg,.jpeg,.webp"
                 required />
               <span class="auth-file-trigger">
-                <span class="auth-file-button">Choose File</span>
+                <span class="auth-file-button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" class="auth-file-button-icon">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                    <polyline points="13 2 13 9 20 9"/>
+                    <polyline points="9 17 12 14 15 17"/>
+                    <line x1="12" y1="14" x2="12" y2="21"/>
+                  </svg>
+                  Choose File
+                </span>
                 <span class="auth-file-actions">
                   <span class="auth-file-name" data-file-name="nationalId">No file selected</span>
-                  <button class="auth-file-view" type="button" data-file-preview="nationalId" aria-label="Preview national ID" hidden>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z" />
-                      <circle cx="12" cy="12" r="3.2" />
-                    </svg>
-                  </button>
                 </span>
               </span>
               <small class="auth-file-meta" data-file-meta="nationalId">
