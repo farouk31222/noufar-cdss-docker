@@ -590,11 +590,7 @@
           </div>
         </label>
         <div class="auth-meta">
-          <label class="checkbox-row">
-            <input type="checkbox" name="remember" />
-            <span>Remember this device</span>
-          </label>
-          <button class="text-link" type="button" data-modal-open="reset">
+          <button class="text-link" type="button" data-modal-open="reset" id="forgot-password-btn" style="display: none;">
             Forgot Password?
           </button>
         </div>
@@ -625,11 +621,12 @@
       </div>
 
       <form class="auth-form" id="reset-form">
-        <label>
-          Professional email
+        <label class="reset-email-label">
+          Enter your email
           <input type="email" name="email" placeholder="name@hospital.org" required />
         </label>
-        <button class="btn btn-primary" type="submit">Send Reset Link</button>
+        <button class="btn btn-primary" type="submit" id="reset-send-btn">Send Reset Link</button>
+        <button class="btn btn-primary" type="button" id="reset-resend-btn" style="display: none;">Resend Link</button>
         <p class="auth-switch">
           Remembered your password?
           <button class="text-link" type="button" data-modal-open="login">

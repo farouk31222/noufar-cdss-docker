@@ -977,6 +977,14 @@ authForms.forEach((form) => {
 });
 
 if (loginForm && loginNote) {
+  const forgotPasswordBtn = document.querySelector("#forgot-password-btn");
+
+  const showForgotPasswordBtn = () => {
+    if (forgotPasswordBtn) {
+      forgotPasswordBtn.style.display = "block";
+    }
+  };
+
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     loginForm.dataset.submitAttempted = "true";
@@ -1021,6 +1029,7 @@ if (loginForm && loginNote) {
 
       if (!isDoctorAccount(payload)) {
         clearDoctorSession();
+        showForgotPasswordBtn();
         setFormMessage(
           loginNote,
           "Invalid email or password",
@@ -1042,6 +1051,7 @@ if (loginForm && loginNote) {
         return;
       }
       if (error.status === 403 && error.payload?.code === "DOCTOR_ACCESS_ONLY") {
+        showForgotPasswordBtn();
         setFormMessage(loginNote, "Invalid email or password", "error");
         return;
       }
@@ -1068,6 +1078,9 @@ if (loginForm && loginNote) {
         }
         openModal("deletedAccount");
         return;
+      }
+      if (error.message?.includes("Invalid email") || error.message?.includes("password")) {
+        showForgotPasswordBtn();
       }
       setFormMessage(loginNote, error.message || "Unable to sign in right now.", "error");
     }
@@ -1127,7 +1140,11 @@ if (twoStepForm && twoStepNote) {
 }
 
 if (resetForm && resetNote) {
-  resetForm.addEventListener("submit", async (event) => {
+  const resetSendBtn = document.querySelector("#reset-send-btn");
+  const resetResendBtn = document.querySelector("#reset-resend-btn");
+  const resetEmailLabel = resetForm.querySelector(".reset-email-label");
+
+  const handleResetSubmit = async (event) => {
     event.preventDefault();
     resetForm.dataset.submitAttempted = "true";
 
@@ -1150,17 +1167,44 @@ if (resetForm && resetNote) {
         body: JSON.stringify({ email }),
       });
 
-      setFormMessage(
-        resetNote,
-        payload.message || "If an account with that email exists, a reset link has been sent.",
-        "success"
-      );
-      resetForm.reset();
+      resetNote.innerHTML = `<p>Didn't receive the link? Use the Resend Link button below.</p>`;
+      resetNote.className = "form-note success";
+
+      if (resetEmailLabel) {
+        resetEmailLabel.classList.add("is-failed");
+      }
+      if (resetSendBtn && resetResendBtn) {
+        resetSendBtn.style.display = "none";
+        resetResendBtn.style.display = "block";
+      }
       resetForm.dataset.submitAttempted = "false";
     } catch (error) {
       setFormMessage(resetNote, error.message || "Unable to send a reset link right now.", "error");
     }
-  });
+  };
+
+  resetForm.addEventListener("submit", handleResetSubmit);
+
+  if (resetResendBtn) {
+    resetResendBtn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      setFormMessage(resetNote, "Resending your reset link...", "pending");
+      const email = resetForm.elements.email.value.trim();
+      try {
+        const payload = await requestJson("/auth/forgot-password", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+        setFormMessage(
+          resetNote,
+          payload.message || "Reset link has been resent to your email.",
+          "success"
+        );
+      } catch (error) {
+        setFormMessage(resetNote, error.message || "Unable to resend reset link right now.", "error");
+      }
+    });
+  }
 }
 
 const validateUploadField = (field, label) => {

@@ -2364,7 +2364,7 @@
       (doctor?.predictionAccessScope || "").toLowerCase() === "global" ||
       String(doctor?.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com";
 
-    if (isChiefPredictionDoctor) return "Advanced chief";
+    if (isChiefPredictionDoctor) return "Chef";
     if (doctor?.doctorAccountType === "standard") return "Standard";
     return "Advanced";
   }
@@ -3547,6 +3547,7 @@
       const isApproved = doctor.approvalStatus === "Approved";
       const isPending  = doctor.approvalStatus === "Pending";
       const isActive   = doctor.accountStatus === "Active";
+      const isChief = String(doctor?.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com";
 
       const items = [];
 
@@ -3557,7 +3558,7 @@
         <span class="ctx-label">View details</span>
       </button>`);
 
-      if (isPending && !isDeleted) {
+      if (!isChief && isPending && !isDeleted) {
         items.push(`<button class="ctx-item" data-ctx-action="approve">
           <span class="ctx-icon ctx-icon-success">
             <svg viewBox="0 0 24 24"><path d="M9.55 17.05 4.5 12l1.4-1.4 3.65 3.65 8.55-8.55L19.5 7.1l-9.95 9.95Z" fill="currentColor"/></svg>
@@ -3572,7 +3573,7 @@
         </button>`);
       }
 
-      if (isApproved && !isDeleted) {
+      if (!isChief && isApproved && !isDeleted) {
         if (isActive) {
           items.push(`<button class="ctx-item" data-ctx-action="deactivate">
             <span class="ctx-icon ctx-icon-warning">
@@ -3610,7 +3611,7 @@
         </button>`);
       }
 
-      if (isApproved && isDeleted) {
+      if (!isChief && isApproved && isDeleted) {
         items.push(`<button class="ctx-item" data-ctx-action="reactivate">
           <span class="ctx-icon ctx-icon-success">
             <svg viewBox="0 0 24 24"><path d="M9.55 17.05 4.5 12l1.4-1.4 3.65 3.65 8.55-8.55L19.5 7.1l-9.95 9.95Z" fill="currentColor"/></svg>
@@ -3757,6 +3758,8 @@
     if (!doctor) return;
 
     const supportHistory = getDoctorTickets(doctor.id);
+    const isChiefAccount = String(doctor?.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com";
+
     document.getElementById("detail-name").textContent = doctor.name;
     document.getElementById("detail-subtitle").textContent = `${doctor.specialty} - ${doctor.hospital}`;
     document.getElementById("detail-approval").innerHTML = createBadgeMarkup(doctor.approvalStatus);
@@ -3766,6 +3769,25 @@
     document.getElementById("detail-institution").textContent = doctor.hospital;
     document.getElementById("detail-role").textContent = getDoctorRoleLabel(doctor);
     document.getElementById("detail-registration").textContent = formatDate(doctor.registrationDate);
+
+    if (isChiefAccount) {
+      const bannerContainer = document.getElementById("doctor-detail-root");
+      if (bannerContainer && !document.getElementById("chief-protection-banner")) {
+        const banner = document.createElement("div");
+        banner.id = "chief-protection-banner";
+        banner.style.cssText = "background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(41, 126, 216, 0.06)); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;";
+        banner.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: #2563eb; flex-shrink: 0;">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+          </svg>
+          <div style="flex: 1;">
+            <strong style="color: #2563eb; font-weight: 700;">Chef Account</strong>
+            <p style="margin: 0.25rem 0 0 0; color: #4f6781; font-size: 0.9rem;">This is a protected Chef account. No administrative actions can be performed.</p>
+          </div>
+        `;
+        bannerContainer.insertBefore(banner, bannerContainer.firstChild);
+      }
+    }
 
     const documents = document.getElementById("detail-documents");
     if (!doctor.submittedDocuments?.length) {
@@ -3833,44 +3855,56 @@
     const toggleAccessButton = actions.querySelector('[data-detail-action="toggle-access"]');
     const deleteButton = actions.querySelector('[data-detail-action="delete"]');
 
-    if (doctor.approvalStatus !== "Pending") {
-      approveButton?.remove();
-      rejectButton?.remove();
-    }
+    const isChief = String(doctor?.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com";
 
-    if (doctor.accountStatus === "Deleted") {
+    if (isChief) {
+      // Remove all actions for chef
       approveButton?.remove();
       rejectButton?.remove();
       deactivateButton?.remove();
-    }
-
-    if (doctor.approvalStatus !== "Approved" || doctor.accountStatus !== "Active") {
-      deactivateButton?.remove();
-    }
-
-    if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Active") {
       reactivateButton?.remove();
-    } else if (reactivateButton) {
-      const strong = reactivateButton.querySelector("strong");
-      const small = reactivateButton.querySelector("small");
-      if (doctor.accountStatus === "Deleted") {
-        if (strong) strong.textContent = "Unblock account";
-        if (small) small.textContent = "Restore this doctor account access";
-      } else {
-        if (strong) strong.textContent = "Activate";
-        if (small) small.textContent = "Restore this doctor account";
-      }
-    }
-
-    if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Deleted") {
-      deleteButton?.remove();
-    }
-
-    if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Deleted") {
       toggleAccessButton?.remove();
-    } else if (toggleAccessButton) {
-      toggleAccessButton.textContent =
-        doctor.doctorAccountType === "standard" ? "Grant prediction access" : "Set standard access";
+      deleteButton?.remove();
+    } else {
+      if (doctor.approvalStatus !== "Pending") {
+        approveButton?.remove();
+        rejectButton?.remove();
+      }
+
+      if (doctor.accountStatus === "Deleted") {
+        approveButton?.remove();
+        rejectButton?.remove();
+        deactivateButton?.remove();
+      }
+
+      if (doctor.approvalStatus !== "Approved" || doctor.accountStatus !== "Active") {
+        deactivateButton?.remove();
+      }
+
+      if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Active") {
+        reactivateButton?.remove();
+      } else if (reactivateButton) {
+        const strong = reactivateButton.querySelector("strong");
+        const small = reactivateButton.querySelector("small");
+        if (doctor.accountStatus === "Deleted") {
+          if (strong) strong.textContent = "Unblock account";
+          if (small) small.textContent = "Restore this doctor account access";
+        } else {
+          if (strong) strong.textContent = "Activate";
+          if (small) small.textContent = "Restore this doctor account";
+        }
+      }
+
+      if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Deleted") {
+        deleteButton?.remove();
+      }
+
+      if (doctor.approvalStatus !== "Approved" || doctor.accountStatus === "Deleted") {
+        toggleAccessButton?.remove();
+      } else if (toggleAccessButton) {
+        toggleAccessButton.textContent =
+          doctor.doctorAccountType === "standard" ? "Grant prediction access" : "Set standard access";
+      }
     }
 
     actions.addEventListener("click", async (event) => {

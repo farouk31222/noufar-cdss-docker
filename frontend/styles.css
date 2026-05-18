@@ -2922,9 +2922,9 @@ p {
 
 .auth-modal {
   position: relative;
-  width: min(560px, calc(100vw - 24px));
+  width: min(850px, calc(100vw - 24px));
   max-height: min(calc(100vh - 28px), 840px);
-  padding: 1.55rem;
+  padding: 2.5rem;
   border: 1px solid rgba(17, 54, 92, 0.1);
   border-radius: 28px;
   background:
@@ -3586,6 +3586,21 @@ p {
   border-color: rgba(217, 85, 79, 0.8);
   box-shadow: 0 0 0 4px rgba(217, 85, 79, 0.14);
   background: #fff8f8;
+}
+
+.reset-email-label.is-failed {
+  color: var(--text-soft);
+}
+
+.reset-email-label.is-failed input {
+  border-color: rgba(17, 54, 92, 0.15);
+  background: rgba(247, 251, 255, 0.92);
+}
+
+.reset-email-label.is-failed input:focus {
+  border-color: rgba(35, 105, 168, 0.45);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(35, 105, 168, 0.12);
 }
 
 .password-field-shell {
