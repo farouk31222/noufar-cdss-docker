@@ -5534,6 +5534,37 @@
   letter-spacing: 0.08em;
 }
 
+.range-value-display {
+  cursor: text;
+  padding: 0.12rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+
+.range-value-display:hover,
+.range-value-display:focus-visible {
+  background: #f3f8ff;
+  border-color: #d8e5f5;
+  outline: none;
+}
+
+.range-value-editor {
+  width: 112px;
+  min-height: 32px;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid #bfd2ea;
+  border-radius: 8px;
+  color: #12325b;
+  font: inherit;
+  font-weight: 800;
+  text-align: right;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(34, 88, 150, 0.1);
+}
+
 .range-input {
   width: 100%;
   height: 10px;
@@ -7336,6 +7367,52 @@
 
 .patient-entry-modal-card .patient-biology-section .range-not-measured {
   display: none !important;
+}
+
+.simple-biology-section .range-status-badge {
+  display: none !important;
+}
+
+.simple-biology-section .chip-select-group,
+.patient-entry-modal-card .simple-biology-section .chip-select-group,
+.patient-details-modal-card .simple-biology-section .chip-select-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 46px;
+  padding: 0.22rem;
+  border-radius: 12px;
+  border: 1px solid #dbe6f4;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.simple-biology-section .chip-select-option,
+.patient-entry-modal-card .simple-biology-section .chip-select-option,
+.patient-details-modal-card .simple-biology-section .chip-select-option {
+  min-height: 36px;
+  min-width: 0;
+  border-radius: 10px;
+  color: #526a88;
+  font-weight: 800;
+  box-shadow: none;
+  transform: none;
+}
+
+.simple-biology-section .chip-select-option:hover,
+.simple-biology-section .chip-select-option:focus-visible {
+  background: #edf5ff;
+  color: #1f5ca8;
+  box-shadow: none;
+  transform: none;
+}
+
+.simple-biology-section .chip-select-option.is-selected,
+.simple-biology-section .chip-select-option.is-selected:hover,
+.simple-biology-section .chip-select-option.is-selected:focus-visible {
+  background: #2568bf;
+  color: #ffffff;
+  box-shadow: none;
+  transform: none;
 }
 
 .modal-card-wide {

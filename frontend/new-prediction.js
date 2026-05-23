@@ -120,7 +120,7 @@ const commitPredictionRangeManualValue = (input, rawValue) => {
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const step = Number(input.step || 1);
-  const parsed = Number(rawValue);
+  const parsed = Number(String(rawValue ?? "").trim().replace(",", "."));
   if (!Number.isFinite(parsed)) return;
 
   const clamped = Math.min(max, Math.max(min, parsed));
@@ -146,8 +146,9 @@ const initPredictionManualRangeEditors = () => {
       if (input.dataset.notMeasured === "true") return;
 
       const editor = document.createElement("input");
-      editor.type = "number";
+      editor.type = "text";
       editor.className = "range-value-editor";
+      editor.inputMode = "decimal";
       editor.min = input.min || "0";
       editor.max = input.max || "100";
       editor.step = input.step || "1";
@@ -1181,6 +1182,8 @@ const ensureClinicalSliderHeader = (input) => {
 };
 
 const renderClinicalEnhancements = (input, value) => {
+  if (input?.closest(".simple-biology-section")) return null;
+
   const key = getClinicalKey(input);
   if (!key) return null;
   const ref = CLINICAL_REFERENCES[key];

@@ -59,10 +59,7 @@
         <div class="hero-copy">
           <p class="eyebrow">New AI algorithm preview</p>
           <h1>
-            <span>Precision AI for</span>
-            <span class="hero-accent hero-accent-long">Hyperthyroidism</span>
-            <span class="hero-accent">Relapse</span>
-            <span>Prediction.</span>
+            <span>Precision AI for Hyperthyroidism Relapse Prediction.</span>
           </h1>
           <p class="hero-text">
             Empowering clinicians with actionable insight, NOUFAR CDSS analyzes multi-modal
@@ -568,13 +565,13 @@
 
       <form class="auth-form" id="login-form">
         <label>
-          Professional email
-          <input type="email" name="email" placeholder="name@hospital.org" required />
+          <span>Professional email</span>
+          <input type="email" name="email" data-i18n-attr="placeholder:login.emailPlaceholder" placeholder="name@hospital.org" required />
         </label>
         <label>
-          Password
+          <span>Password</span>
           <div class="password-field-shell">
-            <input type="password" name="password" placeholder="Enter your password" required />
+            <input type="password" name="password" data-i18n-attr="placeholder:login.passwordPlaceholder" placeholder="Enter your password" required />
             <button class="password-visibility-toggle" type="button" data-password-toggle aria-label="Show password">
               <svg class="password-eye-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" />
@@ -596,7 +593,7 @@
         </div>
         <button class="btn btn-primary" type="submit">Login</button>
         <p class="auth-switch">
-          Don't have an account?
+          <span>Don't have an account?</span>
           <button class="text-link" type="button" data-modal-open="register">
             Create account
           </button>
@@ -622,13 +619,13 @@
 
       <form class="auth-form" id="reset-form">
         <label class="reset-email-label">
-          Enter your email
-          <input type="email" name="email" placeholder="name@hospital.org" required />
+          <span>Enter your email</span>
+          <input type="email" name="email" data-i18n-attr="placeholder:reset.emailPlaceholder" placeholder="name@hospital.org" required />
         </label>
         <button class="btn btn-primary" type="submit" id="reset-send-btn">Send Reset Link</button>
         <button class="btn btn-primary" type="button" id="reset-resend-btn" style="display: none;">Resend Link</button>
         <p class="auth-switch">
-          Remembered your password?
+          <span>Remembered your password?</span>
           <button class="text-link" type="button" data-modal-open="login">
             Back to login
           </button>
@@ -653,12 +650,12 @@
 
       <form class="auth-form" id="twoStep-form">
         <label>
-          Verification code
-          <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter the 6-digit code" maxlength="6" required />
+          <span>Verification code</span>
+          <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" data-i18n-attr="placeholder:twoStep.codePlaceholder" placeholder="Enter the 6-digit code" maxlength="6" required />
         </label>
         <button class="btn btn-primary" type="submit">Verify and continue</button>
         <p class="auth-switch">
-          Didn’t receive the code?
+          <span>Didn’t receive the code?</span>
           <button class="text-link" type="button" data-modal-open="login">
             Back to login
           </button>
@@ -686,11 +683,11 @@
       <form class="auth-form" id="register-form">
         <div class="account-type-block" role="group" aria-labelledby="account-type-title">
           <div class="account-type-head">
-            <p class="eyebrow">Type de compte</p>
-            <h3 id="account-type-title">Choisissez le profil du médecin à enregistrer.</h3>
+            <p class="eyebrow">ACCOUNT TYPE</p>
+            <h3 id="account-type-title">Choose the doctor profile to register.</h3>
             <p>
-              Sélectionnez le niveau d’accès demandé pour distinguer les médecins dédiés à la saisie
-              clinique et ceux autorisés à lancer des prédictions.
+              Select the requested access level to distinguish doctors dedicated to clinical 
+              data entry from those authorized to run predictions.
             </p>
           </div>
 
@@ -698,18 +695,18 @@
             <label class="account-type-card">
               <input type="radio" name="doctorAccountType" value="standard" checked />
               <span class="account-type-card-shell">
-                <span class="account-type-badge">Accès standard</span>
-                <strong>Médecin standard</strong>
-                <span>Gère et remplit uniquement les informations des patients.</span>
+                <span class="account-type-badge">STANDARD ACCESS</span>
+                <strong>Standard doctor</strong>
+                <span>Manages and fills in patient information only.</span>
               </span>
             </label>
 
             <label class="account-type-card">
               <input type="radio" name="doctorAccountType" value="prediction" />
               <span class="account-type-card-shell">
-                <span class="account-type-badge">Accès prédiction</span>
-                <strong>Médecin avec prédiction</strong>
-                <span>Gère les patients et peut lancer des prédictions médicales.</span>
+                <span class="account-type-badge">PREDICTION ACCESS</span>
+                <strong>Doctor with prediction access</strong>
+                <span>Manages patients and can run medical predictions.</span>
               </span>
             </label>
           </div>

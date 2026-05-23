@@ -90,7 +90,7 @@ const normalizePatientBiologyStatus = (value) => {
 
 const getMeasuredRangeValue = (input, value) => {
   const rawValue = String(value ?? "").trim();
-  const parsed = Number(rawValue);
+  const parsed = Number(rawValue.replace(",", "."));
   if (Number.isFinite(parsed)) return String(parsed);
   return input?.defaultValue || input?.value || input?.min || "0";
 };
@@ -448,13 +448,13 @@ const serializePatientForm = () => {
   payload.source = "Manual";
   payload.age = Number(payload.age);
   payload.duration = Number(payload.duration || 0);
-  payload.tsh = Number(payload.tsh || 0);
-  payload.ft4 = Number(payload.ft4 || 0);
+  payload.tsh = Number(String(payload.tsh || 0).trim().replace(",", "."));
+  payload.ft4 = Number(String(payload.ft4 || 0).trim().replace(",", "."));
   payload.antiTpo = normalizePatientBiologyStatus(payload.antiTpo);
-  payload.antiTpoTotal = Number(payload.antiTpoTotal || 0);
+  payload.antiTpoTotal = Number(String(payload.antiTpoTotal || 0).trim().replace(",", "."));
   payload.antiTg = normalizePatientBiologyStatus(payload.antiTg);
   payload.tsi = normalizePatientBiologyStatus(payload.tsi);
-  payload.tsiLevel = Number(payload.tsiLevel || 0);
+  payload.tsiLevel = Number(String(payload.tsiLevel || 0).trim().replace(",", "."));
   return payload;
 };
 
@@ -668,6 +668,8 @@ const ensurePatientClinicalHeader = (input) => {
 };
 
 const renderPatientClinicalEnhancements = (input, value) => {
+  if (input?.closest(".simple-biology-section")) return null;
+
   const key = getPatientClinicalKey(input);
   if (!key) return null;
   const ref = PATIENT_CLINICAL_REFERENCES[key];
@@ -760,7 +762,7 @@ const commitPatientRangeManualValue = (input, rawValue) => {
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const step = Number(input.step || 1);
-  const parsed = Number(rawValue);
+  const parsed = Number(String(rawValue ?? "").trim().replace(",", "."));
   if (!Number.isFinite(parsed)) return;
 
   const clamped = Math.min(max, Math.max(min, parsed));
@@ -785,8 +787,9 @@ const initPatientManualRangeEditors = () => {
       if (input.dataset.notMeasured === "true") return;
       const previous = target.textContent?.trim() || "";
       const editor = document.createElement("input");
-      editor.type = "number";
+      editor.type = "text";
       editor.className = "range-value-editor";
+      editor.inputMode = "decimal";
       editor.min = input.min || "0";
       editor.max = input.max || "100";
       editor.step = input.step || "1";
@@ -1034,79 +1037,24 @@ const buildReadonlyToggleField = (label, rawValue) => {
   `;
 };
 
-const READONLY_CLINICAL_REFS = {
-  "TSH": { normalMin: 0.4, normalMax: 4.0, highAbove: 10 },
-  "FT4": { normalMin: 0.8, normalMax: 1.8, highAbove: 3 },
-  "Anti-TPO total": { normalMin: 0, normalMax: 35, highAbove: 500 },
-  "TSI level": { normalMin: 0, normalMax: 1.75, highAbove: 7 },
-};
-
-const READONLY_THUMB_BG = {
-  default: "linear-gradient(180deg, #2d71d3 0%, #174f9d 100%)",
-  low: "linear-gradient(180deg, #4a93d8 0%, #1b5b9a 100%)",
-  normal: "linear-gradient(180deg, #2cb578 0%, #1b7a52 100%)",
-  elevated: "linear-gradient(180deg, #e2a223 0%, #a8690a 100%)",
-  high: "linear-gradient(180deg, #e54c46 0%, #a91e1a 100%)",
-};
-
-const READONLY_THUMB_SHADOW = {
-  default: "0 10px 18px rgba(36, 96, 173, 0.24)",
-  low: "0 10px 18px rgba(36, 96, 173, 0.24)",
-  normal: "0 10px 18px rgba(27, 122, 82, 0.28)",
-  elevated: "0 10px 18px rgba(168, 105, 10, 0.28)",
-  high: "0 10px 18px rgba(169, 30, 26, 0.3)",
-};
-
-const getReadonlyClinicalAttrs = (label, value, min, max) => {
-  const ref = READONLY_CLINICAL_REFS[label];
-  if (!ref) return null;
-  const v = Number(value);
-  let tone = "default";
-  let statusLabel = "—";
-  if (Number.isFinite(v)) {
-    if (v < ref.normalMin) { tone = "low"; statusLabel = "Low"; }
-    else if (v <= ref.normalMax) { tone = "normal"; statusLabel = "Normal"; }
-    else if (v < ref.highAbove) { tone = "elevated"; statusLabel = "Elevated"; }
-    else { tone = "high"; statusLabel = "High"; }
-  }
-  const span = max > min ? max - min : 1;
-  const nMin = Math.max(0, Math.min(100, ((ref.normalMin - min) / span) * 100));
-  const nMax = Math.max(nMin, Math.min(100, ((ref.normalMax - min) / span) * 100));
-  const trackBg = `linear-gradient(90deg, rgba(155, 174, 196, 0.28) 0%, rgba(155, 174, 196, 0.28) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMin}%, rgba(34, 160, 107, 0.42) ${nMax}%, rgba(155, 174, 196, 0.28) ${nMax}%, rgba(155, 174, 196, 0.28) 100%)`;
-  return {
-    tone,
-    statusLabel,
-    style: `--range-track-bg: ${trackBg}; --range-thumb-bg: ${READONLY_THUMB_BG[tone]}; --range-thumb-shadow: ${READONLY_THUMB_SHADOW[tone]}; background: ${trackBg};`,
-  };
-};
-
 const buildReadonlyRangeField = (label, rawValue, min, max, decimals, unit) => {
-  const fallback = Number(rawValue);
+  const fallback = Number(String(rawValue ?? "").trim().replace(",", "."));
   const value = Number.isFinite(fallback) ? fallback : min;
   const displayValue = decimals > 0 ? value.toFixed(decimals) : String(Math.round(value));
-
-  const clinical = getReadonlyClinicalAttrs(label, value, min, max);
-  let inlineStyle;
-  let headerHtml;
-  if (clinical) {
-    inlineStyle = clinical.style;
-    headerHtml = `<div class="slider-field-header"><span>${escapePatientHtml(label)}</span><span class="range-status-badge" data-tone="${clinical.tone}">${clinical.statusLabel}</span></div>`;
-  } else {
-    const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
-    inlineStyle = `background: linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%);`;
-    headerHtml = `<span>${escapePatientHtml(label)}</span>`;
-  }
+  const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const step = decimals > 0 ? `0.${"0".repeat(Math.max(0, decimals - 1))}1` : "1";
+  const inlineStyle = `background: linear-gradient(90deg, #2d71d3 0%, #63a8ff ${progress}%, rgba(68, 121, 196, 0.18) ${progress}%, rgba(150, 187, 239, 0.24) 100%);`;
 
   return `
     <label class="field slider-field">
-      ${headerHtml}
+      <span>${escapePatientHtml(label)}</span>
       <div class="range-field-shell">
         <input
           class="range-input"
           type="range"
           min="${min}"
           max="${max}"
-          step="${decimals > 0 ? "0.1" : "1"}"
+          step="${step}"
           value="${value}"
           disabled
           style="${inlineStyle}"
@@ -1187,13 +1135,13 @@ const buildPatientDetailsMarkup = (patient) => {
       </div>
     </div>
 
-    <div class="form-section patient-biology-section">
+    <div class="form-section patient-biology-section simple-biology-section">
       <div class="form-section-title">Biology</div>
       <div class="form-grid form-grid-3">
-        ${buildReadonlyRangeField("TSH", values.tsh, 0, 50, 1, "mIU/L")}
-        ${buildReadonlyRangeField("FT4", values.ft4, 0, 10, 1, "ng/dL")}
+        ${buildReadonlyRangeField("TSH", values.tsh, 0, 5, 4, "mIU/L")}
+        ${buildReadonlyRangeField("FT4", values.ft4, 0, 100, 2, "ng/dL")}
         ${buildReadonlyChipField("Anti-TPO", values.antiTpo, ["Negative", "Positive"], "Patient Anti-TPO status")}
-        ${buildReadonlyRangeField("Anti-TPO total", values.antiTpoTotal, 0, 3000, 0, "IU/mL")}
+        ${buildReadonlyRangeField("Anti-TPO total", values.antiTpoTotal, 0, 3000, 2, "IU/mL")}
         ${buildReadonlyChipField("Anti-Tg", values.antiTg, ["Negative", "Positive"], "Patient Anti-Tg status")}
         ${buildReadonlyChipField("TSI", values.tsi, ["Negative", "Positive"], "Patient TSI status")}
         ${buildReadonlyRangeField("TSI level", values.tsiLevel, 0, 10, 1, "index")}

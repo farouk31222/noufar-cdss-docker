@@ -3,6 +3,7 @@ const navToggle = document.querySelector(".nav-toggle");
 const siteNav = document.querySelector(".site-nav");
 const API_BASE_URL = window.NOUFAR_API_BASE_URL || "http://localhost:5000/api";
 const DOCTOR_AUTH_STORAGE_KEY = "noufar-doctor-auth-v1";
+
 const siteNavLinks = Array.from(document.querySelectorAll('.site-nav a[href^="#"]'));
 const contactForm = document.querySelector("#contact-form");
 const formNote = document.querySelector("#form-note");

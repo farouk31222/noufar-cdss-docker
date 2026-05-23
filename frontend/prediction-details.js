@@ -464,7 +464,7 @@ const normalizeDetailNumericOrNotMeasured = (value, fallback) => {
   if (String(value ?? "").trim().toLowerCase() === "not measured") {
     return "Not measured";
   }
-  const parsed = Number(value);
+  const parsed = Number(String(value ?? "").trim().replace(",", "."));
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
@@ -813,10 +813,10 @@ const buildHistoricalClinicalEntryModal = (entry = {}) => {
         ["TSH", formatTsh(profile.tsh)],
         ["FT4", formatFt4(profile.ft4)],
         ["Anti-TPO", profile.antiTpo],
-        ["Anti-TPO total", String(profile.antiTpoTotal ?? "")],
+        ["Anti-TPO total", Number.isFinite(Number(profile.antiTpoTotal)) ? Number(profile.antiTpoTotal).toFixed(2) : String(profile.antiTpoTotal ?? "")],
         ["Anti-Tg", profile.antiTg],
         ["TSI", profile.tsi],
-        ["TSI level", String(profile.tsiLevel ?? "")],
+        ["TSI level", Number.isFinite(Number(profile.tsiLevel)) ? Number(profile.tsiLevel).toFixed(2) : String(profile.tsiLevel ?? "")],
       ],
     },
     {
@@ -1563,7 +1563,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 const formatTsh = (value) =>
-  String(value ?? "").trim().toLowerCase() === "not measured" ? "Not measured" : `${Number(value).toFixed(2)} mIU/L`;
+  String(value ?? "").trim().toLowerCase() === "not measured" ? "Not measured" : `${Number(value).toFixed(4)} mIU/L`;
 const formatFt4 = (value) =>
   String(value ?? "").trim().toLowerCase() === "not measured" ? "Not measured" : `${Number(value).toFixed(2)} ng/dL`;
 
@@ -1788,6 +1788,8 @@ const ensureDetailClinicalHeader = (input) => {
 };
 
 const renderDetailClinicalEnhancements = (input, value) => {
+  if (input?.closest(".simple-biology-section")) return null;
+
   const key = getDetailClinicalKey(input);
   if (!key) return null;
   const ref = DETAIL_CLINICAL_REFERENCES[key];
@@ -1879,7 +1881,7 @@ const commitDetailRangeManualValue = (input, rawValue) => {
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const step = Number(input.step || 1);
-  const parsed = Number(rawValue);
+  const parsed = Number(String(rawValue ?? "").trim().replace(",", "."));
   if (!Number.isFinite(parsed)) return;
 
   const clamped = Math.min(max, Math.max(min, parsed));
@@ -1901,8 +1903,9 @@ const initDetailManualRangeEditors = () => {
     target.addEventListener("click", () => {
       if (input.dataset.notMeasured === "true") return;
       const editor = document.createElement("input");
-      editor.type = "number";
+      editor.type = "text";
       editor.className = "range-value-editor";
+      editor.inputMode = "decimal";
       editor.min = input.min || "0";
       editor.max = input.max || "100";
       editor.step = input.step || "1";
@@ -1972,7 +1975,7 @@ const formatDetailValue = (key, value) => {
   if (String(value ?? "").trim().toLowerCase() === "not measured") return "Not measured";
   if (key === "tsh") return formatTsh(value);
   if (key === "ft4") return formatFt4(value);
-  if (key === "antiTpoTotal") return `${Number(value).toFixed(0)}`;
+  if (key === "antiTpoTotal") return `${Number(value).toFixed(2)}`;
   if (key === "tsiLevel") return Number(value).toFixed(2);
   if (key === "duration") return `${value} months`;
   if (key === "age") return `${value} years`;
@@ -2331,7 +2334,7 @@ const renderDetails = (entry) => {
           ["TSH", formatTsh(profile.tsh)],
           ["FT4", formatFt4(profile.ft4)],
           ["Anti-TPO", profile.antiTpo],
-          ["Anti-TPO total", `${Number(profile.antiTpoTotal).toFixed(0)}`],
+          ["Anti-TPO total", `${Number(profile.antiTpoTotal).toFixed(2)}`],
           ["Anti-Tg", profile.antiTg],
           ["TSI", profile.tsi],
           ["TSI level", Number(profile.tsiLevel).toFixed(2)],
@@ -2503,11 +2506,22 @@ const collectRerunProfile = () => {
   return {
     ...collected,
     age: Number(collected.age),
-    tsh: document.querySelector("#detail-tsh")?.dataset.notMeasured === "true" ? "Not measured" : Number(collected.tsh),
-    ft4: document.querySelector("#detail-ft4")?.dataset.notMeasured === "true" ? "Not measured" : Number(collected.ft4),
+    tsh:
+      document.querySelector("#detail-tsh")?.dataset.notMeasured === "true"
+        ? "Not measured"
+        : Number(String(collected.tsh ?? "").trim().replace(",", ".")),
+    ft4:
+      document.querySelector("#detail-ft4")?.dataset.notMeasured === "true"
+        ? "Not measured"
+        : Number(String(collected.ft4 ?? "").trim().replace(",", ".")),
     antiTpoTotal:
-      document.querySelector("#detail-anti-tpo-total")?.dataset.notMeasured === "true" ? "Not measured" : Number(collected.antiTpoTotal),
-    tsiLevel: document.querySelector("#detail-tsi-level")?.dataset.notMeasured === "true" ? "Not measured" : Number(collected.tsiLevel),
+      document.querySelector("#detail-anti-tpo-total")?.dataset.notMeasured === "true"
+        ? "Not measured"
+        : Number(String(collected.antiTpoTotal ?? "").trim().replace(",", ".")),
+    tsiLevel:
+      document.querySelector("#detail-tsi-level")?.dataset.notMeasured === "true"
+        ? "Not measured"
+        : Number(String(collected.tsiLevel ?? "").trim().replace(",", ".")),
     duration: Number(collected.duration),
   };
 };
@@ -2537,13 +2551,25 @@ const buildRerunPayloadFromProfile = (profile) => {
     muscleWeakness: profile.muscleWeakness,
     goiter: profile.goiter,
     goiterClassification: profile.goiterClass,
-    tsh: String(profile.tsh || "").toLowerCase() === "not measured" ? "Not measured" : Number(profile.tsh),
-    ft4: String(profile.ft4 || "").toLowerCase() === "not measured" ? "Not measured" : Number(profile.ft4),
+    tsh:
+      String(profile.tsh || "").toLowerCase() === "not measured"
+        ? "Not measured"
+        : Number(String(profile.tsh ?? "").trim().replace(",", ".")),
+    ft4:
+      String(profile.ft4 || "").toLowerCase() === "not measured"
+        ? "Not measured"
+        : Number(String(profile.ft4 ?? "").trim().replace(",", ".")),
     antiTpo: profile.antiTpo,
-    antiTpoTotal: String(profile.antiTpoTotal || "").toLowerCase() === "not measured" ? "Not measured" : Number(profile.antiTpoTotal),
+    antiTpoTotal:
+      String(profile.antiTpoTotal || "").toLowerCase() === "not measured"
+        ? "Not measured"
+        : Number(String(profile.antiTpoTotal ?? "").trim().replace(",", ".")),
     antiTg: profile.antiTg,
     tsi: profile.tsi,
-    tsiLevel: String(profile.tsiLevel || "").toLowerCase() === "not measured" ? "Not measured" : Number(profile.tsiLevel),
+    tsiLevel:
+      String(profile.tsiLevel || "").toLowerCase() === "not measured"
+        ? "Not measured"
+        : Number(String(profile.tsiLevel ?? "").trim().replace(",", ".")),
     ultrasound: profile.ultrasound,
     scintigraphy: profile.scintigraphy,
     therapy: profile.therapy,

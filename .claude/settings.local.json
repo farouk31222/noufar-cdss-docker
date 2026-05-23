@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Click\\\\Desktop\\\\noufar cdss\\\\frontend\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "PowerShell(head -100)",
+      "Read(//c/Users/Click/Desktop/noufar cdss/frontend/admin-doctor-management/**)"
+    ]
+  }
+}
