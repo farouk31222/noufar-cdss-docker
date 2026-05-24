@@ -63,6 +63,27 @@ const markAllNotificationsAsRead = async (req, res, next) => {
   }
 };
 
+const deleteNotification = async (req, res, next) => {
+  try {
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      ...getNotificationRecipientQuery(req.user),
+    });
+
+    if (!notification) {
+      res.status(404);
+      throw new Error("Notification not found");
+    }
+
+    res.status(200).json({
+      message: "Notification deleted",
+      deletedNotificationId: String(notification._id),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const openNotificationTarget = async (req, res, next) => {
   try {
     const notification = await Notification.findOne({
@@ -129,6 +150,7 @@ module.exports = {
   listNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
   openNotificationTarget,
   streamNotifications,
 };

@@ -6898,6 +6898,70 @@ tbody tr:hover {
   font-size: 2rem;
 }
 
+.performance-snapshot-card {
+  padding: 1.15rem;
+}
+
+.performance-snapshot-card .card-header {
+  margin-bottom: 0.95rem;
+}
+
+.performance-snapshot-card .card-header p {
+  max-width: 36rem;
+}
+
+.performance-snapshot-card .stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.performance-snapshot-card .stat-chip {
+  position: relative;
+  overflow: hidden;
+  min-height: 118px;
+  padding: 1rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
+    rgba(255, 255, 255, 0.025);
+  border-color: rgba(173, 192, 222, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.performance-snapshot-card .stat-chip::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--snapshot-accent, #69b7ff);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--snapshot-accent, #69b7ff) 34%, transparent);
+}
+
+.performance-snapshot-card .stat-chip:nth-child(1) {
+  --snapshot-accent: #31d28b;
+}
+
+.performance-snapshot-card .stat-chip:nth-child(2) {
+  --snapshot-accent: #69b7ff;
+}
+
+.performance-snapshot-card .stat-chip:nth-child(3) {
+  --snapshot-accent: #f5ba63;
+}
+
+.performance-snapshot-card .stat-chip span {
+  color: #a9b9d7;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.performance-snapshot-card .stat-chip strong {
+  margin-top: 0.35rem;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  line-height: 1;
+}
+
 .timeline {
   display: grid;
   gap: 0.9rem;
@@ -7985,6 +8049,14 @@ body.modal-open {
   .metrics-grid,
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .performance-snapshot-card .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-snapshot-card .stat-chip {
+    min-height: 96px;
   }
 
   .page-header-card {

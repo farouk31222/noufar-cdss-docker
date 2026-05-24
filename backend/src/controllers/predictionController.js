@@ -1,5 +1,6 @@
 const Prediction = require("../models/Prediction");
 const Patient = require("../models/Patient");
+const User = require("../models/User");
 const { getPredictionModelCatalog, requestPrediction } = require("../services/aiPredictionService");
 const {
   getActivePredictionModel,
@@ -27,6 +28,7 @@ const {
   logCrossDoctorDenied,
 } = require("../services/doctorOwnershipService");
 const { upsertValidatedCaseFromPrediction } = require("../services/modelLearningService");
+const { createNotification } = require("../services/notificationService");
 
 const findPatientNameConflict = async (
   patientName,
@@ -558,6 +560,57 @@ const resolveRuntimeModelSelection = async (payload = {}, requestedPolicy = "") 
   };
 };
 
+const formatDoctorDisplayName = (value = "") => {
+  const name = String(value || "").trim() || "A doctor";
+  return /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
+};
+
+const notifyChiefDoctorsAboutPrediction = async ({ prediction, patientName, doctor }) => {
+  if (!prediction || !doctor || !isDoctorUser(doctor) || isPredictionChiefDoctor(doctor)) return;
+
+  try {
+    const chiefDoctors = (await User.find({
+      role: "doctor",
+      approvalStatus: "Approved",
+      accountStatus: "Active",
+    }).select("_id name email role approvalStatus accountStatus")).filter(isPredictionChiefDoctor);
+
+    if (!chiefDoctors.length) return;
+
+    const doctorName = formatDoctorDisplayName(doctor.name || doctor.email);
+    const safePatientName = String(patientName || "the selected patient").trim();
+    const predictionId = String(prediction._id);
+
+    await Promise.all(
+      chiefDoctors.map((chiefDoctor) =>
+        createNotification({
+          recipientUser: chiefDoctor._id,
+          recipientRole: "doctor",
+          actorUser: doctor._id,
+          actorName: doctor.name || doctor.email || "",
+          type: "prediction-created",
+          title: "New prediction submitted",
+          message: `${doctorName} made a prediction for patient ${safePatientName}. View the prediction.`,
+          targetType: "prediction",
+          targetId: predictionId,
+          targetUrl: `prediction-details.html?id=${encodeURIComponent(predictionId)}`,
+          metadata: {
+            predictionId,
+            patientName: safePatientName,
+            doctorId: String(doctor._id),
+            doctorName,
+            result: prediction.result,
+            probability: prediction.probability,
+            source: prediction.source,
+          },
+        })
+      )
+    );
+  } catch (error) {
+    console.warn("Chief doctor prediction notification skipped:", error.message);
+  }
+};
+
 const createPrediction = async (req, res, next) => {
   try {
     ensurePredictionAccess(req, res);
@@ -653,6 +706,11 @@ const createPrediction = async (req, res, next) => {
     });
 
     await ensurePatientRegistryEntry(prediction);
+    await notifyChiefDoctorsAboutPrediction({
+      prediction,
+      patientName,
+      doctor: req.user,
+    });
 
     res.status(201).json({
       message: "Prediction created successfully.",

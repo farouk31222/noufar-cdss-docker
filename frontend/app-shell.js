@@ -929,14 +929,31 @@ window.showNoufarToast = (message, variant = "success") => {
 
 const getDoctorNotificationItems = () =>
   doctorNotificationsCache
-    .filter((notification) => notification.targetType === "support-ticket")
     .map((notification) => ({
       notificationId: notification.id,
-      ticketId: notification.targetId,
+      targetType: notification.targetType,
+      targetId: notification.targetId,
+      targetUrl: notification.targetUrl,
+      ticketId: notification.targetType === "support-ticket" ? notification.targetId : "",
       subject: notification.title,
-      category: notification.metadata?.category || "Support",
-      priority: notification.metadata?.priority || "Routine",
+      message: notification.message,
+      category: notification.targetType === "prediction" ? "Prediction" : notification.metadata?.category || "Support",
+      priority:
+        notification.targetType === "prediction"
+          ? [notification.metadata?.result, notification.metadata?.probability ? `${notification.metadata.probability}%` : ""]
+              .filter(Boolean)
+              .join(" · ") || "Prediction"
+          : notification.metadata?.priority || "Routine",
+      riskTone:
+        notification.targetType === "prediction" &&
+        String(notification.metadata?.result || "").trim().toLowerCase() === "no relapse"
+          ? "no-relapse"
+          : notification.targetType === "prediction"
+            ? "relapse"
+            : "",
       status: notification.metadata?.status || "Open",
+      statusLabel: notification.targetType === "prediction" ? "Prediction" : "Support reply",
+      heading: notification.targetType === "prediction" ? notification.title : "Admin replied to your request",
       unread: !notification.isRead,
       repliedAt: notification.createdAt,
       reply: notification.message,
@@ -1920,31 +1937,41 @@ const markAllDoctorNotificationsAsRead = async () => {
   }));
 };
 
+const deleteDoctorNotification = async (notificationId) => {
+  await requestDoctorJson(`/notifications/${encodeURIComponent(notificationId)}`, {
+    method: "DELETE",
+  });
+
+  doctorNotificationsCache = doctorNotificationsCache.filter(
+    (notification) => notification.id !== notificationId
+  );
+};
+
 const renderNotificationPanel = () => {
   if (!notificationPanel) return;
 
-  const repliedThreads = getDoctorNotificationItems();
+  const notificationItems = getDoctorNotificationItems();
 
   const list = notificationPanel.querySelector("[data-notification-list]");
-  const unreadThreads = repliedThreads.filter((thread) => thread.unread);
-  const visibleThreads = doctorNotificationFilter === "unread" ? unreadThreads : repliedThreads;
+  const unreadThreads = notificationItems.filter((thread) => thread.unread);
+  const visibleThreads = doctorNotificationFilter === "unread" ? unreadThreads : notificationItems;
   const allCountNode = notificationPanel.querySelector("[data-notification-count-all]");
   const unreadCountNode = notificationPanel.querySelector("[data-notification-count-unread]");
   const allTab = notificationPanel.querySelector('[data-notification-filter="all"]');
   const unreadTab = notificationPanel.querySelector('[data-notification-filter="unread"]');
   const markAllButton = notificationPanel.querySelector("[data-notification-mark-all]");
 
-  if (allCountNode) allCountNode.textContent = String(repliedThreads.length);
+  if (allCountNode) allCountNode.textContent = String(notificationItems.length);
   if (unreadCountNode) unreadCountNode.textContent = String(unreadThreads.length);
   if (allTab) allTab.classList.toggle("is-active", doctorNotificationFilter === "all");
   if (unreadTab) unreadTab.classList.toggle("is-active", doctorNotificationFilter === "unread");
   if (markAllButton) markAllButton.disabled = unreadThreads.length === 0;
 
-  if (!repliedThreads.length) {
+  if (!notificationItems.length) {
     list.innerHTML = `
       <div class="notification-empty-state">
-        <strong>No support replies yet</strong>
-        <p>When the NOUFAR support team replies to one of your requests, the update will appear here.</p>
+        <strong>No notifications yet</strong>
+        <p>Support replies and team prediction activity will appear here.</p>
       </div>
     `;
     return;
@@ -1954,7 +1981,7 @@ const renderNotificationPanel = () => {
     list.innerHTML = `
       <div class="notification-empty-state">
         <strong>No unread notifications</strong>
-        <p>All support replies have already been reviewed.</p>
+        <p>All notifications have already been reviewed.</p>
       </div>
     `;
     return;
@@ -1969,28 +1996,41 @@ const renderNotificationPanel = () => {
         minute: "2-digit",
       }).format(new Date(thread.repliedAt));
 
-      const priorityClass = String(thread.priority || "Routine").toLowerCase().replace(/\s+/g, "-");
+      const isPrediction = thread.targetType === "prediction";
+      const priorityClass = isPrediction
+        ? `prediction-${thread.riskTone || "relapse"}`
+        : String(thread.priority || "Routine")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "routine";
 
       return `
-        <button class="notification-item notification-open-button${thread.unread ? " is-unread" : ""}" type="button" data-notification-id="${escapeNotificationHtml(thread.notificationId)}" data-ticket-id="${escapeNotificationHtml(thread.ticketId)}">
-          <span class="notification-item-rail" aria-hidden="true"></span>
-          <div class="notification-item-avatar" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 16H9l-4.5 3v-11.5Z"></path><path d="M8.5 9.5h7"></path><path d="M8.5 12.5h4.5"></path></svg>
-          </div>
-          <div class="notification-item-body">
-            <div class="notification-item-head">
-              <span class="notification-status-pill">Support reply</span>
-              <time datetime="${escapeNotificationHtml(thread.repliedAt)}">${escapeNotificationHtml(repliedLabel)}</time>
+        <article class="notification-item${thread.unread ? " is-unread" : ""}">
+          <button class="notification-open-button" type="button" data-notification-open="${escapeNotificationHtml(thread.notificationId)}" data-target-type="${escapeNotificationHtml(thread.targetType)}" data-target-id="${escapeNotificationHtml(thread.targetId)}" aria-label="Open notification: ${escapeNotificationHtml(thread.heading)}">
+            <span class="notification-item-rail" aria-hidden="true"></span>
+            <div class="notification-item-avatar" aria-hidden="true">
+              ${isPrediction
+                ? '<svg viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h8.5L20 8.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-1.5Z"></path><path d="M14 3v6h6"></path><path d="M8 14h8"></path><path d="M8 17h5"></path></svg>'
+                : '<svg viewBox="0 0 24 24"><path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 16H9l-4.5 3v-11.5Z"></path><path d="M8.5 9.5h7"></path><path d="M8.5 12.5h4.5"></path></svg>'}
             </div>
-            <strong>Admin replied to your request</strong>
-            <p>${escapeNotificationHtml(thread.subject)}</p>
-            <span class="notification-meta">
-              <span>${escapeNotificationHtml(thread.category)}</span>
-              <span class="notification-meta-separator">&bull;</span>
-              <span class="notification-priority notification-priority-${escapeNotificationHtml(priorityClass)}">${escapeNotificationHtml(thread.priority)}</span>
-            </span>
-          </div>
-        </button>
+            <div class="notification-item-body">
+              <div class="notification-item-head">
+                <span class="notification-status-pill">${escapeNotificationHtml(thread.statusLabel)}</span>
+                <time datetime="${escapeNotificationHtml(thread.repliedAt)}">${escapeNotificationHtml(repliedLabel)}</time>
+              </div>
+              <strong>${escapeNotificationHtml(thread.heading)}</strong>
+              <p>${escapeNotificationHtml(thread.message || thread.subject)}</p>
+              <span class="notification-meta">
+                <span>${escapeNotificationHtml(thread.category)}</span>
+                <span class="notification-meta-separator">&bull;</span>
+                <span class="notification-priority notification-priority-${escapeNotificationHtml(priorityClass)}">${escapeNotificationHtml(thread.priority)}</span>
+              </span>
+            </div>
+          </button>
+          <button class="notification-delete-button" type="button" data-notification-delete="${escapeNotificationHtml(thread.notificationId)}" aria-label="Delete notification">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6"></path><path d="M18.5 6l-.9 13.1A2 2 0 0 1 15.6 21H8.4a2 2 0 0 1-2-1.9L5.5 6"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
+          </button>
+        </article>
       `;
     })
     .join("");
@@ -2154,12 +2194,12 @@ if (notificationToggles.length) {
   notificationPanel = document.createElement("section");
   notificationPanel.className = "notification-panel";
   notificationPanel.hidden = true;
-  notificationPanel.setAttribute("aria-label", "Support notifications");
+  notificationPanel.setAttribute("aria-label", "Notifications");
   notificationPanel.innerHTML = `
     <div class="notification-panel-head">
       <div>
         <h2>Notifications</h2>
-        <p>Support replies</p>
+        <p>Prediction activity and support replies</p>
       </div>
       <button class="notification-close-button" type="button" aria-label="Close notifications" data-notification-close>
         <span></span>
@@ -2267,17 +2307,44 @@ if (notificationToggles.length) {
       return;
     }
 
-    const notificationButton = event.target.closest("[data-notification-id]");
+    const deleteButton = event.target.closest("[data-notification-delete]");
+    if (deleteButton) {
+      const notificationId = deleteButton.dataset.notificationDelete;
+      try {
+        await deleteDoctorNotification(notificationId);
+        renderNotificationButtonState();
+        renderNotificationPanel();
+      } catch (error) {
+        const list = notificationPanel.querySelector("[data-notification-list]");
+        if (list) {
+          list.innerHTML = `
+            <div class="notification-empty-state">
+              <strong>Unable to delete notification</strong>
+              <p>${escapeNotificationHtml(error.message || "We could not delete this notification right now.")}</p>
+            </div>
+          `;
+        }
+      }
+      return;
+    }
+
+    const notificationButton = event.target.closest("[data-notification-open]");
     if (!notificationButton) return;
 
     try {
-      const target = await openDoctorNotificationTarget(notificationButton.dataset.notificationId);
+      const target = await openDoctorNotificationTarget(notificationButton.dataset.notificationOpen);
       await fetchDoctorNotifications();
       renderNotificationButtonState();
       renderNotificationPanel();
 
       if (target?.type === "support-ticket" && target.id) {
         window.location.href = `doctor-inbox.html?ticket=${encodeURIComponent(target.id)}`;
+        closeNotificationPanel();
+        return;
+      }
+
+      if (target?.type === "prediction" && target.id) {
+        window.location.href = target.url || `prediction-details.html?id=${encodeURIComponent(target.id)}`;
         closeNotificationPanel();
       }
     } catch (error) {

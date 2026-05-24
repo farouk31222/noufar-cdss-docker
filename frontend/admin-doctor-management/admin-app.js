@@ -1928,41 +1928,6 @@
       .sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
   }
 
-  function calculateAverageReplyHours(tickets) {
-    const responseWindows = [];
-
-    tickets.forEach((ticket) => {
-      const messages = Array.isArray(ticket.messages)
-        ? [...ticket.messages]
-            .filter((message) => message?.date)
-            .sort((left, right) => new Date(left.date) - new Date(right.date))
-        : [];
-
-      for (let index = 0; index < messages.length; index += 1) {
-        const currentMessage = messages[index];
-        if (currentMessage.role !== "doctor") continue;
-
-        const nextAdminMessage = messages.slice(index + 1).find((message) => message.role === "admin");
-        if (!nextAdminMessage) continue;
-
-        const diffHours =
-          (new Date(nextAdminMessage.date).getTime() - new Date(currentMessage.date).getTime()) /
-          (1000 * 60 * 60);
-
-        if (Number.isFinite(diffHours) && diffHours >= 0) {
-          responseWindows.push(diffHours);
-        }
-      }
-    });
-
-    if (!responseWindows.length) {
-      return null;
-    }
-
-    const average = responseWindows.reduce((sum, value) => sum + value, 0) / responseWindows.length;
-    return Number(average.toFixed(1));
-  }
-
   function renderLineChart(host, points = []) {
     if (!host) return;
     if (!points.length) return;
@@ -2227,17 +2192,14 @@
 
     const approvalRate = doctors.length ? Math.round((approved.length / doctors.length) * 100) : 0;
     const activationRate = approved.length ? Math.round((active.length / approved.length) * 100) : 0;
-    const avgResponseHours = calculateAverageReplyHours(state.tickets);
     const registrationSeries = buildRegistrationSeries(doctors);
     const registrationAnalytics = calculateRegistrationAnalytics(registrationSeries);
 
     const approvalNode = document.getElementById("insight-approval-rate");
     const activationNode = document.getElementById("insight-activation-rate");
-    const responseNode = document.getElementById("insight-response-time");
     const auditEntriesNode = document.getElementById("insight-audit-entries");
     if (approvalNode) approvalNode.textContent = `${approvalRate}%`;
     if (activationNode) activationNode.textContent = `${activationRate}%`;
-    if (responseNode) responseNode.textContent = avgResponseHours === null ? "--" : `${avgResponseHours}h`;
     if (auditEntriesNode) auditEntriesNode.textContent = String(auditEntries.length);
 
     const registrationTotalNode = document.getElementById("registration-kpi-total");

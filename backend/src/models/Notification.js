@@ -42,7 +42,7 @@ const notificationSchema = new mongoose.Schema(
     },
     targetType: {
       type: String,
-      enum: ["doctor-profile", "support-ticket"],
+      enum: ["doctor-profile", "support-ticket", "prediction"],
       required: true,
     },
     targetId: {

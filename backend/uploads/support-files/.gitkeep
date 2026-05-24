@@ -1,4 +1,0 @@
-backend/uploads/*
-!backend/uploads/.gitkeep
-!backend/uploads/support-files/
-!backend/uploads/support-files/.gitkeep

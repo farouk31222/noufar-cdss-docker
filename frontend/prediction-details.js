@@ -242,7 +242,7 @@ const baseDetailCatalog = {
     antiTg: "Positive",
     tsi: "Positive",
     tsiLevel: 4.7,
-    ultrasound: "Diffuse goiter with vascular pattern",
+    ultrasound: "Goiter",
     scintigraphy: "High uptake",
     therapy: "Antithyroid therapy",
     duration: 18,
@@ -274,7 +274,7 @@ const baseDetailCatalog = {
     antiTg: "Negative",
     tsi: "Negative",
     tsiLevel: 0.4,
-    ultrasound: "Normal thyroid volume",
+    ultrasound: "Normal volume",
     scintigraphy: "Normal uptake",
     therapy: "Maintenance monitoring",
     duration: 9,
@@ -306,7 +306,7 @@ const baseDetailCatalog = {
     antiTg: "Positive",
     tsi: "Positive",
     tsiLevel: 5.2,
-    ultrasound: "Goiter with nodules",
+    ultrasound: "Goiter + nodules",
     scintigraphy: "High uptake",
     therapy: "Antithyroid therapy",
     duration: 24,
@@ -417,7 +417,7 @@ const defaultDetailProfile = {
   antiTg: "Negative",
   tsi: "Negative",
   tsiLevel: 0.5,
-  ultrasound: "Normal thyroid volume",
+  ultrasound: "Normal volume",
   scintigraphy: "Normal uptake",
   therapy: "Maintenance monitoring",
   duration: 12,
@@ -445,9 +445,32 @@ const normalizeDetailSex = (value, fallback = defaultDetailProfile.sex) => {
 const normalizeDetailUltrasound = (value) => {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized) return defaultDetailProfile.ultrasound;
-  if (normalized === "goiter" || normalized === "goitre") return "Diffuse goiter with vascular pattern";
-  if (normalized === "normal volume" || normalized === "volume normal") return "Normal thyroid volume";
-  if (normalized === "goiter + nodules" || normalized === "goitre + nodules") return "Goiter with nodules";
+  if (
+    normalized === "goiter" ||
+    normalized === "goitre" ||
+    normalized === "diffuse goiter" ||
+    normalized === "diffuse goitre" ||
+    normalized === "diffuse goiter with vascular pattern" ||
+    normalized === "diffuse goitre with vascular pattern"
+  ) {
+    return "Goiter";
+  }
+  if (
+    normalized === "normal volume" ||
+    normalized === "volume normal" ||
+    normalized === "normal thyroid volume"
+  ) {
+    return "Normal volume";
+  }
+  if (
+    normalized === "goiter + nodules" ||
+    normalized === "goitre + nodules" ||
+    normalized === "goiter with nodules" ||
+    normalized === "goitre with nodules"
+  ) {
+    return "Goiter + nodules";
+  }
+  if (normalized === "mild heterogeneous texture") return "Goiter";
   return String(value ?? "").trim();
 };
 
@@ -478,6 +501,7 @@ const normalizeDetailProfile = (profile, entry) => ({
   tsh: normalizeDetailNumericOrNotMeasured(profile?.tsh, defaultDetailProfile.tsh),
   ft4: normalizeDetailNumericOrNotMeasured(profile?.ft4, defaultDetailProfile.ft4),
   duration: normalizeDetailNumericOrNotMeasured(profile?.duration, defaultDetailProfile.duration),
+  ultrasound: normalizeDetailUltrasound(profile?.ultrasound),
   therapy: profile?.therapy ?? profile?.treatment ?? defaultDetailProfile.therapy,
   radioactiveIodine:
     profile?.radioactiveIodine ?? profile?.rai ?? defaultDetailProfile.radioactiveIodine,
@@ -486,12 +510,7 @@ const normalizeDetailProfile = (profile, entry) => ({
 const getGeneratedDetailProfile = (entry) => {
   const index = Math.max(0, patientPredictions.findIndex((item) => item.id === entry.id));
   const consultationReasons = ["Dysthyroidie", "Compression signs", "Tumefaction", "Other"];
-  const ultrasoundFindings = [
-    "Diffuse goiter with vascular pattern",
-    "Normal thyroid volume",
-    "Goiter with nodules",
-    "Mild heterogeneous texture",
-  ];
+  const ultrasoundFindings = ["Goiter", "Normal volume", "Goiter + nodules"];
   const scintigraphyFindings = ["High uptake", "Normal uptake", "Hot nodule", "Normal uptake"];
   const treatmentPlans = ["Antithyroid therapy", "Maintenance monitoring", "Block and replace", "Observation plan"];
   const classification = ["0", "1A", "1B", "2", "3"];
@@ -2135,17 +2154,15 @@ const buildPredictionFromProfile = (profile) => {
   else addContribution("TSI level", -4, "Lower stimulating antibody burden", "cool");
 
   const ultrasoundPoints = {
-    "Diffuse goiter with vascular pattern": 8,
-    "Diffuse goiter": 8,
-    "Goiter with nodules": 10,
-    "Mild heterogeneous texture": 4,
-    "Normal thyroid volume": -6,
+    Goiter: 8,
+    "Normal volume": -6,
+    "Goiter + nodules": 10,
   };
   addContribution(
     "Ultrasound pattern",
     ultrasoundPoints[profile.ultrasound] ?? 0,
-    profile.ultrasound === "Normal thyroid volume" ? "Favorable imaging context" : "Imaging pattern remains clinically relevant",
-    profile.ultrasound === "Normal thyroid volume" ? "cool" : "warm"
+    profile.ultrasound === "Normal volume" ? "Favorable imaging context" : "Imaging pattern remains clinically relevant",
+    profile.ultrasound === "Normal volume" ? "cool" : "warm"
   );
 
   const scintigraphyPoints = {
