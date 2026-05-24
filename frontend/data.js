@@ -212,6 +212,7 @@ const deletePredictionRecordById = (id) => {
 
 const getTopRiskPatients = (count = 6) =>
   [...patientPredictions]
+    .filter((entry) => entry.result === "Relapse")
     .sort((a, b) => b.probability - a.probability)
     .slice(0, count);
 

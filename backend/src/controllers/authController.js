@@ -341,6 +341,10 @@ const registerUser = async (req, res, next) => {
     }
 
     const normalizedEmail = email.toLowerCase();
+    const isChiefDoctorRegistration = isPredictionChiefDoctor({
+      role: requestedRole,
+      email: normalizedEmail,
+    });
     validatePasswordPolicy({
       password,
       email: normalizedEmail,
@@ -390,7 +394,7 @@ const registerUser = async (req, res, next) => {
       email: normalizedEmail,
       password,
       role: requestedRole,
-      doctorAccountType: requestedRole === "doctor" ? normalizedDoctorAccountType : "prediction",
+      doctorAccountType: requestedRole === "doctor" ? (isChiefDoctorRegistration ? "prediction" : normalizedDoctorAccountType) : "prediction",
       specialty,
       hospital,
       termsAccepted: Boolean(termsAccepted),
@@ -421,14 +425,16 @@ const registerUser = async (req, res, next) => {
               },
             ]
           : [],
-      approvalStatus: requestedRole === "admin" ? "Approved" : "Pending",
-      accountStatus: requestedRole === "admin" ? "Active" : "Inactive",
+      approvalStatus: requestedRole === "admin" || isChiefDoctorRegistration ? "Approved" : "Pending",
+      accountStatus: requestedRole === "admin" || isChiefDoctorRegistration ? "Active" : "Inactive",
       statusHistory:
         requestedRole === "doctor"
           ? [
               {
                 date: new Date(),
-                label: "Doctor account created and pending review",
+                label: isChiefDoctorRegistration
+                  ? "Chief doctor account auto-approved and activated"
+                  : "Doctor account created and pending review",
                 by: "System",
               },
             ]
@@ -441,7 +447,7 @@ const registerUser = async (req, res, next) => {
             ],
     });
 
-    if (requestedRole === "doctor") {
+    if (requestedRole === "doctor" && !isChiefDoctorRegistration) {
       await createNotification({
         recipientRole: "admin",
         actorUser: user._id,

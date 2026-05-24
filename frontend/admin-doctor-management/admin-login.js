@@ -36,6 +36,11 @@
     );
   }
 
+  function isSessionExpired(session) {
+    const refreshExpiresAt = Date.parse(session?.refreshTokenExpiresAt || "");
+    return Number.isFinite(refreshExpiresAt) && refreshExpiresAt <= Date.now();
+  }
+
   async function requestJson(path, options = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
@@ -61,7 +66,10 @@
       window.history.replaceState({}, document.title, "login.html");
     }
 
-    if (getSession()?.authenticated) {
+    const existingSession = getSession();
+    if (isSessionExpired(existingSession)) {
+      localStorage.removeItem(AUTH_KEY);
+    } else if (existingSession?.authenticated) {
       window.location.href = "index.html";
       return;
     }

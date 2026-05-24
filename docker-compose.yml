@@ -6,22 +6,9 @@
 
 services:
 
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    volumes:
-      - mongo_data:/data/db
-    # Mongo is reachable from the backend container as "mongo:27017"
-    # We also publish it on the host so MongoDB Compass can connect.
-    ports:
-      - "27017:27017"
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - noufar-net
+  # MongoDB is hosted on MongoDB Atlas (cloud).
+  # Both teammates connect to the same cluster via MONGODB_URI in backend/.env.
+  # No local mongo container is needed.
 
   ai-server:
     build:
@@ -82,7 +69,7 @@ services:
     environment:
       # Overrides for container networking — these win over .env
       PORT: "5000"
-      MONGODB_URI: "mongodb://mongo:27017/noufar_cdss"
+      # MONGODB_URI now comes from backend/.env (MongoDB Atlas cloud URI)
       FLASK_AI_URL: "http://ai-server:5001"
       APP_BASE_URL: "http://localhost:8080"
       FRONTEND_BASE_URL: "http://localhost:8080"
@@ -101,8 +88,6 @@ services:
       # line — but make sure every secret in .env is a real value.
       NODE_ENV: "development"
     depends_on:
-      mongo:
-        condition: service_healthy
       ai-server:
         condition: service_started
       minio:
@@ -122,7 +107,6 @@ services:
       - noufar-net
 
 volumes:
-  mongo_data:
   backend_uploads:
   minio_data:
 

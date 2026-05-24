@@ -50,6 +50,7 @@ let doctorRealtimeRefreshQueued = false;
 let doctorRealtimeFocusTicketId = null;
 let activeDoctorAttachmentBlobUrl = "";
 let doctorRefreshPromise = null;
+let doctorTokenExpiryTimer = null;
 const DOCTOR_REFRESH_SKEW_MS = 60 * 1000;
 
 const getDoctorSession = () => {
@@ -61,11 +62,36 @@ const getDoctorSession = () => {
   }
 };
 
+const isDoctorSessionExpired = (session) => {
+  const refreshExpiresAt = Date.parse(session?.refreshTokenExpiresAt || "");
+  return Number.isFinite(refreshExpiresAt) && refreshExpiresAt <= Date.now();
+};
+
+const clearDoctorTokenExpiryTimer = () => {
+  window.clearTimeout(doctorTokenExpiryTimer);
+  doctorTokenExpiryTimer = null;
+};
+
+const scheduleDoctorTokenExpiryLogout = (session) => {
+  clearDoctorTokenExpiryTimer();
+  const refreshExpiresAt = Date.parse(session?.refreshTokenExpiresAt || "");
+  if (!Number.isFinite(refreshExpiresAt)) return;
+
+  const delay = refreshExpiresAt - Date.now();
+  if (delay <= 0) return;
+
+  doctorTokenExpiryTimer = window.setTimeout(() => {
+    logoutDoctorSession("index.html?expired=1");
+  }, delay);
+};
+
 const setDoctorSession = (session) => {
   if (!session) {
     window.localStorage.removeItem(doctorAuthStorageKey);
+    clearDoctorTokenExpiryTimer();
   } else {
     window.localStorage.setItem(doctorAuthStorageKey, JSON.stringify(session));
+    scheduleDoctorTokenExpiryLogout(session);
   }
 
   window.dispatchEvent(
@@ -133,9 +159,9 @@ const requestDoctorSessionRefresh = async () => {
     const session = getDoctorSession();
     const refreshToken = session?.refreshToken;
 
-    if (!refreshToken) {
+    if (!refreshToken || isDoctorSessionExpired(session)) {
       clearDoctorSession();
-      throw new Error("Doctor refresh token is missing.");
+      throw new Error("Doctor session has expired.");
     }
 
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -168,6 +194,11 @@ const ensureFreshDoctorSession = async () => {
 
   if (!session?.authenticated || !session?.token) {
     throw new Error("Doctor session token is missing.");
+  }
+
+  if (isDoctorSessionExpired(session)) {
+    clearDoctorSession();
+    throw new Error("Doctor session has expired.");
   }
 
   const expiresAt = Date.parse(session.accessTokenExpiresAt || "");
@@ -608,6 +639,12 @@ const requireDoctorSession = () => {
     return null;
   }
 
+  if (isDoctorSessionExpired(session)) {
+    clearDoctorSession();
+    window.location.href = "index.html?expired=1";
+    return null;
+  }
+
   if (session.user?.role === "admin") {
     window.location.href = "admin-doctor-management/index.html";
     return null;
@@ -664,6 +701,7 @@ const applyDoctorAccessMode = (session) => {
 let doctorSession = requireDoctorSession();
 
 if (doctorSession) {
+  scheduleDoctorTokenExpiryLogout(doctorSession);
   applyDoctorAccessMode(doctorSession);
 }
 

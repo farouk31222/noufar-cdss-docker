@@ -63,6 +63,17 @@ const getActorType = (user) => (user?.role === "admin" ? "admin" : "doctor");
 
 const getAuthModel = (actorType) => (actorType === "admin" ? Admin : User);
 
+const normalizeExpiryDate = (value, fallbackMs) => {
+  const timestamp = value instanceof Date ? value.getTime() : Date.parse(value);
+  if (Number.isFinite(timestamp)) return new Date(timestamp);
+  return new Date(Date.now() + fallbackMs);
+};
+
+const getExpirySecondsFromNow = (expiresAt) => {
+  const remainingMs = normalizeExpiryDate(expiresAt, REFRESH_TOKEN_EXPIRES_MS).getTime() - Date.now();
+  return Math.max(1, Math.ceil(remainingMs / 1000));
+};
+
 const buildTokenPayload = ({ user, sessionId, tokenType }) => ({
   id: String(user._id),
   role: user.role,
@@ -76,14 +87,15 @@ const signAccessToken = ({ user, sessionId }) =>
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   });
 
-const signRefreshToken = ({ user, sessionId }) =>
+const signRefreshToken = ({ user, sessionId, expiresAt }) =>
   jwt.sign(buildTokenPayload({ user, sessionId, tokenType: "refresh" }), REFRESH_TOKEN_SECRET, {
-    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+    expiresIn: getExpirySecondsFromNow(expiresAt),
   });
 
-const buildTokenBundle = ({ user, sessionId }) => {
+const buildTokenBundle = ({ user, sessionId, refreshExpiresAt }) => {
+  const refreshExpiryDate = normalizeExpiryDate(refreshExpiresAt, REFRESH_TOKEN_EXPIRES_MS);
   const accessToken = signAccessToken({ user, sessionId });
-  const refreshToken = signRefreshToken({ user, sessionId });
+  const refreshToken = signRefreshToken({ user, sessionId, expiresAt: refreshExpiryDate });
 
   return {
     token: accessToken,
@@ -93,7 +105,7 @@ const buildTokenBundle = ({ user, sessionId }) => {
     accessTokenExpiresIn: ACCESS_TOKEN_EXPIRES_IN,
     refreshTokenExpiresIn: REFRESH_TOKEN_EXPIRES_IN,
     accessTokenExpiresAt: new Date(Date.now() + ACCESS_TOKEN_EXPIRES_MS).toISOString(),
-    refreshTokenExpiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS).toISOString(),
+    refreshTokenExpiresAt: refreshExpiryDate.toISOString(),
   };
 };
 
@@ -109,7 +121,8 @@ const buildAuthResponse = (user, tokenBundle) => ({
 
 const createAuthSession = async ({ user, req }) => {
   const sessionId = crypto.randomBytes(24).toString("hex");
-  const tokenBundle = buildTokenBundle({ user, sessionId });
+  const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS);
+  const tokenBundle = buildTokenBundle({ user, sessionId, refreshExpiresAt });
   const metadata = getRequestMetadata(req);
 
   const session = await AuthSession.create({
@@ -118,7 +131,7 @@ const createAuthSession = async ({ user, req }) => {
     actorType: getActorType(user),
     sessionId,
     refreshTokenHash: hashToken(tokenBundle.refreshToken),
-    expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS),
+    expiresAt: refreshExpiresAt,
     revokedAt: null,
     ...metadata,
   });
@@ -210,11 +223,12 @@ const authenticateAccessToken = async (token) => {
 const rotateAuthSession = async ({ session, user, req }) => {
   assertSessionIsActive(session);
 
-  const tokenBundle = buildTokenBundle({ user, sessionId: session.sessionId });
+  const refreshExpiresAt = normalizeExpiryDate(session.expiresAt, REFRESH_TOKEN_EXPIRES_MS);
+  const tokenBundle = buildTokenBundle({ user, sessionId: session.sessionId, refreshExpiresAt });
   const metadata = getRequestMetadata(req);
 
   session.refreshTokenHash = hashToken(tokenBundle.refreshToken);
-  session.expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS);
+  session.expiresAt = refreshExpiresAt;
   session.revokedAt = null;
   session.ipAddress = metadata.ipAddress || session.ipAddress;
   session.userAgent = metadata.userAgent || session.userAgent;

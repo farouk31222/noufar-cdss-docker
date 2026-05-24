@@ -230,6 +230,11 @@ const clearDoctorSession = () => {
   window.localStorage.removeItem(DOCTOR_AUTH_STORAGE_KEY);
 };
 
+const isDoctorSessionExpired = (session) => {
+  const refreshExpiresAt = Date.parse(session?.refreshTokenExpiresAt || "");
+  return Number.isFinite(refreshExpiresAt) && refreshExpiresAt <= Date.now();
+};
+
 const isDoctorAccount = (user) => user?.role === "doctor";
 
 const clearPendingTwoStepLogin = () => {
@@ -273,9 +278,9 @@ const requestDoctorSessionRefresh = async () => {
   const session = loadDoctorSession();
   const refreshToken = session?.refreshToken;
 
-  if (!refreshToken) {
+  if (!refreshToken || isDoctorSessionExpired(session)) {
     clearDoctorSession();
-    throw new Error("Doctor refresh token is missing.");
+    throw new Error("Doctor session has expired.");
   }
 
   const payload = await requestJson("/auth/refresh", {
@@ -297,6 +302,11 @@ const validateExistingDoctorSession = async () => {
   const isIndexPage = window.location.pathname.toLowerCase().endsWith("/index.html");
 
   if (!isIndexPage || !existingDoctorSession?.authenticated || !existingDoctorSession?.token) {
+    return;
+  }
+
+  if (isDoctorSessionExpired(existingDoctorSession)) {
+    clearDoctorSession();
     return;
   }
 
@@ -1405,6 +1415,22 @@ if (registerForm && registerNote) {
       registerForm.reset();
       registerForm.dataset.submitAttempted = "false";
       syncRegisterFormState();
+      if (responseData.approvalStatus === "Approved" && responseData.accountStatus === "Active") {
+        if (registerSuccessMessage) {
+          registerSuccessMessage.textContent = "Your chief doctor account is active now. You can log in immediately.";
+        }
+        if (registerSuccessStatusMessage) {
+          registerSuccessStatusMessage.textContent = "This account was approved automatically by the platform.";
+        }
+      } else {
+        if (registerSuccessMessage) {
+          registerSuccessMessage.textContent =
+            "Your registration has been submitted and is awaiting administrator approval.";
+        }
+        if (registerSuccessStatusMessage) {
+          registerSuccessStatusMessage.textContent = "You'll receive an email once your account has been approved.";
+        }
+      }
       return openModal("registerSuccess");
       closeModals();
       window.alert("Your account has been created. Approval pending — you'll receive an email soon.");
@@ -1419,4 +1445,3 @@ if (registerForm && registerNote) {
     nameField.value = "Blocked account user";
   }
 }
-

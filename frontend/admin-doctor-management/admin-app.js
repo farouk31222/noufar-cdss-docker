@@ -100,6 +100,7 @@
   let systemModelOptionsCache = SYSTEM_MODEL_OPTIONS.map((option) => ({ ...option, deployed: option.key === "logistic_regression" }));
   let createAdminSubmissionInFlight = false;
   let adminRefreshPromise = null;
+  let adminTokenExpiryTimer = null;
   const ADMIN_REFRESH_SKEW_MS = 60 * 1000;
 
   function clone(value) {
@@ -184,8 +185,10 @@
   function setAuthSession(session) {
     if (!session) {
       localStorage.removeItem(AUTH_KEY);
+      clearAdminTokenExpiryTimer();
     } else {
       localStorage.setItem(AUTH_KEY, JSON.stringify(session));
+      scheduleAdminTokenExpiryLogout(session);
     }
 
     window.dispatchEvent(
@@ -193,6 +196,30 @@
         detail: session,
       })
     );
+  }
+
+  function isAuthSessionExpired(session) {
+    const refreshExpiresAt = Date.parse(session?.refreshTokenExpiresAt || "");
+    return Number.isFinite(refreshExpiresAt) && refreshExpiresAt <= Date.now();
+  }
+
+  function clearAdminTokenExpiryTimer() {
+    window.clearTimeout(adminTokenExpiryTimer);
+    adminTokenExpiryTimer = null;
+  }
+
+  function scheduleAdminTokenExpiryLogout(session) {
+    clearAdminTokenExpiryTimer();
+    const refreshExpiresAt = Date.parse(session?.refreshTokenExpiresAt || "");
+    if (!Number.isFinite(refreshExpiresAt)) return;
+
+    const delay = refreshExpiresAt - Date.now();
+    if (delay <= 0) return;
+
+    adminTokenExpiryTimer = window.setTimeout(() => {
+      setAuthSession(null);
+      window.location.href = "login.html?expired=1";
+    }, delay);
   }
 
   function persistAuthSession(payload) {
@@ -231,9 +258,9 @@
       const session = getAuthSession();
       const refreshToken = session?.refreshToken;
 
-      if (!refreshToken) {
+      if (!refreshToken || isAuthSessionExpired(session)) {
         setAuthSession(null);
-        throw new Error("Admin refresh token is missing.");
+        throw new Error("Admin session has expired.");
       }
 
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -271,6 +298,11 @@
       throw new Error("Admin session token is missing");
     }
 
+    if (isAuthSessionExpired(session)) {
+      setAuthSession(null);
+      throw new Error("Admin session has expired");
+    }
+
     const expiresAt = Date.parse(session.accessTokenExpiresAt || "");
     if (Number.isFinite(expiresAt) && expiresAt - Date.now() <= ADMIN_REFRESH_SKEW_MS) {
       return requestAdminSessionRefresh();
@@ -281,6 +313,10 @@
 
   function isAuthenticated() {
     const session = getAuthSession();
+    if (isAuthSessionExpired(session)) {
+      setAuthSession(null);
+      return false;
+    }
     return Boolean(session?.authenticated && session?.token && session?.user?.role === "admin");
   }
 
@@ -5485,6 +5521,7 @@
 
   async function init() {
     if (!requireAuth()) return;
+    scheduleAdminTokenExpiryLogout(getAuthSession());
     document.addEventListener("pointerdown", armAdminNotificationAudio, { once: true });
     document.addEventListener("keydown", armAdminNotificationAudio, { once: true });
     await syncDoctorsFromBackend();
