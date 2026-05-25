@@ -42,10 +42,8 @@ const normalizeStringArray = (values = []) =>
 const getDatasetImportReadQuery = (user, extra = {}) =>
   isPredictionChiefDoctor(user) ? extra : { ...extra, doctor: user?._id };
 
-const getDatasetImportWriteQuery = (user, extra = {}) => ({
-  ...extra,
-  doctor: user?._id,
-});
+const getDatasetImportWriteQuery = (user, extra = {}) =>
+  isPredictionChiefDoctor(user) ? extra : { ...extra, doctor: user?._id };
 
 const normalizeDatasetColumnKey = (value) =>
   String(value ?? "")
