@@ -52,7 +52,7 @@ const getPatientsCurrentDoctorIdentity = () => {
 };
 
 const formatPredictedByDisplay = (value) => {
-  const rawName = String(value || "").trim();
+  let rawName = String(value || "").trim();
   if (!rawName) return "Unknown user";
 
   const current = getPatientsCurrentDoctorIdentity();
@@ -61,10 +61,11 @@ const formatPredictedByDisplay = (value) => {
   const normalizedEmail = current.email.toLowerCase();
 
   if (
+    normalizedRaw === "me" ||
     (normalizedName && normalizedRaw === normalizedName) ||
     (normalizedEmail && normalizedRaw === normalizedEmail)
   ) {
-    return "Me";
+    rawName = current.name || rawName;
   }
 
   if (/^dr\.?\s+/i.test(rawName)) {
