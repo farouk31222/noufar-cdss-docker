@@ -43,7 +43,10 @@ const getDatasetImportReadQuery = (user, extra = {}) =>
   isPredictionChiefDoctor(user) ? extra : { ...extra, doctor: user?._id };
 
 const getDatasetImportWriteQuery = (user, extra = {}) =>
-  isPredictionChiefDoctor(user) ? extra : { ...extra, doctor: user?._id };
+  ({ ...extra, doctor: user?._id });
+
+const getDatasetImportEditQuery = (user, extra = {}) =>
+  isPredictionChiefDoctor(user) ? extra : getDatasetImportWriteQuery(user, extra);
 
 const normalizeDatasetColumnKey = (value) =>
   String(value ?? "")
@@ -592,7 +595,9 @@ const dedupeDatasetImportsForChief = (items = []) => {
 };
 
 const getAccessibleDatasetImport = async (datasetId, user, options = {}) => {
-  const query = options.write
+  const query = options.edit
+    ? getDatasetImportEditQuery(user, { _id: datasetId })
+    : options.write
     ? getDatasetImportWriteQuery(user, { _id: datasetId })
     : getDatasetImportReadQuery(user, { _id: datasetId });
   const finder = DatasetImport.findOne(query);
@@ -887,7 +892,7 @@ const listDatasetImportRows = async (req, res, next) => {
 
 const updateDatasetImportRow = async (req, res, next) => {
   try {
-    const datasetImport = await getAccessibleDatasetImport(req.params.id, req.user, { write: true });
+    const datasetImport = await getAccessibleDatasetImport(req.params.id, req.user, { edit: true });
     const rowData = req.body?.rowData && typeof req.body.rowData === "object" ? req.body.rowData : null;
 
     if (!rowData || Array.isArray(rowData)) {

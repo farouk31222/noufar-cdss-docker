@@ -236,11 +236,30 @@ const getDatasetSelectionDoctorSession = () => {
 
 const getCurrentDatasetDoctorId = () => {
   const session = datasetDoctorSessionBridge?.getSession?.() || getDatasetSelectionDoctorSession() || {};
-  const user = session.user || {};
-  return String(user._id || user.id || "").trim();
+  const user = session.user || session.doctor || session.profile || {};
+  return String(
+    user._id ||
+      user.id ||
+      user.userId ||
+      session.userId ||
+      session.doctorId ||
+      session._id ||
+      session.id ||
+      ""
+  ).trim();
+};
+
+const isCurrentDatasetChiefDoctor = () => {
+  const session = datasetDoctorSessionBridge?.getSession?.() || getDatasetSelectionDoctorSession() || {};
+  const user = session.user || session.doctor || session.profile || {};
+  return (
+    String(user.predictionAccessScope || "").trim().toLowerCase() === "global" ||
+    String(user.email || session.email || "").trim().toLowerCase() === "zakifarouk78@gmail.com"
+  );
 };
 
 const canManageCurrentDataset = () => {
+  if (isCurrentDatasetChiefDoctor()) return true;
   const ownerId = String(dataset?.doctorId || "").trim();
   return !ownerId || ownerId === getCurrentDatasetDoctorId();
 };
@@ -1864,7 +1883,7 @@ if (datasetBody) {
     const inlineEditButton = event.target.closest("[data-inline-edit]");
     if (inlineEditButton) {
       if (!canManageCurrentDataset()) {
-        showDatasetSelectionToast("You can only edit dataset rows created by your own doctor account.", "danger");
+        showDatasetSelectionToast("Only the dataset owner or chief doctor can edit imported rows.", "danger");
         return;
       }
       selectedRowId = inlineEditButton.dataset.inlineEdit || "";
@@ -1961,7 +1980,7 @@ window.addEventListener("keydown", (event) => {
 if (editSelectedRowButton) {
   editSelectedRowButton.addEventListener("click", () => {
     if (!canManageCurrentDataset()) {
-      showDatasetSelectionToast("You can only edit dataset rows created by your own doctor account.", "danger");
+      showDatasetSelectionToast("Only the dataset owner or chief doctor can edit imported rows.", "danger");
       return;
     }
     const selectedRow =

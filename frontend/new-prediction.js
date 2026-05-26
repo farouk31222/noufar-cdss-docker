@@ -301,6 +301,42 @@ const getPredictionDoctorSession = () => {
 const getRecentUploadById = (uploadId) =>
   recentUploadsCache.find((entry) => String(entry.id) === String(uploadId)) || null;
 
+const getCurrentPredictionDoctor = () => {
+  const session = predictionDoctorSessionBridge?.getSession?.() || getPredictionDoctorSession() || {};
+  const user = session.user || session.doctor || session.profile || {};
+  return {
+    id: String(
+      user._id ||
+        user.id ||
+        user.userId ||
+        session.userId ||
+        session.doctorId ||
+        session._id ||
+        session.id ||
+        ""
+    ).trim(),
+    email: String(user.email || session.email || "").trim().toLowerCase(),
+  };
+};
+
+const isOwnDatasetImport = (upload = {}) => {
+  const currentDoctor = getCurrentPredictionDoctor();
+  const ownerId = String(upload.doctorId || "").trim();
+  const ownerEmail = String(upload.doctorEmail || "").trim().toLowerCase();
+
+  if (ownerId && currentDoctor.id) return ownerId === currentDoctor.id;
+  if (ownerEmail && currentDoctor.email) return ownerEmail === currentDoctor.email;
+  return !ownerId && !ownerEmail;
+};
+
+const getDatasetImportOwnerMeta = (upload = {}) => {
+  if (isOwnDatasetImport(upload)) return "";
+  const ownerName = String(upload.doctorName || "").trim();
+  const ownerEmail = String(upload.doctorEmail || "").trim();
+  const ownerLabel = ownerName || ownerEmail;
+  return ownerLabel ? `Uploaded by ${ownerLabel}` : "Uploaded by another doctor";
+};
+
 const requestDatasetImportsJson = async (path, options = {}) => {
   if (predictionDoctorSessionBridge?.requestJson) {
     return predictionDoctorSessionBridge.requestJson(`/dataset-imports${path}`, options);
@@ -1679,6 +1715,10 @@ const closeModal = (modal) => {
 
 const openDeleteUploadModal = (uploadId) => {
   const upload = getRecentUploadById(uploadId);
+  if (upload && !isOwnDatasetImport(upload)) {
+    showUploadDeleteToast("Only the doctor who uploaded this dataset can delete it.", "danger");
+    return;
+  }
   deleteTargetId = uploadId;
 
   if (deleteFileCopy) {
@@ -1763,21 +1803,30 @@ const renderRecentUploads = () => {
   recentUploadList.innerHTML = uploads
     .map((upload) => {
       const isCsv = upload.name.toLowerCase().endsWith(".csv");
-      const when = upload.uploadedAt ? `Uploaded ${timeAgo(upload.uploadedAt)}` : "";
+      const when = upload.uploadedAt ? timeAgo(upload.uploadedAt) : "";
+      const ownerMeta = getDatasetImportOwnerMeta(upload);
+      const metaParts = [
+        formatFileSize(upload.fileSize || 0),
+        `${upload.rowCount ?? "-"} patients`,
+        ownerMeta,
+        when ? (ownerMeta ? when : `Uploaded ${when}`) : "",
+      ].filter(Boolean);
       const fileIcon = isCsv
         ? `<img class="upload-file-img" src="assets/csv-icon.png" alt="CSV file" aria-label="CSV file"/>`
         : `<img class="upload-file-img" src="assets/excel-icon.png" alt="Excel file" aria-label="Excel file"/>`;
-      const deleteAction = `
-        <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-        </button>
-      `;
+      const deleteAction = isOwnDatasetImport(upload)
+        ? `
+            <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+            </button>
+          `
+        : "";
       return `
         <article class="upload-item ${upload.id === latestUploadId ? "is-selected" : ""}" data-upload-select="${upload.id}">
           ${fileIcon}
           <div class="upload-meta">
             <strong>${upload.name}</strong>
-            <span>${formatFileSize(upload.fileSize || 0)} · ${upload.rowCount ?? "—"} patients${when ? ` · ${when}` : ""}</span>
+            <span>${metaParts.join(" &middot; ")}</span>
           </div>
           <div class="upload-actions">
             <button class="upload-icon-btn" type="button" data-action="consult" data-upload-id="${upload.id}" title="Consult">
@@ -2192,17 +2241,26 @@ const renderAllUploadsModal = () => {
       ? `<img class="all-uploads-file-img" src="assets/csv-icon.png" alt="CSV"/>`
       : `<img class="all-uploads-file-img" src="assets/excel-icon.png" alt="Excel"/>`;
     const when = upload.uploadedAt ? timeAgo(upload.uploadedAt) : "";
-    const deleteAction = `
-      <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-      </button>
-    `;
+    const ownerMeta = getDatasetImportOwnerMeta(upload);
+    const metaParts = [
+      formatFileSize(upload.fileSize || 0),
+      `${upload.rowCount ?? "-"} patients`,
+      ownerMeta,
+      when ? (ownerMeta ? when : `Uploaded ${when}`) : "",
+    ].filter(Boolean);
+    const deleteAction = isOwnDatasetImport(upload)
+      ? `
+          <button class="upload-icon-btn upload-icon-btn-danger" type="button" data-action="delete" data-upload-id="${upload.id}" title="Delete">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        `
+      : "";
     return `
       <div class="all-uploads-item" data-upload-select="${upload.id}">
         ${icon}
         <div class="all-uploads-meta">
           <strong>${upload.name}</strong>
-          <span>${formatFileSize(upload.fileSize || 0)} · ${upload.rowCount ?? "—"} patients${when ? ` · ${when}` : ""}</span>
+          <span>${metaParts.join(" &middot; ")}</span>
         </div>
         <span class="all-uploads-select-hint">Select</span>
         <div class="all-uploads-actions">
@@ -2253,8 +2311,12 @@ if (allUploadsList) {
           );
         });
       } else if (action === "delete") {
-        deleteTargetId = uploadId;
         const upload = getRecentUploadById(uploadId);
+        if (upload && !isOwnDatasetImport(upload)) {
+          showUploadDeleteToast("Only the doctor who uploaded this dataset can delete it.", "danger");
+          return;
+        }
+        deleteTargetId = uploadId;
         if (deleteFileCopy) {
           deleteFileCopy.textContent = `Are you sure you want to permanently delete "${upload?.name || "this file"}"?`;
         }
@@ -2297,6 +2359,9 @@ if (confirmDeleteButton) {
       const upload = getRecentUploadById(activeDeleteTargetId);
       if (!upload) {
         throw new Error("Unable to find this imported file.");
+      }
+      if (!isOwnDatasetImport(upload)) {
+        throw new Error("Only the doctor who uploaded this dataset can delete it.");
       }
 
       const deletedFileName = upload.name || "Imported file";
