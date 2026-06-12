@@ -17,7 +17,7 @@
     <link rel="icon" type="image/png" href="assets/noufar-logo.png" />
     <link rel="shortcut icon" href="assets/noufar-logo.png" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="dashboard.css?v=20260506-3" />
+    <link rel="stylesheet" href="dashboard.css?v=20260612-patient-export-2" />
   </head>
   <body class="app-body patients-page-body">
     <div class="app-layout">
@@ -171,14 +171,54 @@
                   Review clinical entries and manage prediction workflows from one directory.
                 </p>
               </div>
-              <button class="btn-add-patient" type="button" id="open-add-patient-modal">
-                <span class="btn-add-patient-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-                  </svg>
-                </span>
-                <span>Add Patient</span>
-              </button>
+              <div class="patients-table-head-actions">
+                <div class="patients-export-shell">
+                  <button
+                    class="btn-export-patients"
+                    type="button"
+                    id="export-patients"
+                    aria-expanded="false"
+                    aria-controls="patients-export-menu"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
+                    </svg>
+                    <span>Export patients</span>
+                    <svg class="btn-export-patients-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m8 10 4 4 4-4" />
+                    </svg>
+                  </button>
+                  <div class="patients-export-menu" id="patients-export-menu" hidden>
+                    <span class="patients-export-menu-title">Choose a period</span>
+                    <button type="button" data-patient-export-range="today">Today</button>
+                    <button type="button" data-patient-export-range="7-days">Last 7 days</button>
+                    <button type="button" data-patient-export-range="30-days">Last 30 days</button>
+                    <button type="button" data-patient-export-range="all">All filtered patients</button>
+                    <div class="patients-export-custom">
+                      <strong>Custom date range</strong>
+                      <label>
+                        <span>From</span>
+                        <input type="date" id="patients-export-from" />
+                      </label>
+                      <label>
+                        <span>To</span>
+                        <input type="date" id="patients-export-to" />
+                      </label>
+                      <button class="patients-export-custom-submit" type="button" id="patients-export-custom-submit">
+                        Export date range
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-add-patient" type="button" id="open-add-patient-modal">
+                  <span class="btn-add-patient-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  <span>Add Patient</span>
+                </button>
+              </div>
             </div>
 
             <div class="table-shell">
@@ -528,7 +568,7 @@
     </section>
 
     <script src="config.js"></script>
-    <script src="app-shell.js?v=20260506-3"></script>
-    <script src="patients.js?v=20260526-saved-by-name"></script>
+    <script src="app-shell.js?v=20260612-chief-patient-notifications-2"></script>
+    <script src="patients.js?v=20260612-patient-export-2"></script>
   </body>
 </html>

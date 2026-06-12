@@ -1,4 +1,5 @@
 const { authenticateAccessToken } = require("../services/authSessionService");
+const { isPredictionChiefDoctor } = require("../services/doctorOwnershipService");
 
 const getAuthenticatedUserFromToken = async (token) => {
   const authResult = await authenticateAccessToken(token);
@@ -44,8 +45,18 @@ const authorize = (...roles) => (req, res, next) => {
   next();
 };
 
+const authorizePredictionChief = (req, res, next) => {
+  if (!req.user || !isPredictionChiefDoctor(req.user)) {
+    res.status(403);
+    return next(new Error("Forbidden: chief doctor access is required"));
+  }
+
+  next();
+};
+
 module.exports = {
   protect,
   authorize,
+  authorizePredictionChief,
   getAuthenticatedUserFromToken,
 };

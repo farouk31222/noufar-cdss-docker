@@ -1,13 +1,16 @@
 const Patient = require("../models/Patient");
 const Prediction = require("../models/Prediction");
+const User = require("../models/User");
 const {
   computePatientNameBlindIndex,
   encryptPatientPayload,
   mergePatientForResponse,
 } = require("../services/patientDataProtectionService");
 const { logAuditEventSafe } = require("../services/auditLogService");
+const { createNotification } = require("../services/notificationService");
 const {
   isDoctorUser,
+  isPredictionChiefDoctor,
   getDoctorPatientQuery,
   isPatientOwnedByDoctor,
   logCrossDoctorDenied,
@@ -23,6 +26,57 @@ const BIOLOGY_REQUIRED_FIELDS = [
   { key: "tsiLevel", label: "TSI level", numeric: true },
 ];
 const ALLOWED_THERAPIES = new Set(["Carbimazole", "Benzylthiouracile"]);
+
+const formatDoctorDisplayName = (value = "") => {
+  const name = String(value || "").trim() || "A doctor";
+  return /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
+};
+
+const notifyChiefDoctorsAboutPatient = async ({ patient, patientName, doctor, source }) => {
+  if (!patient || !doctor || !isDoctorUser(doctor) || isPredictionChiefDoctor(doctor)) return;
+
+  try {
+    const chiefDoctors = (await User.find({
+      role: "doctor",
+      approvalStatus: "Approved",
+      accountStatus: "Active",
+    }).select("_id name email role approvalStatus accountStatus")).filter(isPredictionChiefDoctor);
+
+    if (!chiefDoctors.length) return;
+
+    const doctorName = formatDoctorDisplayName(doctor.name || doctor.email);
+    const safePatientName = String(patientName || "a new patient").trim();
+    const patientId = String(patient._id);
+
+    await Promise.all(
+      chiefDoctors.map((chiefDoctor) =>
+        createNotification({
+          recipientUser: chiefDoctor._id,
+          recipientRole: "doctor",
+          actorUser: doctor._id,
+          actorName: doctor.name || doctor.email || "",
+          type: "patient-created",
+          title: "New patient added",
+          message: `${doctorName} added patient ${safePatientName} to the patient registry.`,
+          targetType: "patient",
+          targetId: patientId,
+          targetUrl: "patients.html",
+          metadata: {
+            patientId,
+            patientName: safePatientName,
+            doctorId: String(doctor._id),
+            doctorName,
+            source,
+            category: "Patients",
+            status: "Added",
+          },
+        })
+      )
+    );
+  } catch (error) {
+    console.warn("Chief doctor patient notification skipped:", error.message);
+  }
+};
 
 const getMissingBiologyFields = (payload = {}) =>
   BIOLOGY_REQUIRED_FIELDS.filter(({ key, numeric }) => {
@@ -280,6 +334,13 @@ const createPatient = async (req, res, next) => {
       metadata: {
         source,
       },
+    });
+
+    await notifyChiefDoctorsAboutPatient({
+      patient,
+      patientName: payload.patientName,
+      doctor: req.user,
+      source,
     });
 
     res.status(201).json({

@@ -929,35 +929,44 @@ window.showNoufarToast = (message, variant = "success") => {
 
 const getDoctorNotificationItems = () =>
   doctorNotificationsCache
-    .map((notification) => ({
-      notificationId: notification.id,
-      targetType: notification.targetType,
-      targetId: notification.targetId,
-      targetUrl: notification.targetUrl,
-      ticketId: notification.targetType === "support-ticket" ? notification.targetId : "",
-      subject: notification.title,
-      message: notification.message,
-      category: notification.targetType === "prediction" ? "Prediction" : notification.metadata?.category || "Support",
-      priority:
-        notification.targetType === "prediction"
+    .map((notification) => {
+      const isPrediction = notification.targetType === "prediction";
+      const isPatient =
+        notification.targetType === "patient" ||
+        notification.type === "patient-created" ||
+        Boolean(notification.metadata?.patientId);
+
+      return {
+        notificationId: notification.id,
+        targetType: isPatient ? "patient" : notification.targetType,
+        targetId: notification.targetId,
+        targetUrl: notification.targetUrl,
+        ticketId: notification.targetType === "support-ticket" ? notification.targetId : "",
+        subject: notification.title,
+        message: notification.message,
+        category: isPrediction ? "Prediction" : isPatient ? "Patients" : notification.metadata?.category || "Support",
+        priority: isPrediction
           ? [notification.metadata?.result, notification.metadata?.probability ? `${notification.metadata.probability}%` : ""]
               .filter(Boolean)
               .join(" · ") || "Prediction"
-          : notification.metadata?.priority || "Routine",
-      riskTone:
-        notification.targetType === "prediction" &&
-        String(notification.metadata?.result || "").trim().toLowerCase() === "no relapse"
-          ? "no-relapse"
-          : notification.targetType === "prediction"
-            ? "relapse"
-            : "",
-      status: notification.metadata?.status || "Open",
-      statusLabel: notification.targetType === "prediction" ? "Prediction" : "Support reply",
-      heading: notification.targetType === "prediction" ? notification.title : "Admin replied to your request",
-      unread: !notification.isRead,
-      repliedAt: notification.createdAt,
-      reply: notification.message,
-    }))
+          : isPatient
+            ? notification.metadata?.doctorName || "Doctor activity"
+            : notification.metadata?.priority || "Routine",
+        riskTone:
+          isPrediction &&
+          String(notification.metadata?.result || "").trim().toLowerCase() === "no relapse"
+            ? "no-relapse"
+            : isPrediction
+              ? "relapse"
+              : "",
+        status: notification.metadata?.status || "Open",
+        statusLabel: isPrediction ? "Prediction" : isPatient ? "Patient added" : "Support reply",
+        heading: isPrediction || isPatient ? notification.title : "Admin replied to your request",
+        unread: !notification.isRead,
+        repliedAt: notification.createdAt,
+        reply: notification.message,
+      };
+    })
     .sort((left, right) => new Date(right.repliedAt) - new Date(left.repliedAt));
 
 const fetchDoctorSupportThreads = async () => {
@@ -1971,7 +1980,7 @@ const renderNotificationPanel = () => {
     list.innerHTML = `
       <div class="notification-empty-state">
         <strong>No notifications yet</strong>
-        <p>Support replies and team prediction activity will appear here.</p>
+        <p>Support replies, new patients, and team prediction activity will appear here.</p>
       </div>
     `;
     return;
@@ -1997,8 +2006,11 @@ const renderNotificationPanel = () => {
       }).format(new Date(thread.repliedAt));
 
       const isPrediction = thread.targetType === "prediction";
+      const isPatient = thread.targetType === "patient";
       const priorityClass = isPrediction
         ? `prediction-${thread.riskTone || "relapse"}`
+        : isPatient
+          ? "patient-added"
         : String(thread.priority || "Routine")
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")
@@ -2011,6 +2023,8 @@ const renderNotificationPanel = () => {
             <div class="notification-item-avatar" aria-hidden="true">
               ${isPrediction
                 ? '<svg viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h8.5L20 8.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-1.5Z"></path><path d="M14 3v6h6"></path><path d="M8 14h8"></path><path d="M8 17h5"></path></svg>'
+                : isPatient
+                  ? '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M18 8v6"></path><path d="M15 11h6"></path></svg>'
                 : '<svg viewBox="0 0 24 24"><path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 17 16H9l-4.5 3v-11.5Z"></path><path d="M8.5 9.5h7"></path><path d="M8.5 12.5h4.5"></path></svg>'}
             </div>
             <div class="notification-item-body">
@@ -2346,6 +2360,12 @@ if (notificationToggles.length) {
       if (target?.type === "prediction" && target.id) {
         window.location.href = target.url || `prediction-details.html?id=${encodeURIComponent(target.id)}`;
         closeNotificationPanel();
+        return;
+      }
+
+      if (target?.type === "patient" && target.id) {
+        window.location.href = target.url || "patients.html";
+        closeNotificationPanel();
       }
     } catch (error) {
       const list = notificationPanel.querySelector("[data-notification-list]");
@@ -2480,12 +2500,41 @@ const ensureDoctorInboxNavigation = () => {
   }
 
   if (sidebarNav) {
+    const canManageDoctors = isPredictionChiefSession(doctorSession?.user);
+    let managementLink = sidebarNav.querySelector('a[href="doctor-management.html"]');
+
+    if (canManageDoctors && !managementLink) {
+      managementLink = document.createElement("a");
+      managementLink.className = "sidebar-link";
+      managementLink.href = "doctor-management.html";
+      managementLink.dataset.label = "Doctor Management";
+      managementLink.innerHTML = `
+        <svg class="sidebar-icon-image chief-management-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M16 20v-1.7a3.3 3.3 0 0 0-3.3-3.3H6.3A3.3 3.3 0 0 0 3 18.3V20M9.5 11.5a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5ZM18 8v6M15 11h6" />
+        </svg>
+        <span>Doctor Management</span>
+      `;
+      sidebarNav.appendChild(managementLink);
+    }
+
+    if (!canManageDoctors && managementLink) {
+      managementLink.remove();
+    } else if (managementLink) {
+      managementLink.classList.toggle(
+        "active",
+        document.body?.dataset.page === "doctor-management"
+      );
+    }
+  }
+
+  if (sidebarNav) {
     const professionalOrder = [
       'a.sidebar-link[href="dashboard.html"]',
       'a.sidebar-link[href="patients.html"]',
       'a.sidebar-link[href="new-prediction.html"]',
       'a.sidebar-link[href="history.html"]',
       'a.sidebar-link[href="doctor-inbox.html"]',
+      'a.sidebar-link[href="doctor-management.html"]',
     ];
 
     professionalOrder.forEach((selector) => {

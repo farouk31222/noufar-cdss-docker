@@ -73,6 +73,12 @@ const userSchema = new mongoose.Schema(
       enum: ["standard", "prediction"],
       default: "prediction",
     },
+    registrationAccountType: {
+      type: String,
+      enum: ["standard", "prediction"],
+      default: null,
+      immutable: true,
+    },
     specialty: {
       type: String,
       trim: true,

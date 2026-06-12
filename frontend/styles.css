@@ -3878,6 +3878,23 @@ p {
   font-weight: 500;
 }
 
+.auth-upload-head strong em {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-left: 0.45rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #c9dbf3;
+  border-radius: 999px;
+  background: #edf5ff;
+  color: #416fa9;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
 .auth-upload-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

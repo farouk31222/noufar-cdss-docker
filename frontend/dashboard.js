@@ -27,8 +27,6 @@ const validationCorrectBarNode = document.querySelector("#validation-correct-bar
 const validationPendingBarNode = document.querySelector("#validation-pending-bar");
 const validationIncorrectBarNode = document.querySelector("#validation-incorrect-bar");
 const recentHost = document.querySelector("#recent-activity");
-const queueCountNode = document.querySelector("#queue-count");
-const priorityListHost = document.querySelector("#priority-list");
 let dashboardPatientTotalCount = 0;
 
 const dashboardCountAnimations = new WeakMap();
@@ -357,14 +355,6 @@ const renderDashboardError = (message) => {
     `;
   }
 
-  if (priorityListHost) {
-    priorityListHost.innerHTML = `
-      <div class="history-empty-state">
-        <strong>Priority queue unavailable</strong>
-        <span>${message}</span>
-      </div>
-    `;
-  }
 };
 
 const loadDashboardPage = async () => {
@@ -391,7 +381,6 @@ const loadDashboardPage = async () => {
     renderDashboardStats();
     renderDashboardValidationStats();
     renderDashboardRecentActivity();
-    renderDashboardPriorityQueue();
   } catch (error) {
     renderDashboardError(error instanceof Error ? error.message : "Unexpected dashboard error.");
   }

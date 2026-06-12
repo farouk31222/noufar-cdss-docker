@@ -1233,9 +1233,10 @@ const validateUploadField = (field, label) => {
     }
     if (uploadNames[field.name]) {
       uploadNames[field.name].textContent = "No file selected";
+      uploadNames[field.name].classList.remove("has-file");
     }
     syncUploadPreviewButton(field.name, false);
-    return false;
+    return !field.required;
   }
 
   const fileName = file.name.toLowerCase();
@@ -1374,15 +1375,18 @@ if (registerForm && registerNote) {
       return;
     }
 
-    const uploadsValid = [
-      validateUploadField(uploadFields.medicalLicense, "Medical license"),
-      validateUploadField(uploadFields.nationalId, "National ID"),
-    ].every(Boolean);
+    const selectedUploadFields = [
+      [uploadFields.medicalLicense, "Medical license"],
+      [uploadFields.nationalId, "National ID"],
+    ].filter(([field]) => field?.files?.length);
+    const uploadsValid = selectedUploadFields.every(([field, label]) =>
+      validateUploadField(field, label)
+    );
 
     if (!uploadsValid || !registerForm.checkValidity()) {
       setFormMessage(
         registerNote,
-        "Please upload a valid medical license and national ID before registering.",
+        "Please review the selected doctor document before registering.",
         "error",
       );
       return;
@@ -1397,8 +1401,12 @@ if (registerForm && registerNote) {
     payload.append("role", "doctor");
     payload.append("doctorAccountType", registerForm.elements.doctorAccountType?.value || "standard");
     payload.append("termsAccepted", String(Boolean(registerForm.elements.terms?.checked)));
-    payload.append("medicalLicense", uploadFields.medicalLicense.files[0]);
-    payload.append("nationalId", uploadFields.nationalId.files[0]);
+    if (uploadFields.medicalLicense?.files?.[0]) {
+      payload.append("medicalLicense", uploadFields.medicalLicense.files[0]);
+    }
+    if (uploadFields.nationalId?.files?.[0]) {
+      payload.append("nationalId", uploadFields.nationalId.files[0]);
+    }
 
     try {
       setFormMessage(registerNote, "Creating your account...", "pending");

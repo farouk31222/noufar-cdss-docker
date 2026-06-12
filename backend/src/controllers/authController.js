@@ -58,6 +58,7 @@ const buildDoctorDirectoryFilter = (query = {}) => {
   const search = String(query.search || "").trim().toLowerCase();
   const approvalStatus = String(query.approvalStatus || "").trim();
   const accountStatus = String(query.accountStatus || "").trim();
+  const doctorAccountType = String(query.doctorAccountType || "").trim();
   const specialty = String(query.specialty || "").trim();
   const dateRange = String(query.dateRange || "").trim();
 
@@ -65,6 +66,7 @@ const buildDoctorDirectoryFilter = (query = {}) => {
     search,
     approvalStatus,
     accountStatus,
+    doctorAccountType,
     specialty,
     dateRange,
   };
@@ -85,6 +87,13 @@ const doctorMatchesDirectoryFilter = (doctor, filter = {}) => {
     return false;
   }
   if (filter.accountStatus && filter.accountStatus !== "all" && doctor.accountStatus !== filter.accountStatus) {
+    return false;
+  }
+  if (
+    filter.doctorAccountType &&
+    filter.doctorAccountType !== "all" &&
+    doctor.doctorAccountType !== filter.doctorAccountType
+  ) {
     return false;
   }
   if (filter.specialty && filter.specialty !== "all" && doctor.specialty !== filter.specialty) {
@@ -182,7 +191,9 @@ const sanitizeSubmittedDocument = (document, userId, options = {}) => ({
   verified: Boolean(document?.verified),
   ...(options.includeDocumentDownloads && userId && document?._id
     ? {
-        downloadUrl: `/api/auth/admin/users/${encodeURIComponent(String(userId))}/documents/${encodeURIComponent(
+        downloadUrl: `${
+          options.documentDownloadBasePath || "/api/auth/admin/users"
+        }/${encodeURIComponent(String(userId))}/documents/${encodeURIComponent(
           String(document._id)
         )}/download`,
       }
@@ -199,6 +210,10 @@ const sanitizeUser = (user, options = {}) => ({
     : user.doctorAccountType === "standard"
       ? "standard"
       : "prediction",
+  registrationAccountType:
+    user.registrationAccountType === "standard" || user.registrationAccountType === "prediction"
+      ? user.registrationAccountType
+      : null,
   predictionAccessScope:
     user.role === "doctor"
       ? isPredictionChiefDoctor(user)
@@ -229,6 +244,24 @@ const sanitizeUser = (user, options = {}) => ({
 const getAuthCollection = (user) => (user?.role === "admin" ? Admin : User);
 
 const sanitizeUsers = (users, options = {}) => users.map((user) => sanitizeUser(user, options));
+
+const getDoctorManagementSanitizeOptions = (req) => ({
+  includeDocumentDownloads: true,
+  documentDownloadBasePath:
+    req.user?.role === "doctor" ? "/api/auth/chief/doctors" : "/api/auth/admin/users",
+});
+
+const assertChiefDoctorTargetIsManageable = (req, res, doctor) => {
+  if (req.user?.role !== "doctor") {
+    return;
+  }
+
+  const isOwnAccount = String(req.user?._id || "") === String(doctor?._id || "");
+  if (isOwnAccount || isPredictionChiefDoctor(doctor)) {
+    res.status(403);
+    throw new Error("The chief doctor account is protected and cannot be managed here");
+  }
+};
 
 const createAuthResponsePayload = async (user, req) => {
   const { tokenBundle } = await createAuthSession({
@@ -329,11 +362,6 @@ const registerUser = async (req, res, next) => {
         throw new Error("Specialty and institution are required for doctor registration");
       }
 
-      if (!medicalLicenseFile || !nationalIdFile) {
-        res.status(400);
-        throw new Error("Medical license and national ID must be provided");
-      }
-
       if (!termsAccepted) {
         res.status(400);
         throw new Error("Terms confirmation is required");
@@ -376,18 +404,51 @@ const registerUser = async (req, res, next) => {
     let medicalLicenseDocument = null;
     let nationalIdDocument = null;
 
-    if (requestedRole === "doctor") {
+    if (requestedRole === "doctor" && (medicalLicenseFile || nationalIdFile)) {
       const doctorDocumentFolder = buildDoctorDocumentFolder(name);
 
-      medicalLicenseDocument = await storePrivateUpload({
-        file: medicalLicenseFile,
-        folder: doctorDocumentFolder,
-      });
-      nationalIdDocument = await storePrivateUpload({
-        file: nationalIdFile,
-        folder: doctorDocumentFolder,
-      });
+      if (medicalLicenseFile) {
+        medicalLicenseDocument = await storePrivateUpload({
+          file: medicalLicenseFile,
+          folder: doctorDocumentFolder,
+        });
+      }
+      if (nationalIdFile) {
+        nationalIdDocument = await storePrivateUpload({
+          file: nationalIdFile,
+          folder: doctorDocumentFolder,
+        });
+      }
     }
+
+    const submittedDocuments = [
+      medicalLicenseDocument
+        ? {
+            label: "Medical license",
+            fileName: medicalLicenseDocument.fileName,
+            filePath: medicalLicenseDocument.filePath,
+            storageProvider: medicalLicenseDocument.storageProvider,
+            bucket: medicalLicenseDocument.bucket,
+            objectKey: medicalLicenseDocument.objectKey,
+            mimeType: medicalLicenseDocument.mimeType,
+            fileSize: medicalLicenseDocument.fileSize,
+            verified: false,
+          }
+        : null,
+      nationalIdDocument
+        ? {
+            label: "National ID",
+            fileName: nationalIdDocument.fileName,
+            filePath: nationalIdDocument.filePath,
+            storageProvider: nationalIdDocument.storageProvider,
+            bucket: nationalIdDocument.bucket,
+            objectKey: nationalIdDocument.objectKey,
+            mimeType: nationalIdDocument.mimeType,
+            fileSize: nationalIdDocument.fileSize,
+            verified: false,
+          }
+        : null,
+    ].filter(Boolean);
 
     const user = await User.create({
       name,
@@ -395,36 +456,16 @@ const registerUser = async (req, res, next) => {
       password,
       role: requestedRole,
       doctorAccountType: requestedRole === "doctor" ? (isChiefDoctorRegistration ? "prediction" : normalizedDoctorAccountType) : "prediction",
+      registrationAccountType:
+        requestedRole === "doctor"
+          ? isChiefDoctorRegistration
+            ? "prediction"
+            : normalizedDoctorAccountType
+          : null,
       specialty,
       hospital,
       termsAccepted: Boolean(termsAccepted),
-      submittedDocuments:
-        requestedRole === "doctor"
-          ? [
-              {
-                label: "Medical license",
-                fileName: medicalLicenseDocument.fileName,
-                filePath: medicalLicenseDocument.filePath,
-                storageProvider: medicalLicenseDocument.storageProvider,
-                bucket: medicalLicenseDocument.bucket,
-                objectKey: medicalLicenseDocument.objectKey,
-                mimeType: medicalLicenseDocument.mimeType,
-                fileSize: medicalLicenseDocument.fileSize,
-                verified: false,
-              },
-              {
-                label: "National ID",
-                fileName: nationalIdDocument.fileName,
-                filePath: nationalIdDocument.filePath,
-                storageProvider: nationalIdDocument.storageProvider,
-                bucket: nationalIdDocument.bucket,
-                objectKey: nationalIdDocument.objectKey,
-                mimeType: nationalIdDocument.mimeType,
-                fileSize: nationalIdDocument.fileSize,
-                verified: false,
-              },
-            ]
-          : [],
+      submittedDocuments: requestedRole === "doctor" ? submittedDocuments : [],
       approvalStatus: requestedRole === "admin" || isChiefDoctorRegistration ? "Approved" : "Pending",
       accountStatus: requestedRole === "admin" || isChiefDoctorRegistration ? "Active" : "Inactive",
       statusHistory:
@@ -1195,7 +1236,14 @@ const getAllUsers = async (req, res, next) => {
   try {
     // pour lister les médecins
     const users = await User.find({ role: "doctor" }).sort({ createdAt: -1 });
-    res.status(200).json(sanitizeUsers(users, { includeDocumentDownloads: true }));
+    const manageableUsers =
+      req.user?.role === "doctor"
+        ? users.filter((doctor) => !isPredictionChiefDoctor(doctor))
+        : users;
+
+    res.status(200).json(
+      sanitizeUsers(manageableUsers, getDoctorManagementSanitizeOptions(req))
+    );
   } catch (error) {
     next(error);
   }
@@ -1205,7 +1253,11 @@ const exportDoctorsDirectory = async (req, res, next) => {
   try {
     const filters = buildDoctorDirectoryFilter(req.query);
     const doctors = await User.find({ role: "doctor" }).sort({ createdAt: -1 });
-    const sanitizedDoctors = sanitizeUsers(doctors);
+    const manageableDoctors =
+      req.user?.role === "doctor"
+        ? doctors.filter((doctor) => !isPredictionChiefDoctor(doctor))
+        : doctors;
+    const sanitizedDoctors = sanitizeUsers(manageableDoctors);
     const filteredDoctors = sanitizedDoctors.filter((doctor) =>
       doctorMatchesDirectoryFilter(doctor, filters)
     );
@@ -1259,6 +1311,8 @@ const downloadDoctorDocument = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
+
     document = Array.isArray(doctor.submittedDocuments)
       ? doctor.submittedDocuments.find((entry) => String(entry._id) === String(req.params.documentId))
       : null;
@@ -1286,6 +1340,13 @@ const downloadDoctorDocument = async (req, res, next) => {
 
     await sendStoredFileResponse(document, res);
   } catch (error) {
+    if (res.headersSent) {
+      if (!res.writableEnded) {
+        res.end();
+      }
+      return;
+    }
+
     if (res.statusCode === 200) {
       res.status(error.statusCode || 404);
     }
@@ -1440,6 +1501,8 @@ const approveDoctorAccount = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
+
     doctor.approvalStatus = "Approved";
     doctor.accountStatus = "Active";
     doctor.rejectionReason = "";
@@ -1461,7 +1524,7 @@ const approveDoctorAccount = async (req, res, next) => {
     }
 
     res.status(200).json({
-      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
+      user: sanitizeUser(doctor, getDoctorManagementSanitizeOptions(req)),
       emailStatus,
       message:
         emailStatus === "sent"
@@ -1510,6 +1573,8 @@ const rejectDoctorAccount = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
+
     const rejectionReason = String(req.body?.reason || "").trim() || "No rejection reason was provided.";
     doctor.approvalStatus = "Rejected";
     doctor.accountStatus = "Inactive";
@@ -1532,7 +1597,7 @@ const rejectDoctorAccount = async (req, res, next) => {
     await doctor.save();
 
     res.status(200).json({
-      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
+      user: sanitizeUser(doctor, getDoctorManagementSanitizeOptions(req)),
       emailStatus,
       message:
         emailStatus === "sent"
@@ -1582,6 +1647,8 @@ const deactivateDoctorAccount = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
+
     const deactivationReason = String(req.body?.reason || "").trim() || "No deactivation reason was provided.";
 
     doctor.accountStatus = "Inactive";
@@ -1591,7 +1658,7 @@ const deactivateDoctorAccount = async (req, res, next) => {
     await doctor.save();
 
     res.status(200).json({
-      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
+      user: sanitizeUser(doctor, getDoctorManagementSanitizeOptions(req)),
       message: "Doctor deactivated successfully",
     });
     await logAuditEventSafe({
@@ -1634,6 +1701,8 @@ const activateDoctorAccount = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
+
     doctor.accountStatus = "Active";
     doctor.deactivationReason = "";
     doctor.deletionReason = "";
@@ -1653,7 +1722,7 @@ const activateDoctorAccount = async (req, res, next) => {
     }
 
     res.status(200).json({
-      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
+      user: sanitizeUser(doctor, getDoctorManagementSanitizeOptions(req)),
       emailStatus,
       message:
         emailStatus === "sent"
@@ -1701,6 +1770,8 @@ const updateDoctorAccessType = async (req, res, next) => {
       throw new Error("Doctor not found");
     }
 
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
+
     if (doctor.accountStatus === "Deleted") {
       res.status(400);
       throw new Error("Deleted doctor accounts cannot be updated");
@@ -1724,7 +1795,7 @@ const updateDoctorAccessType = async (req, res, next) => {
     await doctor.save();
 
     res.status(200).json({
-      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
+      user: sanitizeUser(doctor, getDoctorManagementSanitizeOptions(req)),
       message:
         requestedType === "prediction"
           ? "Doctor access updated to Doctor with prediction"
@@ -1745,6 +1816,8 @@ const deleteDoctorAccount = async (req, res, next) => {
       res.status(404);
       throw new Error("Doctor not found");
     }
+
+    assertChiefDoctorTargetIsManageable(req, res, doctor);
 
     const deletionReason = String(req.body?.reason || "").trim() || "No block reason was provided.";
 
@@ -1767,7 +1840,7 @@ const deleteDoctorAccount = async (req, res, next) => {
     }
 
     res.status(200).json({
-      user: sanitizeUser(doctor, { includeDocumentDownloads: true }),
+      user: sanitizeUser(doctor, getDoctorManagementSanitizeOptions(req)),
       emailStatus,
       message:
         emailStatus === "sent"

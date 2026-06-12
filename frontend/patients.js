@@ -17,6 +17,11 @@ const patientFormCopy = document.querySelector("#patient-form-copy");
 const savePatientButton = document.querySelector("#save-patient-button");
 const patientFormNote = document.querySelector("#patient-form-note");
 const openAddPatientButton = document.querySelector("#open-add-patient-modal");
+const exportPatientsButton = document.querySelector("#export-patients");
+const exportPatientsMenu = document.querySelector("#patients-export-menu");
+const exportPatientsFrom = document.querySelector("#patients-export-from");
+const exportPatientsTo = document.querySelector("#patients-export-to");
+const exportPatientsCustomSubmit = document.querySelector("#patients-export-custom-submit");
 const addPatientCloseControls = document.querySelectorAll("[data-patient-modal-close]");
 const patientDetailsModal = document.querySelector("#patient-details-modal");
 const patientDetailsTitle = document.querySelector("#patient-details-title");
@@ -1214,6 +1219,173 @@ const getFilteredPatients = () => {
     });
 };
 
+const protectCsvCell = (value) => {
+  const text = String(value ?? "");
+  return /^[=+\-@]/.test(text.trimStart()) ? `'${text}` : text;
+};
+
+const toCsvCell = (value) => `"${protectCsvCell(value).replace(/"/g, '""')}"`;
+
+const getLocalDayStart = (value = new Date()) => {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const getLocalDayEnd = (value = new Date()) => {
+  const date = new Date(value);
+  date.setHours(23, 59, 59, 999);
+  return date;
+};
+
+const parseLocalDateInput = (value, endOfDay = false) => {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return endOfDay ? getLocalDayEnd(date) : getLocalDayStart(date);
+};
+
+const closePatientsExportMenu = () => {
+  if (!exportPatientsMenu || !exportPatientsButton) return;
+  exportPatientsMenu.hidden = true;
+  exportPatientsButton.setAttribute("aria-expanded", "false");
+};
+
+const exportFilteredPatients = ({ from = null, to = null, rangeLabel = "all" } = {}) => {
+  const entries = getFilteredPatients().filter((patient) => {
+    const createdAt = new Date(patient.createdAt);
+    if (Number.isNaN(createdAt.getTime())) return false;
+    if (from && createdAt < from) return false;
+    if (to && createdAt > to) return false;
+    return true;
+  });
+  if (!entries.length) {
+    showPatientsToast("No patients match the selected period and current filters.", "danger");
+    return;
+  }
+
+  const headers = [
+    "Patient ID",
+    "Patient name",
+    "Age",
+    "Sex",
+    "Consultation reason",
+    "Stress",
+    "Palpitations",
+    "SPP",
+    "AMG",
+    "Diarrhea",
+    "Tremors",
+    "Agitation",
+    "Mood disorder",
+    "Sleep disorder",
+    "Excess sweating",
+    "Heat intolerance",
+    "Muscle weakness",
+    "Goiter",
+    "Goiter classification",
+    "TSH",
+    "FT4",
+    "Anti-TPO",
+    "Anti-TPO total",
+    "Anti-Tg",
+    "TSI",
+    "TSI level",
+    "Ultrasound",
+    "Scintigraphy",
+    "Therapy",
+    "Treatment duration (months)",
+    "Block and replace",
+    "Surgery",
+    "Radioactive iodine",
+    "Source",
+    "Prediction status",
+    "Saved by",
+    "Created at",
+  ];
+
+  const rows = entries.map((patient) => {
+    const values = getPatientInputSnapshot(patient);
+    const hasPrediction = Boolean(getPredictionForPatientName(patient.patientName));
+    return [
+      patient.id,
+      patient.patientName,
+      patient.age,
+      patient.sex,
+      patient.consultationReason,
+      values.stress,
+      values.palpitations,
+      values.spp,
+      values.amg,
+      values.diarrhea,
+      values.tremors,
+      values.agitation,
+      values.moodDisorder,
+      values.sleepDisorder,
+      values.sweating,
+      values.heatIntolerance,
+      values.muscleWeakness,
+      values.goiter,
+      values.goiterClassification,
+      values.tsh,
+      values.ft4,
+      values.antiTpo,
+      values.antiTpoTotal,
+      values.antiTg,
+      values.tsi,
+      values.tsiLevel,
+      values.ultrasound,
+      values.scintigraphy,
+      values.therapy,
+      values.duration || patient.duration,
+      values.blockReplace,
+      values.surgery,
+      values.radioactiveIodine,
+      patient.source,
+      hasPrediction ? "Predicted" : "Not yet predicted",
+      formatPredictedByDisplay(patient.savedByName),
+      formatDate(patient.createdAt, true),
+    ];
+  });
+
+  const csv = [
+    headers.map(toCsvCell).join(","),
+    ...rows.map((row) => row.map(toCsvCell).join(",")),
+  ].join("\r\n");
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const filterLabel = String(patientsFilter?.value || "all").replace(/[^a-z0-9-]+/gi, "-");
+  link.href = url;
+  link.download = `noufar-patients-${rangeLabel}-${filterLabel}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  closePatientsExportMenu();
+  showPatientsToast(`${entries.length} patient${entries.length === 1 ? "" : "s"} exported successfully.`);
+};
+
+const exportPatientsForRange = (range) => {
+  const todayStart = getLocalDayStart();
+  const todayEnd = getLocalDayEnd();
+
+  if (range === "today") {
+    exportFilteredPatients({ from: todayStart, to: todayEnd, rangeLabel: "today" });
+    return;
+  }
+
+  if (range === "7-days" || range === "30-days") {
+    const days = range === "7-days" ? 7 : 30;
+    const from = getLocalDayStart();
+    from.setDate(from.getDate() - (days - 1));
+    exportFilteredPatients({ from, to: todayEnd, rangeLabel: range });
+    return;
+  }
+
+  exportFilteredPatients({ rangeLabel: "all" });
+};
+
 const paginatePatients = (items, page = 1, pageSize = PATIENTS_PAGE_SIZE) => {
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
@@ -1388,6 +1560,12 @@ const renderPatients = () => {
   if (patientsEmpty) {
     patientsEmpty.hidden = pageData.totalItems > 0;
   }
+  if (exportPatientsButton) {
+    exportPatientsButton.disabled = pageData.totalItems === 0;
+    exportPatientsButton.title = pageData.totalItems
+      ? `Export ${pageData.totalItems} filtered patient${pageData.totalItems === 1 ? "" : "s"}`
+      : "No patients available to export";
+  }
 
   updatePatientsSummary(pageData, query);
   renderPatientsPagination(pageData.currentPage, pageData.totalPages, pageData.totalItems);
@@ -1525,6 +1703,45 @@ openAddPatientButton?.addEventListener("click", () => {
   openModal(addPatientModal);
 });
 
+exportPatientsButton?.addEventListener("click", () => {
+  if (!exportPatientsMenu) return;
+  const shouldOpen = exportPatientsMenu.hidden;
+  exportPatientsMenu.hidden = !shouldOpen;
+  exportPatientsButton.setAttribute("aria-expanded", String(shouldOpen));
+});
+
+exportPatientsMenu?.addEventListener("click", (event) => {
+  const rangeButton = event.target.closest("[data-patient-export-range]");
+  if (!rangeButton) return;
+  exportPatientsForRange(rangeButton.dataset.patientExportRange);
+});
+
+exportPatientsCustomSubmit?.addEventListener("click", () => {
+  const from = parseLocalDateInput(exportPatientsFrom?.value);
+  const to = parseLocalDateInput(exportPatientsTo?.value, true);
+
+  if (!from || !to) {
+    showPatientsToast("Select both the start date and end date.", "danger");
+    return;
+  }
+
+  if (from > to) {
+    showPatientsToast("The start date must be before the end date.", "danger");
+    return;
+  }
+
+  exportFilteredPatients({
+    from,
+    to,
+    rangeLabel: `${exportPatientsFrom.value}-to-${exportPatientsTo.value}`,
+  });
+});
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest(".patients-export-shell")) return;
+  closePatientsExportMenu();
+});
+
 addPatientCloseControls.forEach((control) => {
   control.addEventListener("click", () => {
     editingPatientId = null;
@@ -1560,6 +1777,7 @@ deletePatientCloseControls.forEach((control) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
+  closePatientsExportMenu();
   closeModal(addPatientModal);
   closeModal(patientDetailsModal);
   closeModal(deleteModal);

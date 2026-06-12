@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { pipeline } = require("stream/promises");
 const { Client: MinioClient } = require("minio");
 const {
   normalizeDisplayFileName,
@@ -185,26 +186,38 @@ const sendStoredFileResponse = async (storedFile = {}, res) => {
       throw error;
     }
 
-    const stream = await minioClient.getObject(bucket, objectKey).catch((error) => {
+    const objectStat = await minioClient.statObject(bucket, objectKey).catch((error) => {
       const wrappedError = new Error("File not found.");
       wrappedError.statusCode = 404;
       wrappedError.cause = error;
       throw wrappedError;
     });
+    const stream = await minioClient.getObject(bucket, objectKey).catch((error) => {
+      const wrappedError = new Error("Unable to load the stored file.");
+      wrappedError.statusCode = 503;
+      wrappedError.cause = error;
+      throw wrappedError;
+    });
 
     res.setHeader("Content-Type", storedFile.mimeType || "application/octet-stream");
+    if (Number.isFinite(Number(objectStat?.size))) {
+      res.setHeader("Content-Length", String(objectStat.size));
+    }
     res.setHeader(
       "Content-Disposition",
       buildInlineDisposition(storedFile.fileName || storedFile.originalName || "document")
     );
-    stream.on("error", () => {
-      if (!res.headersSent) {
-        res.status(404).json({ message: "File not found." });
-      } else {
-        res.end();
-      }
-    });
-    stream.pipe(res);
+    res.setHeader("Cache-Control", "private, no-store");
+
+    if (typeof stream.setTimeout === "function") {
+      stream.setTimeout(15000, () => {
+        const timeoutError = new Error("Object storage response timed out.");
+        timeoutError.statusCode = 504;
+        stream.destroy(timeoutError);
+      });
+    }
+
+    await pipeline(stream, res);
     return;
   }
 

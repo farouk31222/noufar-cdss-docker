@@ -17,7 +17,7 @@
     <link rel="icon" type="image/png" href="assets/noufar-logo.png" />
     <link rel="shortcut icon" href="assets/noufar-logo.png" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="dashboard.css?v=20260612-remove-priority-queue-1" />
   </head>
   <body class="app-body dashboard-body">
     <div class="app-layout">
@@ -307,7 +307,7 @@
           </section>
           </section>
 
-          <section class="dashboard-grid">
+          <section class="dashboard-grid dashboard-grid-single">
             <div class="dashboard-primary-column">
               <article class="surface-card table-card dashboard-table-card">
                 <div class="table-card-head">
@@ -338,24 +338,6 @@
               </article>
             </div>
 
-            <aside class="dashboard-side-column">
-              <article class="surface-card dashboard-queue-card">
-                <div class="table-card-head dashboard-card-head">
-                  <div class="priority-queue-heading">
-                    <img class="priority-queue-icon" src="assets/alarm.png" alt="" aria-hidden="true" />
-                    <div>
-                      <div class="section-title">Priority Review Queue</div>
-                      <p class="dashboard-section-copy">
-                        Patients with the strongest relapse signal requiring attention first.
-                      </p>
-                    </div>
-                  </div>
-                  <span class="dashboard-inline-chip" id="queue-count">0 cases</span>
-                </div>
-
-                <div class="priority-list" id="priority-list"></div>
-              </article>
-            </aside>
           </section>
 
           
@@ -388,7 +370,7 @@
 
     <script src="config.js"></script>
     <script src="data.js?v=20260501c"></script>
-    <script src="app-shell.js?v=20260501c"></script>
-    <script src="dashboard.js?v=20260514-metrics-polish"></script>
+    <script src="app-shell.js?v=20260612-chief-patient-notifications-2"></script>
+    <script src="dashboard.js?v=20260612-remove-priority-queue-1"></script>
   </body>
 </html>

@@ -26,7 +26,11 @@ const {
   deleteDoctorAccount,
   downloadDoctorDocument,
 } = require("../controllers/authController");
-const { protect, authorize } = require("../middleware/authMiddleware");
+const {
+  protect,
+  authorize,
+  authorizePredictionChief,
+} = require("../middleware/authMiddleware");
 const { upload } = require("../middleware/uploadMiddleware");
 const {
   registerLimiter,
@@ -73,5 +77,30 @@ router.patch("/admin/users/:id/deactivate", protect, authorize("admin"), deactiv
 router.patch("/admin/users/:id/activate", protect, authorize("admin"), activateDoctorAccount);
 router.patch("/admin/users/:id/access-type", protect, authorize("admin"), updateDoctorAccessType);
 router.patch("/admin/users/:id/delete", protect, authorize("admin"), deleteDoctorAccount);
+
+router.get("/chief/doctors", protect, authorizePredictionChief, getAllUsers);
+router.get("/chief/doctors/export", protect, authorizePredictionChief, exportDoctorsDirectory);
+router.get(
+  "/chief/doctors/:id/documents/:documentId/download",
+  protect,
+  authorizePredictionChief,
+  downloadDoctorDocument
+);
+router.patch("/chief/doctors/:id/approve", protect, authorizePredictionChief, approveDoctorAccount);
+router.patch("/chief/doctors/:id/reject", protect, authorizePredictionChief, rejectDoctorAccount);
+router.patch(
+  "/chief/doctors/:id/deactivate",
+  protect,
+  authorizePredictionChief,
+  deactivateDoctorAccount
+);
+router.patch("/chief/doctors/:id/activate", protect, authorizePredictionChief, activateDoctorAccount);
+router.patch(
+  "/chief/doctors/:id/access-type",
+  protect,
+  authorizePredictionChief,
+  updateDoctorAccessType
+);
+router.patch("/chief/doctors/:id/delete", protect, authorizePredictionChief, deleteDoctorAccount);
 
 module.exports = router;
